@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models.character import Base
+
+from models.character import Base as CharacterBase
+from models.avatar import Base as AvatarBase
 
 DATABASE_URL = "sqlite:///./rockmundo.db"
 
@@ -14,5 +16,6 @@ def get_db():
     finally:
         db.close()
 
-# Create tables if they don't exist
-Base.metadata.create_all(bind=engine)
+# Create tables
+CharacterBase.metadata.create_all(bind=engine)
+AvatarBase.metadata.create_all(bind=engine)
