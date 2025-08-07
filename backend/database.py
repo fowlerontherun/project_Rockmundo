@@ -1,34 +1,48 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import sqlite3
 
-from models.character import Base as CharacterBase
-from models.avatar import Base as AvatarBase
-from models.skin import Base as SkinBase
-from models.band import Base as BandBase
-from models.music import Base as MusicBase
-from models.distribution import Base as DistributionBase
+def initialize_database():
+    conn = sqlite3.connect("rockmundo.db")
+    cursor = conn.cursor()
 
-DATABASE_URL = "sqlite:///./rockmundo.db"
+    # Vehicle types
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS vehicle_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        description TEXT,
+        speed INTEGER,
+        capacity INTEGER,
+        maintenance_cost INTEGER,
+        base_cost INTEGER
+    )
+    """)
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+    # User-owned vehicles
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_vehicles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        vehicle_type_id INTEGER,
+        nickname TEXT,
+        upgrades TEXT,
+        condition INTEGER DEFAULT 100,
+        FOREIGN KEY(vehicle_type_id) REFERENCES vehicle_types(id)
+    )
+    """)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # Vehicle upgrades
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS vehicle_upgrades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        effect TEXT,
+        cost INTEGER
+    )
+    """)
 
-# FastAPI dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    conn.commit()
+    conn.close()
 
-# Create all tables
-CharacterBase.metadata.create_all(bind=engine)
-AvatarBase.metadata.create_all(bind=engine)
-SkinBase.metadata.create_all(bind=engine)
-BandBase.metadata.create_all(bind=engine)
-MusicBase.metadata.create_all(bind=engine)
-DistributionBase.metadata.create_all(bind=engine)
+if __name__ == "__main__":
+    initialize_database()
+    print("Database initialized.")

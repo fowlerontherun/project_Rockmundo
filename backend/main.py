@@ -1,32 +1,34 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-from routes.character import router as character_router
-from routes.avatar import router as avatar_router
-from routes.skin import router as skin_router
-from routes.band import router as band_router
-from routes.music import router as music_router
-from routes.distribution import router as distribution_router
+from fastapi import FastAPI, HTTPException
+import sqlite3
 
 app = FastAPI()
 
-# CORS setup
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Adjust for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+DB_PATH = "rockmundo.db"
 
-# Include all routers
-app.include_router(character_router)
-app.include_router(avatar_router)
-app.include_router(skin_router)
-app.include_router(band_router)
-app.include_router(music_router)
-app.include_router(distribution_router)
+@app.get("/vehicles/list")
+def list_vehicle_types():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM vehicle_types")
+    vehicles = cursor.fetchall()
+    conn.close()
+    return {"vehicles": vehicles}
 
-@app.get("/")
-def root():
-    return {"message": "RockMundo API is live!"}
+@app.post("/vehicles/purchase")
+def purchase_vehicle(user_id: int, vehicle_type_id: int, nickname: str = ""):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO user_vehicles (user_id, vehicle_type_id, nickname) VALUES (?, ?, ?)",
+                   (user_id, vehicle_type_id, nickname))
+    conn.commit()
+    conn.close()
+    return {"message": "Vehicle purchased successfully."}
+
+@app.get("/vehicles/user")
+def get_user_vehicles(user_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM user_vehicles WHERE user_id = ?", (user_id,))
+    result = cursor.fetchall()
+    conn.close()
+    return {"vehicles": result}
