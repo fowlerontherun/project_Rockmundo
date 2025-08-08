@@ -1,22 +1,19 @@
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import date
 
-class PerformanceAction(BaseModel):
-    type: str  # 'song', 'speech', 'stunt', 'guest'
-    reference: Optional[str]  # song_id or guest_band_id or description
-    description: Optional[str]  # freeform notes (e.g. 'burns flag', 'calls out press')
+from datetime import datetime
 
-class LivePerformance(BaseModel):
-    id: int
-    band_id: int
-    venue_id: Optional[int]
-    performance_type: str  # 'standard', 'acoustic', 'festival'
-    date: date
-    setlist: List[PerformanceAction]
-    performance_score: float
-    crowd_engagement: float
-    fame_gain: float
-    skill_gain: float
-    revenue: float
-    is_solo: bool
+class LivePerformance:
+    def __init__(self, id, band_id, city, venue, date, setlist, crowd_size, fame_earned, revenue_earned, skill_gain, merch_sold):
+        self.id = id
+        self.band_id = band_id
+        self.city = city
+        self.venue = venue
+        self.date = date or datetime.utcnow().isoformat()
+        self.setlist = setlist
+        self.crowd_size = crowd_size
+        self.fame_earned = fame_earned
+        self.revenue_earned = revenue_earned
+        self.skill_gain = skill_gain
+        self.merch_sold = merch_sold
+
+    def to_dict(self):
+        return self.__dict__

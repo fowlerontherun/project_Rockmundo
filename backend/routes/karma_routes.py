@@ -1,29 +1,27 @@
-from fastapi import APIRouter
-from schemas.karma_schema import KarmaEventCreate
-from models.karma import KarmaEvent
-from datetime import datetime
-from typing import List
 
-router = APIRouter()
-karma_events: List[KarmaEvent] = []
-karma_id = 1
+from flask import Blueprint, request, jsonify
+from services.karma_service import KarmaService
 
-@router.post("/karma/", response_model=KarmaEvent)
-def add_karma(event: KarmaEventCreate):
-    global karma_id
-    new_event = KarmaEvent(
-        id=karma_id,
-        user_id=event.user_id,
-        score_change=event.score_change,
-        reason=event.reason,
-        auto=event.auto,
-        visible_reason=event.visible_reason,
-        timestamp=datetime.utcnow()
-    )
-    karma_events.append(new_event)
-    karma_id += 1
-    return new_event
+karma_routes = Blueprint('karma_routes', __name__)
+karma_service = KarmaService(db=None)
 
-@router.get("/karma/{user_id}", response_model=List[KarmaEvent])
-def get_user_karma(user_id: int):
-    return [k for k in karma_events if k.user_id == user_id]
+@karma_routes.route('/karma/<int:user_id>', methods=['GET'])
+def get_karma(user_id):
+    return jsonify({
+        "total": karma_service.get_user_karma(user_id),
+        "history": karma_service.get_karma_history(user_id)
+    })
+
+@karma_routes.route('/karma/adjust', methods=['POST'])
+def adjust_karma():
+    data = request.json
+    try:
+        karma_service.adjust_karma(
+            user_id=data['user_id'],
+            amount=data['amount'],
+            reason=data['reason'],
+            source=data['source']
+        )
+        return '', 204
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400

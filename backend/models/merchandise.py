@@ -1,24 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional
-from datetime import date
 
-class Merchandise(BaseModel):
-    id: int
-    band_id: int
-    name: str
-    category: str  # 'apparel', 'music', 'accessory', 'specialty'
-    design_theme: Optional[str]
-    base_cost: float
-    sale_price: float
-    quantity_available: int
-    quantity_sold: int
-    fame_boost_on_sale: float
-    release_date: date
-    sales_channel: str  # 'gig', 'tour', 'online'
-    limited_edition: bool
-    # Added cost breakdown
-    production_cost: float
-    packaging_cost: float
-    shipping_cost: float
-    sales_staff_cost: float
-    storage_cost: Optional[float]
+from datetime import datetime
+
+class Merchandise:
+    def __init__(self, id, band_id, item_name, price, stock, total_sold=0, created_at=None):
+        self.id = id
+        self.band_id = band_id
+        self.item_name = item_name
+        self.price = price
+        self.stock = stock
+        self.total_sold = total_sold
+        self.created_at = created_at or datetime.utcnow().isoformat()
+
+    def to_dict(self):
+        return self.__dict__

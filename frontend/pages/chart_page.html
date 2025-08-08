@@ -1,0 +1,25 @@
+
+<h2>Global Top 100 Chart</h2>
+
+<div>
+  <label for="weekInput">Week Start (YYYY-MM-DD):</label>
+  <input type="text" id="weekInput" />
+  <button onclick="loadChart()">Load Chart</button>
+</div>
+
+<ul id="chartList"></ul>
+
+<script>
+async function loadChart() {
+  const week = document.getElementById('weekInput').value;
+  const res = await fetch(`/charts/global/${week}`);
+  const data = await res.json();
+  const list = document.getElementById('chartList');
+  list.innerHTML = '';
+  data.forEach((entry, index) => {
+    const li = document.createElement('li');
+    li.innerText = `#${entry.position} - Song ID ${entry.song_id} (Band ${entry.band_id})`;
+    list.appendChild(li);
+  });
+}
+</script>

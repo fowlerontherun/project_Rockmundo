@@ -1,0 +1,20 @@
+
+<h2>Your Music Library</h2>
+<div id="tabs">
+  <button onclick="showTab('songs')">Songs</button>
+  <button onclick="showTab('albums')">Albums</button>
+</div>
+<div id="songsTab" class="tab">
+  <h3>Songs</h3>
+  <ul id="songList"></ul>
+</div>
+<div id="albumsTab" class="tab" style="display:none;">
+  <h3>Albums</h3>
+  <ul id="albumList"></ul>
+</div>
+<script>
+function showTab(tab) {
+  document.getElementById('songsTab').style.display = tab === 'songs' ? 'block' : 'none';
+  document.getElementById('albumsTab').style.display = tab === 'albums' ? 'block' : 'none';
+}
+</script>

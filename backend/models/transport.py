@@ -1,15 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float
-from database import Base
 
-class Transport(Base):
-    __tablename__ = "transport"
+from datetime import datetime
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    capacity = Column(Integer, nullable=False)
-    speed = Column(Float, nullable=False)
-    fuel_cost_per_km = Column(Float, nullable=False)
-    sleep_quality = Column(Float, nullable=False)
-    maintenance_cost = Column(Float, nullable=False)
-    travel_range_km = Column(Integer, nullable=False)
-    type = Column(String, nullable=False)
+class Transport:
+    def __init__(self, id, band_id, vehicle_type, speed, fatigue_rate, capacity, perks, last_maintenance=None):
+        self.id = id
+        self.band_id = band_id
+        self.vehicle_type = vehicle_type  # van, bus, truck, plane, ferry
+        self.speed = speed  # km/h
+        self.fatigue_rate = fatigue_rate  # fatigue per hour
+        self.capacity = capacity  # seats or load
+        self.perks = perks or []
+        self.last_maintenance = last_maintenance or datetime.utcnow().isoformat()
+
+    def to_dict(self):
+        return self.__dict__

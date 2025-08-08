@@ -1,0 +1,26 @@
+
+<h2>NPC Band Admin</h2>
+
+<button onclick="createBand()">Create NPC Band</button>
+<button onclick="simulate()">Simulate Activity</button>
+
+<ul id="log"></ul>
+
+<script>
+async function createBand() {
+  const res = await fetch('/npc_band/create', { method: 'POST' });
+  const data = await res.json();
+  log(`Created: ${data.name} (${data.genre})`);
+}
+
+async function simulate() {
+  await fetch('/npc_band/simulate', { method: 'POST' });
+  log("Simulated NPC band activity.");
+}
+
+function log(message) {
+  const li = document.createElement('li');
+  li.innerText = message;
+  document.getElementById('log').appendChild(li);
+}
+</script>

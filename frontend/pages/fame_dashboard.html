@@ -1,0 +1,30 @@
+
+<h2>Fame Dashboard</h2>
+
+<div>
+  <label for="bandId">Band ID:</label>
+  <input type="text" id="bandId" />
+  <button onclick="loadFame()">Load Fame</button>
+</div>
+
+<h3>Total Fame: <span id="fameTotal">-</span></h3>
+<ul id="fameHistory"></ul>
+
+<script>
+async function loadFame() {
+  const bandId = document.getElementById('bandId').value;
+  const fameRes = await fetch(`/fame/${bandId}/total`);
+  const fameData = await fameRes.json();
+  document.getElementById('fameTotal').innerText = fameData.fame;
+
+  const historyRes = await fetch(`/fame/${bandId}`);
+  const historyData = await historyRes.json();
+  const list = document.getElementById('fameHistory');
+  list.innerHTML = '';
+  historyData.forEach(event => {
+    const li = document.createElement('li');
+    li.innerText = `${event.timestamp}: ${event.source} +${event.amount} (${event.reason})`;
+    list.appendChild(li);
+  });
+}
+</script>

@@ -1,0 +1,20 @@
+
+<h2>Revenue Dashboard</h2>
+
+<div>
+  <label for="bandIdInput">Enter Band ID:</label>
+  <input type="text" id="bandIdInput" />
+  <button onclick="fetchRevenue()">Get Revenue</button>
+</div>
+
+<div id="revenueResults"></div>
+
+<script>
+async function fetchRevenue() {
+  const bandId = document.getElementById('bandIdInput').value;
+  const res = await fetch(`/revenue/band/${bandId}`);
+  const data = await res.json();
+  const container = document.getElementById('revenueResults');
+  container.innerHTML = "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+}
+</script>

@@ -1,0 +1,20 @@
+
+<h2>Create Album</h2>
+<form id="albumForm">
+  <input type="text" name="title" placeholder="Album Title" required />
+  <select name="album_type">
+    <option value="EP">EP (max 4 songs)</option>
+    <option value="LP">LP</option>
+    <option value="Single">Single</option>
+  </select>
+  <input type="text" name="genre" placeholder="Genre" required />
+  <label>Select Songs:</label>
+  <div id="songSelector"></div>
+  <select name="distribution_channels" multiple>
+    <option value="digital">Digital</option>
+    <option value="vinyl">Vinyl</option>
+    <option value="streaming">Streaming</option>
+  </select>
+  <input type="file" name="cover_art" />
+  <button type="submit">Create Album</button>
+</form>

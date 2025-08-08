@@ -1,0 +1,34 @@
+
+<h2>Live Gig Simulator</h2>
+
+<form id="gigForm">
+  <input type="text" name="band_id" placeholder="Band ID" required />
+  <input type="text" name="city" placeholder="City" required />
+  <input type="text" name="venue" placeholder="Venue" required />
+  <input type="text" name="setlist" placeholder="Song IDs (comma-separated)" required />
+  <button type="submit">Simulate Gig</button>
+</form>
+
+<pre id="resultBox"></pre>
+
+<script>
+document.getElementById('gigForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const payload = {
+    band_id: parseInt(formData.get('band_id')),
+    city: formData.get('city'),
+    venue: formData.get('venue'),
+    setlist: formData.get('setlist').split(',').map(s => parseInt(s.trim()))
+  };
+
+  const res = await fetch('/gigs/simulate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  document.getElementById('resultBox').innerText = JSON.stringify(data, null, 2);
+});
+</script>

@@ -1,0 +1,28 @@
+
+<h2>Karma Dashboard</h2>
+
+<div>
+  <label for="userId">User ID:</label>
+  <input type="text" id="userId" />
+  <button onclick="loadKarma()">Load Karma</button>
+</div>
+
+<h3>Total Karma: <span id="karmaTotal">-</span></h3>
+<ul id="karmaHistory"></ul>
+
+<script>
+async function loadKarma() {
+  const userId = document.getElementById('userId').value;
+  const res = await fetch(`/karma/${userId}`);
+  const data = await res.json();
+
+  document.getElementById('karmaTotal').innerText = data.total;
+  const history = document.getElementById('karmaHistory');
+  history.innerHTML = '';
+  data.history.forEach(entry => {
+    const li = document.createElement('li');
+    li.innerText = `${entry.timestamp}: ${entry.source} (${entry.reason}) ${entry.amount > 0 ? '+' : ''}${entry.amount}`;
+    history.appendChild(li);
+  });
+}
+</script>
