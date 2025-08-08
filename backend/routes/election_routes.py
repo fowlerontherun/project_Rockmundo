@@ -1,40 +1,38 @@
-from fastapi import APIRouter
-from schemas.election_schema import ElectionCreate, VoteCast
-from models.election import Election
-from datetime import datetime
-from typing import List
 
-router = APIRouter()
-elections: List[Election] = []
-election_id = 1
+from flask import Blueprint, request, jsonify
+from services.election_service import ElectionService
 
-@router.post("/elections/", response_model=Election)
-def create_election(data: ElectionCreate):
-    global election_id
-    new_election = Election(
-        id=election_id,
-        role=data.role,
-        region=data.region,
-        candidates=data.candidates,
-        votes={cid: 0 for cid in data.candidates},
-        open=True,
-        start_date=data.start_date,
-        end_date=data.end_date,
-        campaign_promises=data.campaign_promises
-    )
-    elections.append(new_election)
-    election_id += 1
-    return new_election
+election_routes = Blueprint('election_routes', __name__)
+election_service = ElectionService(db=None)
 
-@router.post("/elections/{eid}/vote")
-def cast_vote(eid: int, vote: VoteCast):
-    for election in elections:
-        if election.id == eid and election.open:
-            if vote.candidate_id in election.votes:
-                election.votes[vote.candidate_id] += 1
-            return {"status": "vote counted"}
-    return {"error": "Election not found or closed"}
+@election_routes.route('/elections/create', methods=['POST'])
+def create_election():
+    data = request.json
+    try:
+        result = election_service.create_election(
+            role_name=data['role_name'],
+            candidates=data['candidates']
+        )
+        return jsonify(result), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
-@router.get("/elections/", response_model=List[Election])
-def list_elections():
-    return elections
+@election_routes.route('/elections/vote', methods=['POST'])
+def vote():
+    data = request.json
+    try:
+        result = election_service.vote(
+            election_id=data['election_id'],
+            candidate_id=data['candidate_id']
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@election_routes.route('/elections/close/<int:election_id>', methods=['POST'])
+def close_election(election_id):
+    try:
+        result = election_service.close_election(election_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

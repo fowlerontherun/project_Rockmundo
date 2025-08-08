@@ -1,10 +1,12 @@
 import sqlite3
 
+DB_PATH = "rockmundo.db"
+
 def initialize_database():
-    conn = sqlite3.connect("rockmundo.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Vehicle types
+    # === Vehicle types ===
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS vehicle_types (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,7 +19,7 @@ def initialize_database():
     )
     """)
 
-    # User-owned vehicles
+    # === User-owned vehicles ===
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS user_vehicles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +32,7 @@ def initialize_database():
     )
     """)
 
-    # Vehicle upgrades
+    # === Vehicle upgrades ===
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS vehicle_upgrades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,9 +42,7 @@ def initialize_database():
     )
     """)
 
+    # Add your other table creation statements here...
+
     conn.commit()
     conn.close()
-
-if __name__ == "__main__":
-    initialize_database()
-    print("Database initialized.")

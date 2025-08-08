@@ -1,34 +1,47 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import os
+import importlib
 import sqlite3
+from database import initialize_database
 
 app = FastAPI()
-
 DB_PATH = "rockmundo.db"
 
-@app.get("/vehicles/list")
-def list_vehicle_types():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM vehicle_types")
-    vehicles = cursor.fetchall()
-    conn.close()
-    return {"vehicles": vehicles}
+# Enable CORS (adjust origins in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.post("/vehicles/purchase")
-def purchase_vehicle(user_id: int, vehicle_type_id: int, nickname: str = ""):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO user_vehicles (user_id, vehicle_type_id, nickname) VALUES (?, ?, ?)",
-                   (user_id, vehicle_type_id, nickname))
-    conn.commit()
-    conn.close()
-    return {"message": "Vehicle purchased successfully."}
+# === Initialize Database on Startup ===
+@app.on_event("startup")
+def startup_event():
+    if not os.path.exists(DB_PATH):
+        print("Initializing database...")
+        initialize_database()
 
-@app.get("/vehicles/user")
-def get_user_vehicles(user_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM user_vehicles WHERE user_id = ?", (user_id,))
-    result = cursor.fetchall()
-    conn.close()
-    return {"vehicles": result}
+# === Dynamically Load and Include All Routes ===
+def load_routes():
+    import os
+    import glob
+    route_files = glob.glob("backend/routes/*.py")
+    for file in route_files:
+        if "__init__" in file:
+            continue
+        module_name = file.replace("/", ".").replace(".py", "")
+        module = importlib.import_module(module_name)
+        for attr in dir(module):
+            obj = getattr(module, attr)
+            if hasattr(obj, "router"):
+                app.include_router(obj.router)
+            elif hasattr(obj, "blueprint") or hasattr(obj, "routes"):
+                try:
+                    app.include_router(obj)
+                except Exception:
+                    pass
+
+load_routes()

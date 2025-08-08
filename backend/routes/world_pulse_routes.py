@@ -1,28 +1,14 @@
-from fastapi import APIRouter
-from models.world_pulse_models import *
-from schemas.world_pulse_schemas import *
 
-router = APIRouter()
+from flask import Blueprint, jsonify
+from services.world_pulse_service import WorldPulseService
 
-@router.get("/worldpulse/trending_genres")
-def trending_genres():
-    return {"genres": ["Pop", "Punk", "EDM", "Rock"]}
+pulse_routes = Blueprint('pulse_routes', __name__)
+pulse_service = WorldPulseService(db=None)
 
-@router.get("/worldpulse/karma_heatmap")
-def karma_heatmap():
-    return {"heatmap": {"London": 70, "Berlin": 45, "NYC": -20}}
-
-@router.get("/worldpulse/event_stream")
-def event_stream():
-    return {"events": [
-        "Band X released a new album.",
-        "Band Y just won 'Best Live Act'.",
-        "Band Z headlined MegaFest."
-    ]}
-
-@router.get("/worldpulse/top_influencers")
-def top_influencers():
-    return {"influencers": [
-        {"band": "Neon Dreams", "score": 98},
-        {"band": "Static Echo", "score": 93}
-    ]}
+@pulse_routes.route('/world-pulse', methods=['GET'])
+def get_world_pulse():
+    try:
+        result = pulse_service.generate_world_pulse()
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
