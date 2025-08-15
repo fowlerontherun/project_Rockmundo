@@ -1,151 +1,128 @@
-# 🎸 RockMundo Development Wiki
 
-Welcome to **RockMundo** – a next-generation, community-driven band simulation game inspired by Popmundo but rebuilt for the modern age. This page tracks all current and upcoming features across the development cycle.
+# RockMundo Backend
 
----
+## Overview
+RockMundo is a modern music industry simulation game inspired by the depth of legacy titles like Popmundo, rebuilt with a fully featured, modular backend in Python/FastAPI. This backend powers a persistent, multiplayer world where players can create and manage avatars, form bands, record and distribute music, tour globally, and interact with a dynamic, AI-driven simulation.
 
-## 🧭 Vision
-
-RockMundo is a persistent multiplayer music sim where players:
-
-- Form and manage bands
-- Train skills and unlock hidden talents
-- Write, release, and promote songs and albums
-- Go on tours and collaborate with other bands
-- Customize 3D avatars and skins
-- Influence the game world through elections and karma
+This document outlines the current state of implemented features, the roadmap for future development, and the architecture that ties it all together.
 
 ---
 
-## ✅ Features Already Built
+## Implemented Features
 
-### 👤 Characters & Avatars
-- Unique auto-generated names (no duplicates)
-- 3D avatar creator with cosmetic-only skins
-- Skins system supports:
-  - Clothing
-  - Instruments
-  - Vehicles
-- Player-submitted skins with revenue sharing
+### 1) Core Platform & API
+- FastAPI routes and services scaffolding across all major domains (auth, bands, charts, distribution, streaming, transport, admin, lifestyle, NPCs, events, sponsorships, etc.)
+- Database migrations and seed data for initial world setup.
+- Role-based access control (RBAC) groundwork with role/permission checks in place.
+- OpenAPI documentation via FastAPI.
 
-### 🎸 Band & Music
-- Band creation and full management
-- Song & Album system:
-  - Support for EPs (up to 4 songs)
-  - Full albums
-  - Track collaboration between bands (50/50 royalties)
-- Streaming + Sales:
-  - Digital sales
-  - Vinyl sales
-  - Streaming platforms
-- Royalty earnings system
+### 2) Player & Avatar System
+- Avatar models, routes, and schemas for player creation and customization.
+- Cosmetic skin system (models/routes/schemas) with support for future 3D designer integration.
+- Emote models for expressive interactions.
 
-### 📊 Charts
-- Global performance charts:
-  - Combined (sales + streams)
-  - Digital-only
-  - Vinyl-only
-  - Streaming-only
+### 3) Bands, Collaborations & Gigs
+- Band management with collaboration support for joint songs/albums.
+- Gig and live performance tracking.
+- Festival history and promotion mechanics.
 
-### 🧠 AI/NPC Layer
-- NPC characters simulate real player loops
-- Capped progression so players can outgrow them
-- Random event-based NPC interactions (e.g. skill boosts)
+### 4) Music Content: Songs, Albums, EPs
+- Song and album creation with business rule enforcement (e.g., EP max song count).
+- Digital distribution endpoints for releasing music.
 
-### 🛠 Admin Tools
-- In-game admin panel with UI to:
-  - Reset world
-  - Adjust game balance
-  - Modify or create locations, items, skills
-  - Manage NPCs, skins, venues
+### 5) Streaming, Sales, Charts & Royalties
+- Streaming models and services for tracking plays.
+- Sales models/routes for digital and vinyl formats.
+- Global chart system with fame and promotion modifiers.
+- Royalties framework.
 
----
+### 6) Progression & Skills
+- Base skill system with progression and XP gains.
+- Random event system (injury, illness, burnout) affecting skills.
+- Daily scheduler for timed events.
 
-## 🔜 Features Planned for **Beta Launch**
+### 7) Lifestyle & Event Engine
+- Lifestyle models and services (sleep, drinking, stress) influencing skills.
+- Random lifestyle events impacting player stats.
+- Notification routes for communicating events to players.
 
-### 🧠 Skills & Learning
-- 40 base skills (e.g., Singing, Electric Guitar, Sound Mixing)
-- Sub-skill unlocks (e.g., mastering Electric Guitar unlocks Lead Guitar)
-- Genre-based skill trees
-- Hidden skill unlocks via combinations
-- Practice, online lessons, and tutorials (no books)
+### 8) NPCs & World Simulation
+- NPC bands to populate the world and simulate activity.
+- AI-controlled gigs and releases.
 
-### 💸 Economy & Progression
-- Daily login rewards
-  - Streak bonuses
-  - Monthly perfect streak bonus
+### 9) Community & Governance
+- Karma tracking and admin moderation tools.
+- Election and community role systems.
 
-### 🤝 Social & Community
-- Band alliances & rivalries (impact fans and press)
-- Mentorship 2.0 (optional, gamified)
-- Karma system
-  - Rewards helpful behavior
-  - Restricts toxic players from events/features
-- NPC elections for:
-  - Label heads
-  - Venue managers
-  - Genre council chairs
+### 10) Venues, Sponsors & Ads
+- Venue sponsorship management (naming, logos, website links).
+- CPM and fixed-fee ad revenue models.
+
+### 11) Transport, Touring & Logistics
+- AI tour scheduler and transport optimizer.
+- Fan logistics engine for interactive tour planning.
+
+### 12) Admin & Ops
+- Admin routes and analytics services.
+- Audit logging for admin actions.
+
+### 13) Media & Promotion
+- Media exposure and promotion systems.
+- Podcast scaffolding.
+
+### 14) Docs, Wiki & Onboarding
+- Large-scale name generator with thousands of first/last name combinations.
+- Documentation seeds for internal/external usage.
 
 ---
 
-## 🚀 Planned for **Full Release**
+## Roadmap (Next Steps)
 
-### 🚐 Touring & Transport
-- Visual route planner UI
-- Transport system with:
-  - Vans, buses, trucks, planes, ferries
-  - Upgrades (e.g., merch shop, sleeping pods)
-- Logistics simulation (fuel, customs, crew fatigue)
-- AI tour manager system (optimize route, venues)
-- Fan logistics:
-  - Fan petitions for tour stops
-  - Affect popularity and fame
+### Immediate Priorities
+1. Centralize RBAC & permissions.
+2. Finalize royalties and sponsor revenue system.
+3. Implement daily baseline XP and lifestyle-linked progression.
+4. Launch interactive tour planner UI.
+5. Build real-time admin dashboard.
+6. Ship 3D avatar designer + skin marketplace.
 
-### 📡 Publicity & Media
-- In-game video/audio podcast system
-- Support for player-made promotion content
-- Live gigs with visual control
-- Music video-style shows
-
-### 🌎 World Systems
-- Career hubs ("Majors"):
-  - Musicians, Producers, Promoters
-  - Each with rankings, shared perks, elections
-- Community Events:
-  - Genre shifts
-  - Festivals
-  - Peace Week (karma-based)
-- World Pulse Dashboard:
-  - Live trends, top cities, genre surges, karma metrics
+### Feature Expansions
+- Country-specific charts and leaderboards.
+- Advanced NPC simulation with seasonal and random events.
+- Community-driven festivals and genre trends.
+- Player-submitted cosmetic moderation workflows.
 
 ---
 
-## 🗺 Roadmap Overview
-
-| Milestone        | Status     | Notes |
-|------------------|------------|-------|
-| Core Backend      | ✅ Done      | SQLite DB, APIs, Admin Tools |
-| Core Frontend     | ⚙️ In Dev    | UI files scaffolded |
-| Character & Bands | ✅ Done      | Stable |
-| Skins & Inventory | ✅ Done      | Supports cosmetics |
-| Charts & Earnings | ✅ Done      | Working data model |
-| Beta Systems      | 🔜 Building  | Skills, Karma, Login rewards |
-| Touring Engine    | 🔜 Planned   | Map + Logistics |
-| Public Media Layer| 🚀 Planned   | Post-beta |
+## Technical Stack
+- **Language:** Python 3.x
+- **Framework:** FastAPI
+- **Database:** SQLite (migrations included)
+- **ORM:** SQLAlchemy / Pydantic models
+- **Auth:** Role-based (JWT-ready)
+- **Architecture:** Modular services, routes, and models
+- **Deployment:** Uvicorn / Docker-ready
 
 ---
 
-## 🧩 Tech Stack
+## Setup Instructions
+1. Clone the repository.
+2. Install dependencies: `pip install -r requirements.txt`
+3. Apply migrations: `alembic upgrade head`
+4. Seed the database with initial data.
+5. Run the server: `uvicorn main:app --reload`
+6. Access the API docs at `http://localhost:8000/docs`
 
-- **Backend:** FastAPI + SQLite (async-ready)
-- **Frontend:** React (planned) + Vite
-- **Avatar Engine:** Custom 3D avatar designer
-- **Agents:** Multi-agent orchestration system using GPT-4o
+---
+
+## Contributing
+We welcome contributions via pull requests. Please ensure all new features include:
+- Models (SQLAlchemy + Pydantic)
+- Routes with proper HTTP methods
+- Service layer for business logic
+- Unit tests
+- OpenAPI annotations
 
 ---
 
-## 🧠 Want to Contribute?
-
-RockMundo is being developed in modular stages with agent-based assistance. Join the project or suggest features by submitting issues or feature requests.
-
----
+© 2025 RockMundo
