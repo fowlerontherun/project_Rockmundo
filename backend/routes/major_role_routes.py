@@ -8,7 +8,7 @@ majors: List[Major] = []
 roles: List[RoleAssignment] = []
 major_id = 1
 
-@router.post("/majors/", response_model=Major)
+@router.post("/majors/", response_model=Major, dependencies=[Depends(require_role(["admin", "moderator"]))])
 def create_major(data: MajorCreate):
     global major_id
     new_major = Major(

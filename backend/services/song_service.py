@@ -1,22 +1,67 @@
+import sqlite3
+from backend.database import DB_PATH
 
-from models.song import Song
 
-class SongService:
-    def __init__(self, db):
-        self.db = db
+def create_song(band_id: int, title: str, duration_sec: int, genre: str, royalties_split: dict) -> dict:
+    if sum(royalties_split.values()) != 100:
+        return {"error": "Royalties must sum to 100%"}
 
-    def create_song(self, data):
-        if sum(data.get('royalties_split', {}).values()) != 100:
-            raise ValueError("Royalties must sum to 100%")
-        song = Song(**data)
-        self.db.insert_song(song)
-        return song.to_dict()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
-    def list_songs_by_band(self, band_id):
-        return self.db.get_songs_by_band(band_id)
+    cur.execute("""
+        INSERT INTO songs (band_id, title, duration_sec, genre, play_count)
+        VALUES (?, ?, ?, ?, 0)
+    """, (band_id, title, duration_sec, genre))
+    song_id = cur.lastrowid
 
-    def update_song(self, song_id, updates):
-        self.db.update_song(song_id, updates)
+    for user_id, percent in royalties_split.items():
+        cur.execute("""
+            INSERT INTO royalties (song_id, user_id, percent)
+            VALUES (?, ?, ?)
+        """, (song_id, user_id, percent))
 
-    def delete_song(self, song_id):
-        self.db.delete_song(song_id)
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "song_id": song_id}
+
+
+def get_songs_by_band(band_id: int) -> list:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT id, title, duration_sec, genre, play_count
+        FROM songs
+        WHERE band_id = ?
+        ORDER BY id DESC
+    """, (band_id,))
+    songs = cur.fetchall()
+    conn.close()
+
+    return [dict(zip(["song_id", "title", "duration", "genre", "plays"], row)) for row in songs]
+
+
+def update_song(song_id: int, updates: dict) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    for field, value in updates.items():
+        cur.execute(f"UPDATE songs SET {field} = ? WHERE id = ?", (value, song_id))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Song updated"}
+
+
+def delete_song(song_id: int) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM royalties WHERE song_id = ?", (song_id,))
+    cur.execute("DELETE FROM album_songs WHERE song_id = ?", (song_id,))
+    cur.execute("DELETE FROM songs WHERE id = ?", (song_id,))
+
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Song deleted"}

@@ -7,7 +7,7 @@ router = APIRouter()
 fanclubs = []
 fanclub_id_counter = 1
 
-@router.post("/fanclubs/", response_model=FanClubResponse)
+@router.post("/fanclubs/", response_model=FanClubResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_fanclub(fanclub: FanClubCreate):
     global fanclub_id_counter
     new_fc = fanclub.dict()

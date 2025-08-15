@@ -3,7 +3,7 @@ from services.mailbox_service import *
 
 router = APIRouter()
 
-@router.post("/mail/send")
+@router.post("/mail/send", dependencies=[Depends(require_role(["admin", "moderator"]))])
 def send_message(payload: dict):
     return send_mail(payload)
 

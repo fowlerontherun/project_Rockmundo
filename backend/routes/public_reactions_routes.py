@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-@router.post("/press/event")
+@router.post("/press/event", dependencies=[Depends(require_role(["admin", "moderator"]))])
 async def log_press_event(event: dict):
     return {"message": "Press event logged", "event": event}
 

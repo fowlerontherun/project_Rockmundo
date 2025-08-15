@@ -10,7 +10,7 @@ from database import get_db
 
 router = APIRouter(prefix="/bands", tags=["Bands"])
 
-@router.post("/", response_model=BandResponse)
+@router.post("/", response_model=BandResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_band(band: BandCreate, db: Session = Depends(get_db)):
     existing = db.query(Band).filter_by(name=band.name).first()
     if existing:

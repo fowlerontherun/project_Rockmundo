@@ -1,0 +1,8 @@
+# Add these lines where you register FastAPI routers (e.g., backend/api.py or backend/main.py)
+
+from api.routes import sponsorship as sponsorship_routes
+app.include_router(sponsorship_routes.router)
+
+# Also ensure your environment sets DEVMIND_DB_PATH to your SQLite path, e.g.:
+#   export DEVMIND_DB_PATH="/abs/path/to/devmind_schema.db"   (Linux/Mac)
+#   set DEVMIND_DB_PATH=C:\abs\path\to\devmind_schema.db  (Windows)

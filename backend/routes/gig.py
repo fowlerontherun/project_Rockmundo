@@ -16,7 +16,7 @@ def is_band_solo(band_id: int, db: Session) -> bool:
 
 router = APIRouter()
 
-@router.post("/gigs/book", response_model=GigOut)
+@router.post("/gigs/book", response_model=GigOut, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def book_gig(gig: GigCreate, db: Session = Depends(get_db)):
     if gig.acoustic:
         if is_band_solo(gig.band_id, db):

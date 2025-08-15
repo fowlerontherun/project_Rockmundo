@@ -4,7 +4,7 @@ from schemas.fan_club_schemas import *
 
 router = APIRouter()
 
-@router.post("/fan_club/create")
+@router.post("/fan_club/create", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_fan_club(fan_club: FanClubCreate):
     return {"message": f"Fan club '{fan_club.name}' created for band {fan_club.band_id}"}
 

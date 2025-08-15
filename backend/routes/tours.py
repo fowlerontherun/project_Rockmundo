@@ -7,7 +7,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/tours/create")
+@router.post("/tours/create", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_tour(tour_data: TourCreate, db: Session = Depends(get_db)):
     new_tour = Tour(**tour_data.dict())
     db.add(new_tour)

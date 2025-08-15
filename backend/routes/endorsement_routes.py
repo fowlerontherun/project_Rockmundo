@@ -7,7 +7,7 @@ router = APIRouter()
 endorsements = []
 endorsement_id_counter = 1
 
-@router.post("/endorsements/", response_model=EndorsementResponse)
+@router.post("/endorsements/", response_model=EndorsementResponse, dependencies=[Depends(require_role(["admin"]))])
 def create_endorsement(endorsement: EndorsementCreate):
     global endorsement_id_counter
     new_endorsement = endorsement.dict()

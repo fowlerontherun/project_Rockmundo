@@ -6,7 +6,7 @@ router = APIRouter()
 promotions_db = []
 promotion_id_counter = 1
 
-@router.post("/promotions/", response_model=PromotionResponse)
+@router.post("/promotions/", response_model=PromotionResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_promotion(promo: PromotionCreate):
     global promotion_id_counter
     new_promo = promo.dict()

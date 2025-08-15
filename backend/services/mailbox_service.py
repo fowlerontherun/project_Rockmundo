@@ -1,29 +1,62 @@
+import sqlite3
 from datetime import datetime
+from backend.database import DB_PATH
 
-mail_store = {}
+def send_message(sender_id: int, receiver_id: int, subject: str, body: str) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO messages (sender_id, receiver_id, subject, body, sent_at, read, deleted)
+        VALUES (?, ?, ?, ?, ?, 0, 0)
+    """, (sender_id, receiver_id, subject, body, datetime.utcnow().isoformat()))
+    message_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message_id": message_id}
 
-def send_mail(payload):
-    recipient_id = payload["recipient_id"]
-    if recipient_id not in mail_store:
-        mail_store[recipient_id] = []
-    mail = {
-        "sender_id": payload["sender_id"],
-        "subject": payload["subject"],
-        "message": payload["message"],
-        "message_type": payload.get("message_type", "system"),
-        "timestamp": datetime.utcnow(),
-        "archived": False
-    }
-    mail_store[recipient_id].append(mail)
-    return {"status": "sent", "mail": mail}
+def get_inbox(user_id: int) -> list:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, sender_id, subject, body, sent_at, read
+        FROM messages
+        WHERE receiver_id = ? AND deleted = 0
+        ORDER BY sent_at DESC
+    """, (user_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(zip(["message_id", "sender_id", "subject", "body", "sent_at", "read"], row)) for row in rows]
 
-def get_inbox(user_id):
-    return {"inbox": mail_store.get(user_id, [])}
+def get_sent(user_id: int) -> list:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, receiver_id, subject, body, sent_at
+        FROM messages
+        WHERE sender_id = ? AND deleted = 0
+        ORDER BY sent_at DESC
+    """, (user_id,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(zip(["message_id", "receiver_id", "subject", "body", "sent_at"], row)) for row in rows]
 
-def archive_mail(payload):
-    user_id = payload["user_id"]
-    index = payload["message_index"]
-    if user_id in mail_store and 0 <= index < len(mail_store[user_id]):
-        mail_store[user_id][index]["archived"] = True
-        return {"status": "archived", "message": mail_store[user_id][index]}
-    return {"error": "Invalid request"}
+def mark_as_read(message_id: int) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("UPDATE messages SET read = 1 WHERE id = ?", (message_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Message marked as read"}
+
+def delete_message(message_id: int, user_id: int) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    # Soft delete: only allow sender or receiver to delete
+    cur.execute("""
+        UPDATE messages
+        SET deleted = 1
+        WHERE id = ? AND (sender_id = ? OR receiver_id = ?)
+    """, (message_id, user_id, user_id))
+    conn.commit()
+    conn.close()
+    return {"status": "ok", "message": "Message deleted"}

@@ -6,7 +6,7 @@ from database import get_db
 
 router = APIRouter(prefix="/skins", tags=["Skins"])
 
-@router.post("/", response_model=SkinResponse)
+@router.post("/", response_model=SkinResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def submit_skin(skin: SkinCreate, db: Session = Depends(get_db)):
     new_skin = Skin(**skin.dict())
     db.add(new_skin)

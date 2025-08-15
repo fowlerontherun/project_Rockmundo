@@ -6,7 +6,7 @@ from schemas.transport import TransportCreate
 
 router = APIRouter()
 
-@router.post("/transport/add")
+@router.post("/transport/add", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def add_transport(transport_data: TransportCreate, db: Session = Depends(get_db)):
     new_vehicle = Transport(**transport_data.dict())
     db.add(new_vehicle)

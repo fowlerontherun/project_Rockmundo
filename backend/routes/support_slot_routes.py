@@ -7,7 +7,7 @@ router = APIRouter()
 support_slots: List[SupportSlot] = []
 slot_id_counter = 1
 
-@router.post("/support_slots/", response_model=SupportSlotResponse)
+@router.post("/support_slots/", response_model=SupportSlotResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def invite_support_band(data: SupportSlotCreate):
     global slot_id_counter
     slot = SupportSlot(

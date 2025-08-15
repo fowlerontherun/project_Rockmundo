@@ -10,7 +10,7 @@ from database import get_db
 
 router = APIRouter(prefix="/music", tags=["Music"])
 
-@router.post("/songs", response_model=SongResponse)
+@router.post("/songs", response_model=SongResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def create_song(song: SongCreate, db: Session = Depends(get_db)):
     if not (song.band_id or song.collaboration_id):
         raise HTTPException(status_code=400, detail="Must provide band_id or collaboration_id")

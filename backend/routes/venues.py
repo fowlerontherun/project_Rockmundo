@@ -6,7 +6,7 @@ from schemas.venues import VenueCreate
 
 router = APIRouter()
 
-@router.post("/venues/add")
+@router.post("/venues/add", dependencies=[Depends(require_role(["admin"]))])
 def add_venue(venue_data: VenueCreate, db: Session = Depends(get_db)):
     new_venue = Venue(**venue_data.dict())
     db.add(new_venue)

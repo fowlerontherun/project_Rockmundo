@@ -3,7 +3,7 @@ from services.replay_service import *
 
 router = APIRouter()
 
-@router.post("/replay/log")
+@router.post("/replay/log", dependencies=[Depends(require_role(["admin"]))])
 def log_event(payload: dict):
     return log_player_event(payload)
 

@@ -4,7 +4,7 @@ from schemas.admin_analytics_schemas import AnalyticsFilterSchema
 
 router = APIRouter()
 
-@router.post("/admin/analytics/user_metrics")
+@router.post("/admin/analytics/user_metrics", dependencies=[Depends(require_role(["admin"]))])
 def get_user_metrics(filters: AnalyticsFilterSchema):
     return fetch_user_metrics(filters)
 

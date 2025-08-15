@@ -7,7 +7,7 @@ router = APIRouter()
 managers = []
 manager_id_counter = 1
 
-@router.post("/managers/", response_model=ManagerResponse)
+@router.post("/managers/", response_model=ManagerResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def hire_manager(manager: ManagerCreate):
     global manager_id_counter
     new_manager = manager.dict()

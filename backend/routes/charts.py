@@ -6,7 +6,7 @@ from database import get_db
 
 router = APIRouter()
 
-@router.post("/charts/add")
+@router.post("/charts/add", dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def add_chart_entry(entry: ChartEntryCreate, db: Session = Depends(get_db)):
     new_entry = ChartEntry(**entry.dict())
     db.add(new_entry)

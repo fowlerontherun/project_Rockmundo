@@ -3,7 +3,7 @@ from services.skins_service import *
 
 router = APIRouter()
 
-@router.post("/skins/submit")
+@router.post("/skins/submit", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def submit_skin(payload: dict):
     return submit_new_skin(payload)
 

@@ -9,7 +9,7 @@ from schemas.streaming import (
 
 router = APIRouter()
 
-@router.post("/sales/digital", response_model=DigitalSaleOut)
+@router.post("/sales/digital", response_model=DigitalSaleOut, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def record_digital_sale(sale: DigitalSaleCreate, db: Session = Depends(get_db)):
     new_sale = DigitalSale(**sale.dict())
     db.add(new_sale)

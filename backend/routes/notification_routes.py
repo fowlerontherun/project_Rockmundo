@@ -3,7 +3,7 @@ from services.scheduler_service import *
 
 router = APIRouter()
 
-@router.post("/notify/send")
+@router.post("/notify/send", dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def send_notification(payload: dict):
     return send_user_notification(payload)
 

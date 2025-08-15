@@ -1,45 +1,90 @@
-
-from models.chart_entry import ChartEntry
-from collections import defaultdict
+import sqlite3
 from datetime import datetime, timedelta
+from backend.database import DB_PATH
 
-class ChartService:
-    def __init__(self, db):
-        self.db = db
 
-    def calculate_weekly_charts(self):
-        songs = self.db.get_all_songs()
-        stream_data = self.db.get_streams_in_date_range(
-            (datetime.utcnow() - timedelta(days=7)).isoformat(),
-            datetime.utcnow().isoformat()
-        )
-        revenue_data = self.db.get_revenue_in_date_range(
-            (datetime.utcnow() - timedelta(days=7)).isoformat(),
-            datetime.utcnow().isoformat()
-        )
+def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str = None) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
 
-        song_scores = defaultdict(float)
+    if not start_date:
+        # Default to last Monday
+        today = datetime.utcnow().date()
+        start_date = (today - timedelta(days=today.weekday())).isoformat()
 
-        for stream in stream_data:
-            song_scores[stream['song_id']] += 1  # basic stream weight
+    # Retrieve stream counts and revenues per song in date range
+    cur.execute("""
+        SELECT s.id, s.title, b.name,
+               SUM(CASE WHEN str.timestamp BETWEEN ? AND ? 
+                   THEN 1 ELSE 0 END) AS streams,
+               SUM(CASE WHEN e.source_type = 'stream' AND e.source_id = s.id 
+                   THEN e.amount ELSE 0 END) AS revenue
+        FROM songs s 
+        JOIN bands b ON s.band_id = b.id
+        LEFT JOIN streams str ON str.song_id = s.id
+        LEFT JOIN earnings e ON e.source_type = 'stream' AND e.source_id = s.id
+        WHERE str.timestamp BETWEEN ? AND ? OR e.timestamp BETWEEN ? AND ?
+        GROUP BY s.id
+    """, (start_date, datetime.utcnow().isoformat(),
+           start_date, datetime.utcnow().isoformat(),
+           start_date, datetime.utcnow().isoformat()))
 
-        for rev in revenue_data:
-            song_scores[rev['song_id']] += rev['amount'] * 10  # weight revenue higher
+    rows = cur.fetchall()
+    scoring = []
+    for song_id, title, band_name, streams, revenue in rows:
+        score = streams * 0.4 + revenue * 10
+        scoring.append((song_id, title, band_name, score))
 
-        sorted_songs = sorted(song_scores.items(), key=lambda x: x[1], reverse=True)
+    # Sort and take top 100
+    scoring.sort(key=lambda x: x[3], reverse=True)
+    top = scoring[:100]
 
-        week_start = datetime.utcnow().date().isoformat()
-        for i, (song_id, score) in enumerate(sorted_songs[:100], start=1):
-            song = self.db.get_song_by_id(song_id)
-            chart_entry = ChartEntry(
-                id=None,
-                song_id=song_id,
-                band_id=song['owner_band_id'],
-                chart_type="Global Top 100",
-                position=i,
-                week_start=week_start
-            )
-            self.db.insert_chart_entry(chart_entry)
+    # Persist chart entries
+    for position, (song_id, title, band_name, score) in enumerate(top, start=1):
+        cur.execute("""
+            INSERT INTO chart_entries 
+            (chart_type, week_start, position, song_id, band_name, score, generated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (chart_type, start_date, position, song_id, band_name, score, datetime.utcnow().isoformat()))
 
-    def get_chart(self, chart_type, week_start):
-        return self.db.get_chart_entries(chart_type, week_start)
+    conn.commit()
+    conn.close()
+    return {'chart_type': chart_type, 'week_start': start_date, 'entries': top}
+
+
+def get_chart(chart_type: str, week_start: str) -> list:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT position, song_id, band_name, score
+        FROM chart_entries
+        WHERE chart_type = ? AND week_start = ?
+        ORDER BY position ASC
+    """, (chart_type, week_start))
+    rows = cur.fetchall()
+    conn.close()
+
+    return [dict(zip(['position', 'song_id', 'band_name', 'score'], row)) for row in rows]
+
+
+def get_historical_charts(chart_type: str, weeks: int = 4) -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    # Get distinct week_starts for the chart type
+    cur.execute("""
+        SELECT DISTINCT week_start
+        FROM chart_entries
+        WHERE chart_type = ?
+        ORDER BY week_start DESC
+        LIMIT ?
+    """, (chart_type, weeks))
+    dates = [row[0] for row in cur.fetchall()]
+
+    history = {}
+    for wk in dates:
+        history[wk] = get_chart(chart_type, wk)
+
+    conn.close()
+    return history

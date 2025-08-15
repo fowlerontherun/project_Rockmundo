@@ -7,7 +7,7 @@ from fastapi import Depends
 
 router = APIRouter()
 
-@router.post("/event/")
+@router.post("/event/", dependencies=[Depends(require_role(["admin"]))])
 def create_media_event(event: media_publicity_schemas.MediaEventCreate, db: Session = Depends(get_db)):
     db_event = media_publicity_models.MediaEvent(**event.dict())
     db.add(db_event)

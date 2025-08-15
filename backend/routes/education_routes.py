@@ -7,7 +7,7 @@ router = APIRouter()
 education_sessions = []
 education_id_counter = 1
 
-@router.post("/education/", response_model=EducationSessionResponse)
+@router.post("/education/", response_model=EducationSessionResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def create_session(session: EducationSessionCreate):
     global education_id_counter
     new_session = session.dict()

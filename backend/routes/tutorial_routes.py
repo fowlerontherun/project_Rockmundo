@@ -3,7 +3,7 @@ from services.tutorial_service import *
 
 router = APIRouter()
 
-@router.post("/tutorial/start")
+@router.post("/tutorial/start", dependencies=[Depends(require_role(["admin"]))])
 def start_tutorial(user_id: int):
     return start_user_tutorial(user_id)
 

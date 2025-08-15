@@ -1,48 +1,64 @@
+# backend/database.py
+
 import sqlite3
+from pathlib import Path
 
-DB_PATH = "rockmundo.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
-def initialize_database():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
 
-    # === Vehicle types ===
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS vehicle_types (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        description TEXT,
-        speed INTEGER,
-        capacity INTEGER,
-        maintenance_cost INTEGER,
-        base_cost INTEGER
-    )
-    """)
+        # Users table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT DEFAULT 'player'
+        )
+        """)
 
-    # === User-owned vehicles ===
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS user_vehicles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        vehicle_type_id INTEGER,
-        nickname TEXT,
-        upgrades TEXT,
-        condition INTEGER DEFAULT 100,
-        FOREIGN KEY(vehicle_type_id) REFERENCES vehicle_types(id)
-    )
-    """)
+        # Events table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            effect_type TEXT NOT NULL,
+            skill_affected TEXT,
+            duration_days INTEGER NOT NULL,
+            trigger_chance REAL NOT NULL
+        )
+        """)
 
-    # === Vehicle upgrades ===
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS vehicle_upgrades (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        effect TEXT,
-        cost INTEGER
-    )
-    """)
+        # Active Events table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS active_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            event_id INTEGER NOT NULL,
+            skill_affected TEXT,
+            start_date TEXT NOT NULL,
+            duration_days INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(event_id) REFERENCES events(id)
+        )
+        """)
 
-    # Add your other table creation statements here...
+        # Lifestyle table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS lifestyle (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            sleep_hours REAL DEFAULT 7.0,
+            drinking TEXT DEFAULT 'none',
+            stress REAL DEFAULT 0.0,
+            training_discipline REAL DEFAULT 50.0,
+            mental_health REAL DEFAULT 100.0,
+            last_updated TEXT,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """)
 
-    conn.commit()
-    conn.close()
+        conn.commit()

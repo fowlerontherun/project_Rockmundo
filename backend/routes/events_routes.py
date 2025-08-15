@@ -3,7 +3,7 @@ from services.events_service import *
 
 router = APIRouter()
 
-@router.post("/events/create")
+@router.post("/events/create", dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def create_event(payload: dict):
     return create_seasonal_event(payload)
 

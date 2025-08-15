@@ -6,7 +6,7 @@ router = APIRouter()
 merch_db = []
 merch_id_counter = 1
 
-@router.post("/merchandise/", response_model=MerchandiseResponse)
+@router.post("/merchandise/", response_model=MerchandiseResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_merch(merch: MerchandiseCreate):
     global merch_id_counter
     new_merch = merch.dict()

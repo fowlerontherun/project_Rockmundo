@@ -6,7 +6,7 @@ from database import get_db
 
 router = APIRouter(prefix="/avatars", tags=["Avatars"])
 
-@router.post("/", response_model=AvatarResponse)
+@router.post("/", response_model=AvatarResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
 def create_avatar(avatar: AvatarCreate, db: Session = Depends(get_db)):
     existing = db.query(Avatar).filter_by(character_id=avatar.character_id).first()
     if existing:

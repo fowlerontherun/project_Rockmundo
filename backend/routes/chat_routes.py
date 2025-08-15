@@ -4,7 +4,7 @@ from schemas.chat_schemas import MessageSchema, GroupMessageSchema
 
 router = APIRouter()
 
-@router.post("/chat/send_direct")
+@router.post("/chat/send_direct", dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
 def send_direct_message(payload: MessageSchema):
     return send_message(payload.dict())
 

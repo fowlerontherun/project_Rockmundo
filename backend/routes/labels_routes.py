@@ -4,7 +4,7 @@ from schemas.labels_schemas import LabelCreateSchema, ContractOfferSchema
 
 router = APIRouter()
 
-@router.post("/labels/create")
+@router.post("/labels/create", dependencies=[Depends(require_role(["admin", "moderator"]))])
 def create_label(payload: LabelCreateSchema):
     return create_music_label(payload.dict())
 

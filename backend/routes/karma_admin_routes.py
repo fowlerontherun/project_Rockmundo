@@ -3,7 +3,7 @@ from karma_extras import get_karma_score, get_karma_leaderboard, add_karma_vote
 
 router = APIRouter()
 
-@router.get("/karma/score/{user_id}")
+@router.get("/karma/score/{user_id}", dependencies=[Depends(require_role(["admin"]))])
 def read_karma_score(user_id: int):
     return {"user_id": user_id, "karma": get_karma_score(user_id)}
 
