@@ -16,15 +16,15 @@ CREATE TABLE IF NOT EXISTS venue_sponsorships (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   venue_id INTEGER NOT NULL,
   sponsor_id INTEGER NOT NULL,
-  start_date TEXT NOT NULL,
-  end_date TEXT,
+  start_date TEXT NOT NULL,            -- ISO date
+  end_date TEXT,                       -- NULL = open-ended
   is_active INTEGER DEFAULT 1,
-  naming_format TEXT DEFAULT '{sponsor} {venue}',
+  naming_format TEXT DEFAULT '{sponsor} {venue}', -- e.g. '{venue} presented by {sponsor}'
   show_logo INTEGER DEFAULT 1,
   show_website INTEGER DEFAULT 1,
-  revenue_model TEXT DEFAULT 'CPM',
-  revenue_cents_per_unit INTEGER,
-  fixed_fee_cents INTEGER,
+  revenue_model TEXT DEFAULT 'CPM',    -- 'CPM','CPC','Fixed','Hybrid'
+  revenue_cents_per_unit INTEGER,      -- cents per impression or click
+  fixed_fee_cents INTEGER,             -- optional fixed contract fee
   currency TEXT DEFAULT 'USD',
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT,

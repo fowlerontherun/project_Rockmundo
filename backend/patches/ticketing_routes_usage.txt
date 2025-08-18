@@ -1,0 +1,58 @@
+# File: backend/patches/ticketing_routes_usage.txt
+# Example usage inside your existing backend/routes/ticketing_routes.py
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List, Dict, Any
+from services.ticketing_service import TicketingService, TicketingError
+
+router = APIRouter(prefix="/api/tickets", tags=["Ticketing"])
+svc = TicketingService()
+svc.ensure_schema()  # make sure tables exist (or call from database.init_db())
+
+class Item(BaseModel):
+    ticket_type_id: int
+    qty: int
+
+class CreateTypeIn(BaseModel):
+    event_id: int
+    name: str
+    price_cents: int
+    total_qty: int
+    currency: str = "USD"
+    max_per_user: int = 10
+    sales_start: str | None = None
+    sales_end: str | None = None
+    is_active: bool = True
+
+@router.post("/types")
+def create_type(payload: CreateTypeIn):
+    try:
+        tid = svc.create_ticket_type(**payload.model_dump())
+        return {"id": tid}
+    except TicketingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/types/{event_id}")
+def list_types(event_id: int):
+    return svc.list_ticket_types(event_id)
+
+class PurchaseIn(BaseModel):
+    user_id: int
+    event_id: int
+    items: List[Item]
+
+@router.post("/purchase")
+def purchase(payload: PurchaseIn):
+    try:
+        oid = svc.purchase_tickets(user_id=payload.user_id, event_id=payload.event_id, items=[i.model_dump() for i in payload.items])
+        return {"order_id": oid}
+    except TicketingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/refund/{order_id}")
+def refund(order_id: int, reason: str = ""):
+    try:
+        return svc.refund_order(order_id, reason)
+    except TicketingError as e:
+        raise HTTPException(status_code=400, detail=str(e))

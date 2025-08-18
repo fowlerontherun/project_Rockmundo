@@ -1,0 +1,9 @@
+# File: backend/patches/main_integration.txt
+# Paste these lines into your FastAPI app (e.g., backend/main.py) where you mount routers.
+
+from backend.routes import sponsorship as sponsorship_routes
+app.include_router(sponsorship_routes.router)
+
+# Optional: set the DB path for the service without changing your app code:
+#   export DEVMIND_DB_PATH=/absolute/path/to/devmind_schema.db
+#   (Windows) set DEVMIND_DB_PATH=C:\\abs\\path\\devmind_schema.db
