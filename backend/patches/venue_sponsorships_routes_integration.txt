@@ -1,0 +1,3 @@
+# File: backend/patches/venue_sponsorships_routes_integration.txt
+from routes import venue_sponsorships_routes
+app.include_router(venue_sponsorships_routes.router, prefix="/api", tags=["Venue Sponsorships"])

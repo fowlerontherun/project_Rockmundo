@@ -1,0 +1,2 @@
+from routes import media_routes
+app.include_router(media_routes.router, prefix="/api", tags=["Media & Publicity"])

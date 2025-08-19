@@ -1,0 +1,2 @@
+from routes import admin_media_moderation_routes
+app.include_router(admin_media_moderation_routes.router, prefix="/api", tags=["Admin Media Moderation"])
