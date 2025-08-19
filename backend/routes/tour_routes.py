@@ -1,28 +1,74 @@
+# File: backend/routes/tour_routes.py
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+from typing import Optional, List
 
-from flask import Blueprint, request, jsonify
-from services.tour_service import TourService
+from services.tour_service import TourService, TourError
 
-tour_routes = Blueprint('tour_routes', __name__)
-tour_service = TourService(db=None)
+router = APIRouter(prefix="/tours", tags=["Tours"])
+svc = TourService()
 
-@tour_routes.route('/tours', methods=['POST'])
-def create_tour():
-    data = request.json
+# ---- Models ----
+class CreateTourIn(BaseModel):
+    band_id: int = Field(..., ge=1)
+    name: str
+
+class AddStopIn(BaseModel):
+    tour_id: int = Field(..., ge=1)
+    venue_id: int = Field(..., ge=1)
+    date_start: str  # ISO format
+    date_end: str
+    order_index: int = 0
+    notes: Optional[str] = ""
+
+class UpdateStopStatusIn(BaseModel):
+    stop_id: int = Field(..., ge=1)
+    status: str
+
+# ---- Routes ----
+@router.post("/")
+def create_tour(payload: CreateTourIn):
+    return svc.create_tour(band_id=payload.band_id, name=payload.name)
+
+@router.get("/")
+def list_tours(band_id: Optional[int] = None, status: Optional[str] = None, limit: int = 50, offset: int = 0):
+    return svc.list_tours(band_id=band_id, status=status, limit=limit, offset=offset)
+
+@router.get("/{tour_id}")
+def get_tour(tour_id: int):
     try:
-        return jsonify(tour_service.create_tour(data)), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return svc.get_tour(tour_id)
+    except TourError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-@tour_routes.route('/tours/band/<int:band_id>', methods=['GET'])
-def get_band_tours(band_id):
-    return jsonify(tour_service.list_tours_by_band(band_id))
+@router.post("/confirm/{tour_id}")
+def confirm_tour(tour_id: int):
+    try:
+        return svc.confirm_tour(tour_id)
+    except TourError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@tour_routes.route('/tours/<int:tour_id>/status', methods=['PUT'])
-def update_tour_status(tour_id):
-    data = request.json
-    tour_service.update_tour_status(tour_id, data['status'])
-    return '', 204
+@router.post("/stops")
+def add_stop(payload: AddStopIn):
+    try:
+        return svc.add_stop(
+            tour_id=payload.tour_id,
+            venue_id=payload.venue_id,
+            date_start=payload.date_start,
+            date_end=payload.date_end,
+            order_index=payload.order_index,
+            notes=payload.notes or ""
+        )
+    except TourError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@tour_routes.route('/tours/<int:tour_id>', methods=['GET'])
-def get_tour(tour_id):
-    return jsonify(tour_service.get_tour(tour_id))
+@router.get("/{tour_id}/stops")
+def list_stops(tour_id: int):
+    return svc.list_stops(tour_id)
+
+@router.post("/stops/status")
+def update_stop_status(payload: UpdateStopStatusIn):
+    try:
+        return svc.update_stop_status(stop_id=payload.stop_id, status=payload.status)
+    except TourError as e:
+        raise HTTPException(status_code=400, detail=str(e))
