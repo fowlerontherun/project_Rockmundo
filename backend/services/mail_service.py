@@ -1,240 +1,176 @@
 # File: backend/services/mail_service.py
-import sqlite3
-from pathlib import Path
 from typing import List, Dict, Any, Optional
+import sqlite3
 
+from utils.db import get_conn
 from services.notifications_service import NotificationsService
-
-DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
-
-class MailError(Exception):
-    pass
+from core.errors import AppError, MailNoRecipientsError
 
 class MailService:
     def __init__(self, db_path: Optional[str] = None, notifications: Optional[NotificationsService] = None):
-        self.db_path = str(db_path or DB_PATH)
+        self.db_path = db_path
         self.notifications = notifications or NotificationsService(db_path=self.db_path)
 
-    def ensure_schema(self) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            # threads
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS mail_threads (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject TEXT NOT NULL,
-                created_by INTEGER NOT NULL,
-                created_at TEXT DEFAULT (datetime('now'))
+    # ---- helpers ----
+    def _add_participants(self, cur: sqlite3.Cursor, thread_id: int, user_ids: List[int]) -> None:
+        for uid in user_ids:
+            cur.execute(
+                """INSERT OR IGNORE INTO mail_participants (thread_id, user_id)
+                       VALUES (?, ?)""",
+                (thread_id, uid),
             )
-            """)
-            # messages
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS mail_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                thread_id INTEGER NOT NULL,
-                sender_id INTEGER NOT NULL,
-                body TEXT NOT NULL,
-                created_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY(thread_id) REFERENCES mail_threads(id)
-            )
-            """)
-            # participants per user
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS mail_participants (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                thread_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                last_read_at TEXT,
-                archived INTEGER DEFAULT 0,
-                deleted INTEGER DEFAULT 0,
-                UNIQUE(thread_id, user_id),
-                FOREIGN KEY(thread_id) REFERENCES mail_threads(id)
-            )
-            """)
-            conn.commit()
-        # ensure notifications schema too
-        self.notifications.ensure_schema()
 
-    # -------- Compose / Reply --------
-    def start_thread(self, sender_id: int, recipient_ids: List[int], subject: str, body: str) -> int:
+    def _notify(self, recipient_ids: List[int], title: str, body: str) -> None:
+        for uid in recipient_ids:
+            self.notifications.create(user_id=uid, type_="mail", title=title, body=body)
+
+    # ---- public API ----
+    def compose(self, sender_id: int, recipient_ids: List[int], subject: str, body: str) -> Dict[str, Any]:
         if not recipient_ids:
-            raise MailError("At least one recipient required")
-        with sqlite3.connect(self.db_path) as conn:
+            raise MailNoRecipientsError("At least one recipient is required.")
+        if not subject or not subject.strip():
+            raise AppError("Subject is required.", code="MAIL_SUBJECT_REQUIRED")
+        with get_conn(self.db_path) as conn:
             cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
-                cur.execute("INSERT INTO mail_threads (subject, created_by) VALUES (?, ?)", (subject, sender_id))
-                thread_id = cur.lastrowid
-                # add participants: sender + recipients
-                participants = set(recipient_ids + [sender_id])
-                for uid in participants:
-                    cur.execute("""
-                        INSERT OR IGNORE INTO mail_participants (thread_id, user_id, archived, deleted)
-                        VALUES (?, ?, 0, 0)
-                    """, (thread_id, uid))
-                # first message
-                cur.execute("""
-                    INSERT INTO mail_messages (thread_id, sender_id, body)
-                    VALUES (?, ?, ?)
-                """, (thread_id, sender_id, body))
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
+            cur.execute("INSERT INTO mail_threads (subject, created_by) VALUES (?, ?)", (subject.strip(), sender_id))
+            thread_id = int(cur.lastrowid)
 
-        # Notifications for recipients (exclude sender)
-        for rid in recipient_ids:
-            try:
-                self.notifications.create_notification(
-                    user_id=rid,
-                    type="mail",
-                    title=f"New message: {subject}",
-                    body=body[:160],
-                    link=f"/mail/thread/{thread_id}"
-                )
-            except Exception:
-                # Don't fail mail delivery if notification fails
-                pass
+            self._add_participants(cur, thread_id, [sender_id] + recipient_ids)
+            cur.execute(
+                """INSERT INTO mail_messages (thread_id, sender_id, body)
+                       VALUES (?, ?, ?)""",
+                (thread_id, sender_id, body),
+            )
+            message_id = int(cur.lastrowid)
 
-        return thread_id
+            # mark sender read-through latest
+            cur.execute(
+                """UPDATE mail_participants SET last_read_message_id = ?
+                       WHERE thread_id=? AND user_id=?""",
+                (message_id, thread_id, sender_id),
+            )
 
-    def reply(self, thread_id: int, sender_id: int, body: str) -> int:
-        with sqlite3.connect(self.db_path) as conn:
+            # notifications
+            self._notify(recipient_ids, title=f"New message: {subject.strip()}", body=body[:140])
+
+            return {"thread_id": thread_id, "message_id": message_id}
+
+    def reply(self, thread_id: int, sender_id: int, body: str) -> Dict[str, Any]:
+        with get_conn(self.db_path) as conn:
             cur = conn.cursor()
-            # ensure thread exists
-            cur.execute("SELECT subject FROM mail_threads WHERE id = ?", (thread_id,))
+            cur.execute("SELECT id, subject FROM mail_threads WHERE id=?", (thread_id,))
             row = cur.fetchone()
             if not row:
-                raise MailError("Thread not found")
-            subject = row[0]
-            # insert reply
-            cur.execute("""
-                INSERT INTO mail_messages (thread_id, sender_id, body) VALUES (?, ?, ?)
-            """, (thread_id, sender_id, body))
-            msg_id = cur.lastrowid
+                raise AppError("Thread not found.", code="MAIL_THREAD_NOT_FOUND")
+            subject = row[1]
+
             # ensure sender is participant
-            cur.execute("""
-                INSERT OR IGNORE INTO mail_participants (thread_id, user_id, archived, deleted)
-                VALUES (?, ?, 0, 0)
-            """, (thread_id, sender_id))
-            conn.commit()
+            cur.execute(
+                "INSERT OR IGNORE INTO mail_participants (thread_id, user_id) VALUES (?, ?)",
+                (thread_id, sender_id),
+            )
 
-        # Notify all participants except sender
-        recipients = self._participant_user_ids(thread_id, exclude_user_id=sender_id)
-        for rid in recipients:
-            try:
-                self.notifications.create_notification(
-                    user_id=rid,
-                    type="mail",
-                    title=f"New reply: {subject}",
-                    body=body[:160],
-                    link=f"/mail/thread/{thread_id}"
-                )
-            except Exception:
-                pass
+            cur.execute(
+                """INSERT INTO mail_messages (thread_id, sender_id, body)
+                       VALUES (?, ?, ?)""", (thread_id, sender_id, body)
+            )
+            message_id = int(cur.lastrowid)
 
-        return msg_id
+            # update sender last_read
+            cur.execute(
+                """UPDATE mail_participants SET last_read_message_id = ?
+                       WHERE thread_id=? AND user_id=?""",
+                (message_id, thread_id, sender_id),
+            )
 
-    # -------- Queries --------
-    def list_inbox(self, user_id: int, include_archived: bool = False, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+            # notify all other participants
+            cur.execute("SELECT user_id FROM mail_participants WHERE thread_id=? AND user_id != ?", (thread_id, sender_id))
+            recipients = [int(r[0]) for r in cur.fetchall()]
+            if recipients:
+                self._notify(recipients, title=f"New reply: {subject}", body=body[:140])
+
+            return {"thread_id": thread_id, "message_id": message_id}
+
+    def list_threads(self, user_id: int, limit: int = 25, offset: int = 0) -> List[Dict[str, Any]]:
+        with get_conn(self.db_path) as conn:
             cur = conn.cursor()
-            where = "mp.user_id = ? AND mp.deleted = 0"
-            if not include_archived:
-                where += " AND mp.archived = 0"
-            cur.execute(f"""
-                SELECT t.id AS thread_id, t.subject,
-                       (SELECT MAX(m.created_at) FROM mail_messages m WHERE m.thread_id = t.id) AS last_message_at,
-                       (SELECT COUNT(*) FROM mail_messages m WHERE m.thread_id = t.id AND (mp.last_read_at IS NULL OR m.created_at > mp.last_read_at)) AS unread_count
-                FROM mail_threads t
-                JOIN mail_participants mp ON mp.thread_id = t.id
-                WHERE {where}
-                ORDER BY last_message_at DESC
-                LIMIT ? OFFSET ?
-            """, (user_id, limit, offset))
-            return [dict(r) for r in cur.fetchall()]
+            cur.execute(
+                """WITH last_msg AS (
+                       SELECT thread_id, MAX(id) AS last_id, MAX(created_at) AS last_at
+                       FROM mail_messages GROUP BY thread_id
+                     ), unread AS (
+                       SELECT p.thread_id,
+                              SUM(CASE WHEN m.id > p.last_read_message_id AND m.sender_id != p.user_id
+                                       THEN 1 ELSE 0 END) AS unread_count
+                       FROM mail_participants p
+                       JOIN mail_messages m ON m.thread_id = p.thread_id
+                       WHERE p.user_id = ?
+                       GROUP BY p.thread_id
+                     )
+                     SELECT t.id AS thread_id, t.subject, t.created_by, t.created_at,
+                            COALESCE(u.unread_count, 0) AS unread,
+                            l.last_id, l.last_at
+                     FROM mail_threads t
+                     JOIN mail_participants p ON p.thread_id = t.id AND p.user_id = ?
+                     LEFT JOIN last_msg l ON l.thread_id = t.id
+                     LEFT JOIN unread u ON u.thread_id = t.id
+                     ORDER BY l.last_at DESC NULLS LAST, t.created_at DESC
+                     LIMIT ? OFFSET ?""",
+                (user_id, user_id, limit, offset),
+            )
+            cols = [d[0] for d in cur.description]
+            return [dict(zip(cols, r)) for r in cur.fetchall()]
 
-    def list_sent(self, user_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
+    def get_thread(self, thread_id: int, user_id: int, mark_read: bool = True) -> Dict[str, Any]:
+        with get_conn(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
-                SELECT t.id AS thread_id, t.subject,
-                       (SELECT MAX(m.created_at) FROM mail_messages m WHERE m.thread_id = t.id) AS last_message_at
-                FROM mail_threads t
-                WHERE t.created_by = ?
-                ORDER BY last_message_at DESC
-                LIMIT ? OFFSET ?
-            """, (user_id, limit, offset))
-            return [dict(r) for r in cur.fetchall()]
+            # thread
+            cur.execute("SELECT id, subject, created_by, created_at FROM mail_threads WHERE id=?", (thread_id,))
+            t = cur.fetchone()
+            if not t:
+                raise AppError("Thread not found.", code="MAIL_THREAD_NOT_FOUND")
 
-    def get_thread(self, thread_id: int, user_id: int) -> Dict[str, Any]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            # validate participant
-            cur.execute("SELECT 1 FROM mail_participants WHERE thread_id = ? AND user_id = ? AND deleted = 0", (thread_id, user_id))
-            if not cur.fetchone():
-                raise MailError("Not a participant or thread deleted")
-            # thread & messages
-            cur.execute("SELECT * FROM mail_threads WHERE id = ?", (thread_id,))
-            thread = dict(cur.fetchone())
-            cur.execute("""
-                SELECT id, sender_id, body, created_at
-                FROM mail_messages
-                WHERE thread_id = ?
-                ORDER BY created_at ASC
-            """, (thread_id,))
-            messages = [dict(r) for r in cur.fetchall()]
-            # participants
-            cur.execute("SELECT user_id FROM mail_participants WHERE thread_id = ? AND deleted = 0", (thread_id,))
-            participants = [int(r[0]) for r in cur.fetchall()]
+            # ensure participant
+            cur.execute("INSERT OR IGNORE INTO mail_participants (thread_id, user_id) VALUES (?, ?)", (thread_id, user_id))
+
+            # messages
+            cur.execute(
+                """SELECT id, sender_id, body, created_at
+                       FROM mail_messages WHERE thread_id=?
+                       ORDER BY created_at ASC, id ASC""",
+                (thread_id,),
+            )
+            mcols = [d[0] for d in cur.description]
+            msgs = [dict(zip(mcols, row)) for row in cur.fetchall()]
+
             # mark read
-            cur.execute("""
-                UPDATE mail_participants
-                SET last_read_at = datetime('now')
-                WHERE thread_id = ? AND user_id = ?
-            """, (thread_id, user_id))
-            conn.commit()
-            return {"thread": thread, "messages": messages, "participants": participants}
+            if mark_read and msgs:
+                last_id = int(msgs[-1]["id"])
+                cur.execute(
+                    """UPDATE mail_participants SET last_read_message_id = ?
+                           WHERE thread_id=? AND user_id=?""",
+                    (last_id, thread_id, user_id),
+                )
 
-    def mark_read(self, thread_id: int, user_id: int) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                UPDATE mail_participants
-                SET last_read_at = datetime('now')
-                WHERE thread_id = ? AND user_id = ?
-            """, (thread_id, user_id))
-            conn.commit()
+            # participants
+            cur.execute("SELECT user_id FROM mail_participants WHERE thread_id=?", (thread_id,))
+            participants = [int(r[0]) for r in cur.fetchall()]
 
-    def archive(self, thread_id: int, user_id: int, archived: bool = True) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                UPDATE mail_participants
-                SET archived = ?
-                WHERE thread_id = ? AND user_id = ?
-            """, (1 if archived else 0, thread_id, user_id))
-            conn.commit()
+            tcols = [d[0] for d in cur.description]
+            return {"thread": {"id": t[0], "subject": t[1], "created_by": t[2], "created_at": t[3]},
+                    "participants": participants, "messages": msgs}
 
-    def delete_for_user(self, thread_id: int, user_id: int) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+    def unread_badge(self, user_id: int) -> Dict[str, int]:
+        with get_conn(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
-                UPDATE mail_participants
-                SET deleted = 1
-                WHERE thread_id = ? AND user_id = ?
-            """, (thread_id, user_id))
-            conn.commit()
-
-    # -------- helpers --------
-    def _participant_user_ids(self, thread_id: int, exclude_user_id: Optional[int] = None) -> List[int]:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT user_id FROM mail_participants WHERE thread_id = ? AND deleted = 0", (thread_id,))
-            ids = [int(r[0]) for r in cur.fetchall()]
-        if exclude_user_id is not None:
-            ids = [u for u in ids if u != exclude_user_id]
-        return ids
+            cur.execute(
+                """SELECT SUM(CASE WHEN m.id > p.last_read_message_id AND m.sender_id != p.user_id
+                       THEN 1 ELSE 0 END)
+                       FROM mail_participants p
+                       JOIN mail_messages m ON m.thread_id = p.thread_id
+                       WHERE p.user_id = ?""",
+                (user_id,),
+            )
+            mail_unread = int((cur.fetchone()[0] or 0))
+        notif_unread = self.notifications.unread_count(user_id)
+        return {"mail": mail_unread, "notifications": notif_unread}
