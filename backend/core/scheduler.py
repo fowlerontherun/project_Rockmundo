@@ -1,107 +1,125 @@
-# File: backend/core/scheduler.py
+# scheduler.py
+"""
+Lightweight job scheduler + runner registry.
+
+- Registers known jobs
+- Provides programmatic triggers
+- Records job_history rows
+- Optional periodic scheduling via asyncio tasks (disabled by default here;
+  can be enabled in your app lifespan/startup)
+
+Expose:
+- register_jobs()
+- list_jobs()
+- run_job(job_name: str) -> dict (result summary)
+"""
+
+from __future__ import annotations
 import asyncio
-import contextlib
-from datetime import datetime, timedelta, timezone
-from typing import Callable, Awaitable, Optional
+from datetime import datetime, timezone
+from typing import Callable, Dict, Optional
 
-with contextlib.suppress(Exception):
-    from jobs.world_pulse_jobs import run_daily_world_pulse, run_weekly_rollup  # type: ignore[misc]
+import sqlite3
+import os
 
-UTC = timezone.utc
-
-class TaskHandle:
-    def __init__(self, name: str, coro_factory: Callable[[], Awaitable[None]]):
-        self.name = name
-        self._coro_factory = coro_factory
-        self._task: Optional[asyncio.Task] = None
-        self._stop = asyncio.Event()
-
-    async def start(self):
-        if self._task and not self._task.done():
-            return
-        self._stop.clear()
-        self._task = asyncio.create_task(self._runner(), name=self.name)
-
-    async def stop(self):
-        self._stop.set()
-        if self._task:
-            with contextlib.suppress(Exception):
-                await asyncio.wait_for(self._task, timeout=3)
-
-    async def _runner(self):
-        try:
-            await self._coro_factory()
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            print(f"[Scheduler] Task {self.name} crashed: {e!r}")
-
-class SimpleScheduler:
-    def __init__(self):
-        self._handles: list[TaskHandle] = []
-
-    def every(self, seconds: int, name: str, func: Callable[[], Awaitable[None]]):
-        async def _job():
-            while True:
-                await func()
-                await asyncio.sleep(seconds)
-        handle = TaskHandle(name=name, coro_factory=_job)
-        self._handles.append(handle)
-        return handle
-
-    def daily_at(self, hour: int, minute: int, name: str, func: Callable[[], Awaitable[None]]):
-        async def _job():
-            while True:
-                now = datetime.now(UTC)
-                target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-                if target <= now:
-                    target += timedelta(days=1)
-                await asyncio.sleep((target - now).total_seconds())
-                await func()
-        handle = TaskHandle(name=name, coro_factory=_job)
-        self._handles.append(handle)
-        return handle
-
-    def weekly_at(self, dow: int, hour: int, minute: int, name: str, func: Callable[[], Awaitable[None]]):
-        async def _job():
-            while True:
-                now = datetime.now(UTC)
-                days_ahead = (dow - now.weekday()) % 7
-                target = (now + timedelta(days=days_ahead)).replace(hour=hour, minute=minute, second=0, microsecond=0)
-                if target <= now:
-                    target += timedelta(days=7)
-                await asyncio.sleep((target - now).total_seconds())
-                await func()
-        handle = TaskHandle(name=name, coro_factory=_job)
-        self._handles.append(handle)
-        return handle
-
-    async def start(self):
-        for h in self._handles:
-            await h.start()
-
-    async def stop(self):
-        for h in self._handles:
-            await h.stop()
-
-scheduler = SimpleScheduler()
-
-async def _noop():
-    pass
-
+# Prefer project's get_conn
 try:
-    scheduler.daily_at(2, 0, name="world_pulse_daily", func=run_daily_world_pulse)  # type: ignore[name-defined]
+    from backend.core.db import get_conn  # type: ignore
 except Exception:
-    scheduler.daily_at(2, 0, name="world_pulse_daily_noop", func=_noop)
+    def get_conn() -> sqlite3.Connection:
+        db_path = os.getenv("DB_PATH", "app.db")
+        conn = sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        return conn
 
-try:
-    scheduler.weekly_at(0, 3, 0, name="world_pulse_weekly", func=run_weekly_rollup)  # type: ignore[name-defined]
-except Exception:
-    scheduler.weekly_at(0, 3, 0, name="world_pulse_weekly_noop", func=_noop)
+# Import job modules
+from backend.jobs import cleanup_idempotency, cleanup_rate_limits, backup_db  # type: ignore
 
-async def lifespan(app):
-    await scheduler.start()
+
+JobFunc = Callable[[], tuple[int, str]]
+
+_registry: Dict[str, JobFunc] = {}
+_last_results: Dict[str, dict] = {}
+
+
+def _utc_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def register_jobs() -> None:
+    _registry.clear()
+    _registry["cleanup_idempotency"] = cleanup_idempotency.run
+    _registry["cleanup_rate_limits"] = cleanup_rate_limits.run
+    _registry["backup_db"] = backup_db.run
+
+
+def list_jobs() -> dict:
+    return {
+        "registered": sorted(list(_registry.keys())),
+        "last_results": _last_results,
+    }
+
+
+def _insert_history_start(job_name: str) -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO job_history (job_name, started_at, status)
+            VALUES (?, ?, 'running')
+            """,
+            (job_name, _utc_iso()),
+        )
+        return int(cur.lastrowid)
+
+
+def _update_history_finish(row_id: int, status: str, duration_ms: int, rows_affected: int, detail: str, error: Optional[str]) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """
+            UPDATE job_history
+               SET finished_at = ?, status = ?, duration_ms = ?, rows_affected = ?, detail = ?, error = ?
+             WHERE id = ?
+            """,
+            (_utc_iso(), status, duration_ms, rows_affected, detail, error, row_id),
+        )
+
+
+async def run_job(job_name: str) -> dict:
+    if job_name not in _registry:
+        return {"ok": False, "error": f"unknown job '{job_name}'"}
+
+    job = _registry[job_name]
+    hist_id = _insert_history_start(job_name)
+
+    started = datetime.now(timezone.utc)
+    error_msg = None
+    status = "success"
+    rows = 0
+    detail = ""
+
     try:
-        yield
-    finally:
-        await scheduler.stop()
+        # Run in a thread, so sync jobs don't block event loop
+        rows, detail = await asyncio.to_thread(job)
+    except Exception as e:
+        status = "error"
+        error_msg = f"{type(e).__name__}: {e}"
+
+    finished = datetime.now(timezone.utc)
+    duration_ms = int((finished - started).total_seconds() * 1000)
+
+    _update_history_finish(hist_id, status, duration_ms, rows, detail, error_msg)
+
+    result = {
+        "ok": status == "success",
+        "job": job_name,
+        "rows_affected": rows,
+        "detail": detail,
+        "status": status,
+        "duration_ms": duration_ms,
+        "history_id": hist_id,
+        "error": error_msg,
+    }
+    _last_results[job_name] = result
+    return result

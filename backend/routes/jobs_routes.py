@@ -1,27 +1,33 @@
-from auth.dependencies import get_current_user_id, require_role
-# File: backend/routes/jobs_routes.py
-from fastapi import APIRouter, HTTPException, Depends
-from services.jobs_royalties import RoyaltyJobsService, RoyaltyJobError
+# jobs_routes.py
+"""
+Admin endpoints to list jobs, trigger a run, and view last results.
 
-# Auth dep
-try:
-    from auth.dependencies import require_role
-except Exception:
-    def require_role(roles):
-        async def _noop():
-            return True
-        return _noop
+Mount these under your existing /admin routes group, e.g.:
+app.include_router(router, prefix="/admin", tags=["admin"])
 
-router = APIRouter(prefix="/admin/jobs", tags=["Admin Jobs"])
-svc = RoyaltyJobsService()
+RBAC: Protect with your existing auth dependencies (not included here).
+"""
 
-@router.post("/royalties/run", dependencies=[Depends(require_role(["admin","moderator"]))])
-def run_royalties(period_start: str, period_end: str):
-    """
-    Trigger a royalty run for [period_start, period_end] (YYYY-MM-DD).
-    """
-    try:
-        res = svc.run_royalties(period_start, period_end)
-        return res
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+from __future__ import annotations
+from fastapi import APIRouter, HTTPException
+from typing import Any
+
+from backend.core.scheduler import register_jobs, list_jobs, run_job
+
+router = APIRouter()
+
+# Ensure registry is populated on import
+register_jobs()
+
+
+@router.get("/jobs", summary="List available jobs & last results")
+async def get_jobs() -> Any:
+    return list_jobs()
+
+
+@router.post("/jobs/{job_name}/run", summary="Trigger a job now")
+async def post_run_job(job_name: str) -> Any:
+    result = await run_job(job_name)
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Job failed"))
+    return result
