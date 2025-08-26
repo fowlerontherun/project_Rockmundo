@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/ticketing_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -20,7 +21,8 @@ svc = TicketingService()
 svc.ensure_schema()
 
 class TicketTypeIn(BaseModel):
-    event_id: int
+    
+event_id: int
     name: str
     price_cents: int
     total_qty: int
@@ -31,11 +33,12 @@ class TicketTypeIn(BaseModel):
     is_active: bool = True
 
 class TicketItemIn(BaseModel):
-    ticket_type_id: int
+    
+ticket_type_id: int
     qty: int
 
 class PurchaseIn(BaseModel):
-    user_id: int
+    
     event_id: int
     items: List[TicketItemIn]
 

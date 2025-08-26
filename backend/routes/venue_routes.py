@@ -1,5 +1,6 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/venue_routes.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -9,7 +10,8 @@ router = APIRouter(prefix="/venues", tags=["Venues"])
 svc = TourService()
 
 class CreateVenueIn(BaseModel):
-    name: str
+    
+name: str
     city: Optional[str] = ""
     country: Optional[str] = ""
     capacity: int = Field(0, ge=0)

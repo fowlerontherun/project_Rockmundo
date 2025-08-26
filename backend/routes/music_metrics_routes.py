@@ -1,5 +1,6 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/music_metrics_routes.py
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import Optional
 from services.music_metrics import MusicMetricsService
 

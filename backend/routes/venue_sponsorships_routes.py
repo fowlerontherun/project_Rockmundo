@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/venue_sponsorships_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, HttpUrl
@@ -18,7 +19,8 @@ svc = VenueSponsorshipsService()
 svc.ensure_schema()
 
 class SponsorshipInModel(BaseModel):
-    venue_id: int
+    
+venue_id: int
     sponsor_name: str
     sponsor_website: Optional[str] = None
     sponsor_logo_url: Optional[str] = None
@@ -51,7 +53,8 @@ def deactivate(venue_id: int):
         raise HTTPException(status_code=400, detail=str(e))
 
 class BrandingQuery(BaseModel):
-    venue_name: str
+    
+venue_name: str
     on_date: Optional[str] = None
 
 @router.post("/{venue_id}/branding", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
@@ -60,9 +63,9 @@ def effective_branding(venue_id: int, query: BrandingQuery):
 
 # ---- Ad Impressions ----
 class ImpressionIn(BaseModel):
-    sponsorship_id: int
+    
+sponsorship_id: int
     placement: Optional[str] = None
-    user_id: Optional[int] = None
     event_id: Optional[int] = None
     meta: Optional[Dict[str, Any]] = None
 

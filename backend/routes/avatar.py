@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/avatar.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -19,7 +20,7 @@ svc.ensure_schema()
 
 # -------- Models --------
 class CreateAvatarIn(BaseModel):
-    user_id: int
+    
     display_name: Optional[str] = None
     body_type: Optional[str] = None
     face: Optional[str] = None
@@ -33,7 +34,8 @@ class CreateAvatarIn(BaseModel):
     render_seed: Optional[str] = None
 
 class UpdateAvatarIn(BaseModel):
-    display_name: Optional[str] = None
+    
+display_name: Optional[str] = None
     body_type: Optional[str] = None
     face: Optional[str] = None
     hair: Optional[str] = None
@@ -46,11 +48,12 @@ class UpdateAvatarIn(BaseModel):
     render_seed: Optional[str] = None
 
 class EquipIn(BaseModel):
-    slot: str
+    
+slot: str
     skin_id: int
 
 class GrantIn(BaseModel):
-    user_id: int
+    
     skin_id: int
     qty: int = 1
 

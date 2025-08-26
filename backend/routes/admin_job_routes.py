@@ -1,5 +1,7 @@
 # File: backend/routes/admin_job_routes.py
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Depends
+from auth.dependencies import get_current_user_id, require_role
 
 try:
     from jobs.world_pulse_jobs import run_daily_world_pulse, run_weekly_rollup

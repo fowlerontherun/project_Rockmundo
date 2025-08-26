@@ -1,5 +1,6 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/health_routes.py
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from utils.db import get_conn
 
 router = APIRouter(prefix="/health", tags=["Health"])

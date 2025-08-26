@@ -1,0 +1,1 @@
+<contents of backend/tests/test_logging_json.py here>

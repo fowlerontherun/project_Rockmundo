@@ -1,0 +1,103 @@
+{
+  "files_modified": [
+    "backend/routes/ai_manager_routes.py",
+    "backend/routes/ai_tour_manager_routes.py",
+    "backend/routes/ai_tour_scheduler_routes.py",
+    "backend/routes/ai_transport_routes.py",
+    "backend/routes/album_routes.py",
+    "backend/routes/auth_routes.py",
+    "backend/routes/avatar.py",
+    "backend/routes/awards.py",
+    "backend/routes/band.py",
+    "backend/routes/band_relationship_routes.py",
+    "backend/routes/band_social_routes.py",
+    "backend/routes/character.py",
+    "backend/routes/chart_routes.py",
+    "backend/routes/charts.py",
+    "backend/routes/chat_routes.py",
+    "backend/routes/dashboard_routes.py",
+    "backend/routes/distribution.py",
+    "backend/routes/education_routes.py",
+    "backend/routes/election_routes.py",
+    "backend/routes/elections_routes.py",
+    "backend/routes/emotes_routes.py",
+    "backend/routes/endorsement_routes.py",
+    "backend/routes/event_routes.py",
+    "backend/routes/events_routes.py",
+    "backend/routes/fame_routes.py",
+    "backend/routes/fan_club_routes.py",
+    "backend/routes/fan_interaction_routes.py",
+    "backend/routes/fan_logistics_routes.py",
+    "backend/routes/fanclub_routes.py",
+    "backend/routes/festival.py",
+    "backend/routes/festival_history.py",
+    "backend/routes/gifting_routes.py",
+    "backend/routes/gig.py",
+    "backend/routes/health_routes.py",
+    "backend/routes/jobs_charts_routes.py",
+    "backend/routes/jobs_routes.py",
+    "backend/routes/karma_admin_routes.py",
+    "backend/routes/karma_mentorship_routes.py",
+    "backend/routes/karma_routes.py",
+    "backend/routes/label_management_routes.py",
+    "backend/routes/labels_routes.py",
+    "backend/routes/lifestyle_routes.py",
+    "backend/routes/live_performance.py",
+    "backend/routes/major_role_routes.py",
+    "backend/routes/management_routes.py",
+    "backend/routes/media_exposure_routes.py",
+    "backend/routes/media_publicity_routes.py",
+    "backend/routes/media_routes.py",
+    "backend/routes/merch_routes.py",
+    "backend/routes/merchandise_routes.py",
+    "backend/routes/music_metrics_routes.py",
+    "backend/routes/music_routes.py",
+    "backend/routes/notifications_routes.py",
+    "backend/routes/npc_band_routes.py",
+    "backend/routes/promotion_routes.py",
+    "backend/routes/public_reactions_routes.py",
+    "backend/routes/random_event_routes.py",
+    "backend/routes/replay_routes.py",
+    "backend/routes/sales.py",
+    "backend/routes/skin.py",
+    "backend/routes/skins_routes.py",
+    "backend/routes/song_routes.py",
+    "backend/routes/sponsorship.py",
+    "backend/routes/stream_routes.py",
+    "backend/routes/streaming.py",
+    "backend/routes/support_slot_routes.py",
+    "backend/routes/ticketing_routes.py",
+    "backend/routes/tour_logistics_routes.py",
+    "backend/routes/tour_routes.py",
+    "backend/routes/transport.py",
+    "backend/routes/transport_routes.py",
+    "backend/routes/tutorial_routes.py",
+    "backend/routes/venue_routes.py",
+    "backend/routes/venue_sponsorships_routes.py",
+    "backend/routes/venues.py",
+    "backend/routes/world_pulse_routes.py"
+  ],
+  "models_fields_removed": {
+    "backend/routes/avatar.py": [
+      "user_id"
+    ],
+    "backend/routes/notifications_routes.py": [
+      "user_id"
+    ],
+    "backend/routes/ticketing_routes.py": [
+      "user_id"
+    ],
+    "backend/routes/venue_sponsorships_routes.py": [
+      "user_id"
+    ]
+  },
+  "paths_user_id_removed": {
+    "backend/routes/chat_routes.py": true,
+    "backend/routes/emotes_routes.py": true,
+    "backend/routes/replay_routes.py": true
+  },
+  "handlers_injected_dep": {
+    "backend/routes/gig.py": true,
+    "backend/routes/world_pulse_routes.py": true
+  }
+}

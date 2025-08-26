@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter
 from schemas.major_role_schema import MajorCreate, RoleAssignmentCreate
 from models.major_role import Major, RoleAssignment

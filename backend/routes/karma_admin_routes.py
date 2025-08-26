@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter
 from karma_extras import get_karma_score, get_karma_leaderboard, add_karma_vote
 

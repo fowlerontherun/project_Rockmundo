@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/merch_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -19,7 +20,8 @@ svc.ensure_schema()
 
 # -------- Models for API --------
 class ProductCreateIn(BaseModel):
-    name: str
+    
+name: str
     category: str
     band_id: int | None = None
     description: str | None = None
@@ -27,7 +29,8 @@ class ProductCreateIn(BaseModel):
     is_active: bool = True
 
 class SKUCreateIn(BaseModel):
-    product_id: int
+    
+product_id: int
     price_cents: int
     stock_qty: int
     option_size: str | None = None
@@ -37,11 +40,13 @@ class SKUCreateIn(BaseModel):
     is_active: bool = True
 
 class PurchaseItemIn(BaseModel):
-    sku_id: int
+    
+sku_id: int
     qty: int
 
 class PurchaseIn(BaseModel):
-    buyer_user_id: int
+    
+buyer_user_id: int
     items: List[PurchaseItemIn]
     shipping_address: str | None = None
 

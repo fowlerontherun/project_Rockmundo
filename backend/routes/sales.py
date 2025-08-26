@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/sales.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -20,7 +21,8 @@ svc.ensure_schema()
 
 # -------- Digital --------
 class DigitalSaleIn(BaseModel):
-    buyer_user_id: int
+    
+buyer_user_id: int
     work_type: str  # 'song' | 'album'
     work_id: int
     price_cents: int
@@ -41,18 +43,21 @@ def list_digital_sales(work_type: str, work_id: int):
 
 # -------- Vinyl --------
 class VinylSkuIn(BaseModel):
-    album_id: int
+    
+album_id: int
     variant: str
     price_cents: int
     stock_qty: int
     currency: str = "USD"
 
 class VinylItemIn(BaseModel):
-    sku_id: int
+    
+sku_id: int
     qty: int
 
 class VinylPurchaseIn(BaseModel):
-    buyer_user_id: int
+    
+buyer_user_id: int
     items: List[VinylItemIn]
     shipping_address: str | None = None
 

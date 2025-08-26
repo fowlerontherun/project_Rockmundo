@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models.gig import Gig
@@ -17,7 +18,7 @@ def is_band_solo(band_id: int, db: Session) -> bool:
 router = APIRouter()
 
 @router.post("/gigs/book", response_model=GigOut, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
-def book_gig(gig: GigCreate, db: Session = Depends(get_db)):
+def book_gig(gig: GigCreate, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_id)):
     if gig.acoustic:
         if is_band_solo(gig.band_id, db):
             pass

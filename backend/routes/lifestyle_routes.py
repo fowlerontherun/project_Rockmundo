@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # routes/lifestyle_routes.py
 
 from fastapi import APIRouter, Depends

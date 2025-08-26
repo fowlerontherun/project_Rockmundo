@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/sponsorship.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -16,14 +17,16 @@ def get_service() -> SponsorshipService:
 
 # ---------- Models ----------
 class SponsorIn(BaseModel):
-    name: str
+    
+name: str
     website_url: Optional[str] = None
     logo_url: Optional[str] = None
     contact_email: Optional[str] = None
     notes: Optional[str] = None
 
 class VenueSponsorshipIn(BaseModel):
-    venue_id: int
+    
+venue_id: int
     sponsor_id: int
     start_date: str = Field(..., description="YYYY-MM-DD")
     end_date: Optional[str] = Field(None, description="YYYY-MM-DD or null")
@@ -37,7 +40,8 @@ class VenueSponsorshipIn(BaseModel):
     currency: str = "USD"
 
 class AdEventIn(BaseModel):
-    sponsorship_id: int
+    
+sponsorship_id: int
     event_type: str  # 'impression' | 'click'
     meta_json: Optional[str] = None
 

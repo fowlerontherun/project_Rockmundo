@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi import Depends
+from auth.dependencies import get_current_user_id, require_role
 from sqlalchemy.orm import Session
 
 from models.music import Song, Album, album_song_link
@@ -11,7 +13,7 @@ from database import get_db
 router = APIRouter(prefix="/music", tags=["Music"])
 
 @router.post("/songs", response_model=SongResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
-def create_song(song: SongCreate, db: Session = Depends(get_db)):
+def create_song(song: SongCreate, db: Session = Depends(get_db, user_id: int = Depends(get_current_user_id))):
     if not (song.band_id or song.collaboration_id):
         raise HTTPException(status_code=400, detail="Must provide band_id or collaboration_id")
     new_song = Song(**song.dict())
@@ -21,14 +23,14 @@ def create_song(song: SongCreate, db: Session = Depends(get_db)):
     return new_song
 
 @router.get("/songs/{song_id}", response_model=SongResponse)
-def get_song(song_id: int, db: Session = Depends(get_db)):
+def get_song(song_id: int, db: Session = Depends(get_db, user_id: int = Depends(get_current_user_id))):
     song = db.query(Song).get(song_id)
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
     return song
 
 @router.post("/albums", response_model=AlbumResponse)
-def create_album(album: AlbumCreate, db: Session = Depends(get_db)):
+def create_album(album: AlbumCreate, db: Session = Depends(get_db, user_id: int = Depends(get_current_user_id))):
     if not (album.band_id or album.collaboration_id):
         raise HTTPException(status_code=400, detail="Must provide band_id or collaboration_id")
     

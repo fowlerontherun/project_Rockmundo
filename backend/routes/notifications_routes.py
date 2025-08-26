@@ -1,5 +1,7 @@
 # File: backend/routes/notifications_routes.py
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi import Depends
+from auth.dependencies import get_current_user_id, require_role
 from pydantic import BaseModel
 from typing import Optional
 from services.notifications_service import NotificationsService, NotificationsError
@@ -7,8 +9,8 @@ from services.notifications_service import NotificationsService, NotificationsEr
 try:
     from auth.dependencies import require_role
 except Exception:
-    def require_role(roles):
-        async def _noop():
+    def require_role(roles, user_id: int = Depends(get_current_user_id)):
+        async def _noop(user_id: int = Depends(get_current_user_id)):
             return True
         return _noop
 
@@ -17,14 +19,14 @@ svc = NotificationsService()
 svc.ensure_schema()
 
 class CreateNotificationIn(BaseModel):
-    user_id: int
+    
     type: str
     title: str
     body: Optional[str] = ""
     link: Optional[str] = None
 
 @router.post("", dependencies=[Depends(require_role(["admin","moderator"]))])
-def create_notification(payload: CreateNotificationIn):
+def create_notification(payload: CreateNotificationIn, user_id: int = Depends(get_current_user_id)):
     nid = svc.create_notification(**payload.model_dump())
     return {"id": nid}
 

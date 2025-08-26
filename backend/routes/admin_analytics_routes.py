@@ -1,5 +1,7 @@
 # File: backend/routes/admin_analytics_routes.py
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi import Depends
+from auth.dependencies import get_current_user_id, require_role
 from services.analytics_service import AnalyticsService
 
 # Auth middleware / role dependency hook

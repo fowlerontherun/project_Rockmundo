@@ -1,3 +1,4 @@
+from auth.dependencies import require_role
 # File: backend/routes/dashboard_routes.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional

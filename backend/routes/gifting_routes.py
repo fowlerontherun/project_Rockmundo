@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/gifting_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, conint
@@ -20,7 +21,8 @@ svc.ensure_schema()
 
 # -------- payload models --------
 class DigitalGiftPayload(BaseModel):
-    sender_user_id: int
+    
+sender_user_id: int
     recipient_user_id: int
     work_type: str   # 'song' | 'album'
     work_id: int
@@ -29,11 +31,13 @@ class DigitalGiftPayload(BaseModel):
     message: Optional[str] = None
 
 class TicketGiftItemPayload(BaseModel):
-    ticket_type_id: int
+    
+ticket_type_id: int
     qty: conint(gt=0)
 
 class TicketGiftPayload(BaseModel):
-    sender_user_id: int
+    
+sender_user_id: int
     recipient_user_id: int
     event_id: int
     items: List[TicketGiftItemPayload]

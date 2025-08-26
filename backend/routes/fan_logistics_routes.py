@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from auth.dependencies import get_current_user_id, require_role
+from fastapi import APIRouter, Depends
 from core.fan_logistics_engine import cast_vote, get_votes_for_band, get_top_petitions, trigger_engagement_bonus
 
 router = APIRouter()

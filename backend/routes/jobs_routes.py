@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 # File: backend/routes/jobs_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from services.jobs_royalties import RoyaltyJobsService, RoyaltyJobError

@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from utils.auth_utils import create_access_token, verify_user_credentials
@@ -6,7 +7,8 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class TokenResponse(BaseModel):
-    access_token: str
+    
+access_token: str
     token_type: str = "bearer"
 
 @router.post("/login", response_model=TokenResponse)

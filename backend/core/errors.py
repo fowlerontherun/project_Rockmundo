@@ -1,27 +1,18 @@
-# File: backend/core/errors.py
-from fastapi import HTTPException, status
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
 
-class AppError(Exception):
-    code = "APP_ERROR"
-    http_status = status.HTTP_400_BAD_REQUEST
 
-    def __init__(self, message: str = "", *, code: str = None, http_status: int = None):
-        super().__init__(message or self.code)
-        if code: self.code = code
-        if http_status: self.http_status = http_status
-        self.message = message or self.code
+class ValidationErrorItem(BaseModel):
+    loc: List[str] = Field(..., description="Location of the error (e.g., ['body', 'field']).")
+    msg: str = Field(..., description="Human-friendly error message.")
+    type: str = Field(..., description="Error type code (e.g., 'value_error').")
 
-    def to_http(self) -> HTTPException:
-        return HTTPException(status_code=self.http_status, detail={"code": self.code, "message": self.message})
 
-class VenueConflictError(AppError):
-    code = "VENUE_CONFLICT"
-    http_status = status.HTTP_409_CONFLICT
-
-class TourMinStopsError(AppError):
-    code = "TOUR_MIN_STOPS_NOT_MET"
-    http_status = status.HTTP_400_BAD_REQUEST
-
-class MailNoRecipientsError(AppError):
-    code = "MAIL_NO_RECIPIENTS"
-    http_status = status.HTTP_400_BAD_REQUEST
+class ErrorResponse(BaseModel):
+    error: str = Field(..., description="Stable error code (snake_case).")
+    message: str = Field(..., description="Human-friendly error message.")
+    details: Optional[Dict[str, Any]] = Field(default=None, description="Optional extra metadata.")
+    request_id: Optional[str] = Field(default=None, description="Request correlation ID for support.")
+    validation: Optional[List[ValidationErrorItem]] = Field(
+        default=None, description="Validation error details when applicable."
+    )

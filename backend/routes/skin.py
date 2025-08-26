@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from models.skin import Skin, SkinInventory

@@ -1,3 +1,4 @@
+from auth.dependencies import get_current_user_id, require_role
 from pydantic import BaseModel
 from typing import List, Dict
 
