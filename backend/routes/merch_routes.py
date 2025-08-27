@@ -1,17 +1,10 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
+from backend.services.economy_service import EconomyService
+from backend.services.merch_service import MerchError, MerchService, ProductIn, SKUIn
+from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 from pydantic import BaseModel
-from services.economy_service import EconomyService
-from services.merch_service import MerchError, MerchService, ProductIn, SKUIn
-
-try:
-    from auth.dependencies import require_role
-except Exception:  # pragma: no cover
-    def require_role(roles):
-        async def _noop():
-            return True
-        return _noop
 
 router = APIRouter(prefix="/merch", tags=["Merch Store"])
 svc = MerchService(economy=EconomyService())
@@ -58,12 +51,18 @@ def create_product(payload: ProductCreateIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/products", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
-def list_products(only_active: bool = True, category: str | None = None, band_id: int | None = None):
+@router.get(
+    "/products", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))]
+)
+def list_products(
+    only_active: bool = True, category: str | None = None, band_id: int | None = None
+):
     return svc.list_products(only_active=only_active, category=category, band_id=band_id)
 
 
-@router.patch("/products/{product_id}", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.patch(
+    "/products/{product_id}", dependencies=[Depends(require_role(["admin", "moderator"]))]
+)
 def update_product(product_id: int, fields: dict):
     try:
         svc.update_product(product_id, **fields)
@@ -81,7 +80,10 @@ def create_sku(payload: SKUCreateIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/skus/{product_id}", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.get(
+    "/skus/{product_id}",
+    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+)
 def list_skus(product_id: int, only_active: bool = True):
     return svc.list_skus(product_id, only_active=only_active)
 
@@ -95,7 +97,9 @@ def update_sku(sku_id: int, fields: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/purchase", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post(
+    "/purchase", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))]
+)
 def purchase(payload: PurchaseIn):
     try:
         order_id = svc.purchase(
@@ -116,7 +120,10 @@ def refund(order_id: int, reason: str = ""):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/orders/{order_id}", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.get(
+    "/orders/{order_id}",
+    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+)
 def get_order(order_id: int):
     try:
         return svc.get_order(order_id)
@@ -124,6 +131,9 @@ def get_order(order_id: int):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.get("/orders/user/{buyer_user_id}", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.get(
+    "/orders/user/{buyer_user_id}",
+    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+)
 def list_orders_for_user(buyer_user_id: int):
     return svc.list_orders_for_user(buyer_user_id)
