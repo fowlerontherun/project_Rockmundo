@@ -1,6 +1,7 @@
 import React from 'react';
 import Sidebar from './components/Sidebar';
-import { AuditTable } from './audit';
+codex/expose-monitoring-metrics-in-backend
+import { MonitoringWidget } from './monitoring';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -8,6 +9,12 @@ const App: React.FC = () => {
     <>
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
       <p className="text-gray-700">Select a module from the sidebar to begin.</p>
+codex/expose-monitoring-metrics-in-backend
+      <MonitoringWidget />
+    </main>
+  </div>
+);
+=======
     </>
   );
 
@@ -23,4 +30,3 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
