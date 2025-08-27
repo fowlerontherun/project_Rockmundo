@@ -1,12 +1,12 @@
 """Admin routes for economy configuration and auditing."""
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from auth.dependencies import get_current_user_id, require_role
-from services.economy_admin_service import EconomyAdminService
-from models.economy_config import EconomyConfig
-from services.admin_audit_service import audit_dependency
+from backend.auth.dependencies import get_current_user_id, require_role
+from backend.services.economy_admin_service import EconomyAdminService
+from backend.models.economy_config import EconomyConfig
+from backend.services.admin_audit_service import audit_dependency
 
 router = APIRouter(
     prefix="/economy", tags=["AdminEconomy"], dependencies=[Depends(audit_dependency)]

@@ -5,7 +5,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from models.quest import QuestDB, QuestStageDB, QuestBranchDB, QuestReward, Quest, QuestStage
+from backend.models.quest import (
+    QuestDB,
+    QuestStageDB,
+    QuestBranchDB,
+    QuestReward,
+    Quest,
+    QuestStage,
+)
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

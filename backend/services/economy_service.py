@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from backend.utils.logging import get_logger
+from backend.models.economy_config import get_config
 
 logger = get_logger(__name__)
 
@@ -88,6 +89,10 @@ class EconomyService:
             return int(row[0]) if row else 0
 
     def deposit(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
+        """Deposit funds into a user's account applying configured tax."""
+        cfg = get_config()
+        tax = int(amount_cents * cfg.tax_rate)
+        net = amount_cents - tax
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
@@ -96,7 +101,34 @@ class EconomyService:
             )
             cur.execute(
                 "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ?",
-                (amount_cents, user_id),
+                (net, user_id),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('deposit', ?, ?, ?)",
+                (net, currency, user_id),
+            )
+            tx_id = cur.lastrowid
+            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
+            balance = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (user_id, tx_id, net, balance),
             )
             conn.commit()
-            return amount_cents
+            return net
+
+    def list_recent_transactions(self, limit: int = 50) -> list[TransactionRecord]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, type, amount_cents, currency, src_account_id, dest_account_id, created_at FROM transactions ORDER BY id DESC LIMIT ?",
+                (limit,),
+            )
+            rows = cur.fetchall()
+            return [TransactionRecord(**dict(row)) for row in rows]
+
+    def credit_purchase(self, user_id: int, amount_cents: int, currency="USD") -> int:
+        """Credit a user's account after successful purchase."""
+        code = getattr(currency, "code", currency)
+        return self.deposit(user_id, amount_cents, code)

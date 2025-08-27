@@ -4,7 +4,11 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from services.economy_service import EconomyError, EconomyService, TransactionRecord
+from backend.services.economy_service import (
+    EconomyError,
+    EconomyService,
+    TransactionRecord,
+)
 
 router = APIRouter(prefix="/economy", tags=["Economy"])
 

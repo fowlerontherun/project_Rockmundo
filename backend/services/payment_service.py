@@ -7,7 +7,7 @@ from typing import Dict, Optional
 
 from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
 
-from .economy_service import EconomyService
+from backend.services.economy_service import EconomyService
 
 
 class PaymentError(Exception):
