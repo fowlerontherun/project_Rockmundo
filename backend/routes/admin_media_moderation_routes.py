@@ -1,11 +1,14 @@
 """Admin endpoints for moderating user submitted media."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from auth.dependencies import get_current_user_id, require_role
 from services.admin_service import AdminService
+from services.admin_audit_service import audit_dependency
 
 
-router = APIRouter(prefix="/media", tags=["Admin Media Moderation"])
+router = APIRouter(
+    prefix="/media", tags=["Admin Media Moderation"], dependencies=[Depends(audit_dependency)]
+)
 
 
 class _AdminDB:

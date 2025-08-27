@@ -1,8 +1,9 @@
 # File: backend/routes/admin_analytics_routes.py
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from auth.dependencies import get_current_user_id, require_role
 from services.analytics_service import AnalyticsService
 from services.admin_service import AdminService
+from services.admin_audit_service import audit_dependency
 
 # Auth middleware / role dependency hook
 try:
@@ -13,7 +14,9 @@ except Exception:
             return True
         return _noop
 
-router = APIRouter(prefix="/analytics", tags=["Admin Analytics"])
+router = APIRouter(
+    prefix="/analytics", tags=["Admin Analytics"], dependencies=[Depends(audit_dependency)]
+)
 svc = AnalyticsService()
 
 
