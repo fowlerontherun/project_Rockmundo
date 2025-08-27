@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
-
-from services.video_service import VideoService
-from services.economy_service import EconomyService
+from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
+from backend.services.economy_service import EconomyService
+from backend.services.video_service import VideoService
+from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
 router = APIRouter()
 
