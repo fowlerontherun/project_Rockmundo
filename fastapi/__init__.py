@@ -5,6 +5,20 @@ class HTTPException(Exception):
         self.detail = detail
 
 
+def Depends(dep):  # pragma: no cover - testing stub
+    return dep
+
+
+class Request:  # minimal request used in tests
+    def __init__(self, headers: dict | None = None):
+        self.headers = headers or {}
+
+
+class status:  # pragma: no cover - constants for tests
+    HTTP_401_UNAUTHORIZED = 401
+    HTTP_403_FORBIDDEN = 403
+
+
 class APIRouter:
     def __init__(self, *args, **kwargs):
         self.routes = []
