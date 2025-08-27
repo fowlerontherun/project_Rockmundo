@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from auth.dependencies import get_current_user_id, require_role
-from services.npc_service import NPCService
-from services.admin_audit_service import audit_dependency
+from backend.auth.dependencies import get_current_user_id, require_role
+from backend.services.npc_service import NPCService
+from backend.services.admin_audit_service import audit_dependency
 
 router = APIRouter(
     prefix="/npcs", tags=["AdminNPCs"], dependencies=[Depends(audit_dependency)]

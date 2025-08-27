@@ -20,30 +20,31 @@ class status:  # pragma: no cover - constants for tests
 
 
 class APIRouter:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, prefix: str = "", *args, **kwargs):
         self.routes = []
+        self.prefix = prefix
 
     def post(self, path: str):
         def decorator(func):
-            self.routes.append(("POST", path, func))
+            self.routes.append(("POST", self.prefix + path, func))
             return func
         return decorator
 
     def get(self, path: str):
         def decorator(func):
-            self.routes.append(("GET", path, func))
+            self.routes.append(("GET", self.prefix + path, func))
             return func
         return decorator
 
     def delete(self, path: str):
         def decorator(func):
-            self.routes.append(("DELETE", path, func))
+            self.routes.append(("DELETE", self.prefix + path, func))
             return func
         return decorator
 
     def put(self, path: str):
         def decorator(func):
-            self.routes.append(("PUT", path, func))
+            self.routes.append(("PUT", self.prefix + path, func))
             return func
         return decorator
 

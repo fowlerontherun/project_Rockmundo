@@ -5,8 +5,8 @@ from typing import List
 from fastapi import Depends, Request
 from datetime import datetime
 
-from auth.dependencies import get_current_user_id
-from models.admin_audit import AdminAudit
+from backend.auth.dependencies import get_current_user_id
+from backend.models.admin_audit import AdminAudit
 
 
 class AdminAuditService:
