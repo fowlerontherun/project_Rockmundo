@@ -1,10 +1,10 @@
 """Service logic for property management."""
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .economy_service import EconomyService, EconomyError
 from .achievement_service import AchievementService
+from .economy_service import EconomyError, EconomyService
 
 try:
     from .fame_service import FameService  # type: ignore
@@ -25,11 +25,13 @@ class PropertyService:
         economy: Optional[EconomyService] = None,
         fame: Optional[Any] = None,
         achievements: Optional[AchievementService] = None,
+        weather: Optional[Any] = None,
     ) -> None:
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
         self.fame = fame
         self.achievements = achievements or AchievementService(self.db_path)
+        self.weather = weather
         # ensure economy schema as well
         self.economy.ensure_schema()
 
@@ -142,7 +144,16 @@ class PropertyService:
 
     def collect_rent(self, owner_id: int) -> int:
         props = self.list_properties(owner_id)
-        total = sum(p["base_rent"] * p["level"] for p in props)
+        total = 0
+        for p in props:
+            rent = p["base_rent"] * p["level"]
+            if self.weather:
+                forecast = self.weather.get_forecast(p["location"])
+                if forecast.event and forecast.event.type == "storm":
+                    rent = int(rent * 0.5)
+                elif forecast.event and forecast.event.type == "festival":
+                    rent = int(rent * 1.2)
+            total += rent
         if total:
             self.economy.deposit(owner_id, total)
         return total

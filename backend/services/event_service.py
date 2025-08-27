@@ -1,7 +1,9 @@
 # services/event_service.py
 
-from datetime import datetime, timedelta
 import random
+
+from .weather_service import weather_service
+
 
 def roll_for_daily_event(user_id, lifestyle_data, active_skills):
     # Sample logic: if drinking high and vocals practiced 5 days in a row
@@ -25,3 +27,13 @@ def clear_expired_events():
 def is_skill_blocked(user_id, skill):
     # Check if user has an active event blocking this skill
     return False
+
+
+def adjust_event_attendance(base_attendance: int, region: str) -> int:
+    """Modify event attendance based on current weather."""
+    forecast = weather_service.get_forecast(region)
+    if forecast.event and forecast.event.type == "storm":
+        return int(base_attendance * 0.7)
+    if forecast.event and forecast.event.type == "festival":
+        return int(base_attendance * 1.3)
+    return base_attendance
