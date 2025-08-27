@@ -2,7 +2,9 @@
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from services.economy_service import EconomyError, EconomyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -35,8 +37,10 @@ class MerchError(Exception):
     pass
 
 class MerchService:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, economy: EconomyService | None = None):
         self.db_path = str(db_path or DB_PATH)
+        self.economy = economy or EconomyService(db_path=self.db_path)
+        self.economy.ensure_schema()
 
     # -------- schema --------
     def ensure_schema(self) -> None:
@@ -116,19 +120,23 @@ class MerchService:
     def create_product(self, payload: ProductIn) -> int:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO merch_products (band_id, name, description, category, image_url, is_active)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (payload.band_id, payload.name, payload.description, payload.category, payload.image_url, int(payload.is_active)))
+                """,
+                (payload.band_id, payload.name, payload.description, payload.category, payload.image_url, int(payload.is_active)),
+            )
             conn.commit()
-            return cur.lastrowid
+            return int(cur.lastrowid or 0)
 
     def list_products(self, only_active: bool = True, category: Optional[str] = None, band_id: Optional[int] = None) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             q = "SELECT * FROM merch_products"
-            where, vals = [], []
+            where: list[str] = []
+            vals: list[Any] = []
             if only_active:
                 where.append("is_active = 1")
             if category:
@@ -166,12 +174,24 @@ class MerchService:
     def create_sku(self, payload: SKUIn) -> int:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO merch_skus (product_id, option_size, option_color, price_cents, currency, stock_qty, barcode, is_active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (payload.product_id, payload.option_size, payload.option_color, payload.price_cents, payload.currency, payload.stock_qty, payload.barcode, int(payload.is_active)))
+                """,
+                (
+                    payload.product_id,
+                    payload.option_size,
+                    payload.option_color,
+                    payload.price_cents,
+                    payload.currency,
+                    payload.stock_qty,
+                    payload.barcode,
+                    int(payload.is_active),
+                ),
+            )
             conn.commit()
-            return cur.lastrowid
+            return int(cur.lastrowid or 0)
 
     def list_skus(self, product_id: int, only_active: bool = True) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -233,12 +253,20 @@ class MerchService:
                     total_cents += int(sku["price_cents"]) * it.qty
                     currency = sku["currency"] or currency
 
+                try:
+                    self.economy.withdraw(buyer_user_id, total_cents, currency)
+                except EconomyError as e:
+                    raise MerchError(str(e))
+
                 # Create order
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO merch_orders (buyer_user_id, total_cents, currency, status, shipping_address)
                     VALUES (?, ?, ?, 'confirmed', ?)
-                """, (buyer_user_id, total_cents, currency, shipping_address))
-                order_id = cur.lastrowid
+                    """,
+                    (buyer_user_id, total_cents, currency, shipping_address),
+                )
+                order_id = int(cur.lastrowid or 0)
 
                 # Items and decrement stock
                 for it in norm:
@@ -288,10 +316,14 @@ class MerchService:
                 for r in cur.fetchall():
                     cur.execute("UPDATE merch_skus SET stock_qty = stock_qty + ? WHERE id = ?", (int(r["qty"]), int(r["sku_id"])))
                 # record refund
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO merch_refunds (order_id, amount_cents, reason)
                     VALUES (?, ?, ?)
-                """, (order_id, refundable, reason))
+                    """,
+                    (order_id, refundable, reason),
+                )
+                self.economy.deposit(order["buyer_user_id"], refundable, currency=order["currency"])
                 conn.commit()
                 return {"order_id": order_id, "refunded_cents": refundable, "units_returned": units_to_return}
             except Exception:

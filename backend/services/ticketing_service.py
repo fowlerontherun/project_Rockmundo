@@ -3,7 +3,9 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+from services.economy_service import EconomyError, EconomyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -16,8 +18,10 @@ class TicketingError(Exception):
     pass
 
 class TicketingService:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, economy: EconomyService | None = None):
         self.db_path = str(db_path or DB_PATH)
+        self.economy = economy or EconomyService(db_path=self.db_path)
+        self.economy.ensure_schema()
 
     # ---------------- Schema ----------------
     def ensure_schema(self) -> None:
@@ -140,12 +144,15 @@ class TicketingService:
     ) -> int:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO ticket_types (event_id, name, price_cents, currency, total_qty, max_per_user, sales_start, sales_end, is_active)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (event_id, name, price_cents, currency, total_qty, max_per_user, sales_start, sales_end, int(is_active)))
+                """,
+                (event_id, name, price_cents, currency, total_qty, max_per_user, sales_start, sales_end, int(is_active)),
+            )
             conn.commit()
-            return cur.lastrowid
+            return int(cur.lastrowid or 0)
 
     def list_ticket_types(self, event_id: int) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -230,11 +237,19 @@ class TicketingService:
                 if row and row["currency"]:
                     currency = row["currency"]
 
-                cur.execute("""
+                try:
+                    self.economy.withdraw(user_id, total_cents, currency)
+                except EconomyError as e:
+                    raise TicketingError(str(e))
+
+                cur.execute(
+                    """
                     INSERT INTO ticket_orders (user_id, event_id, total_cents, currency, status)
                     VALUES (?, ?, ?, ?, 'confirmed')
-                """, (user_id, event_id, total_cents, currency))
-                order_id = cur.lastrowid
+                    """,
+                    (user_id, event_id, total_cents, currency),
+                )
+                order_id = int(cur.lastrowid or 0)
 
                 for it in norm_items:
                     cur.execute("SELECT price_cents FROM ticket_types WHERE id = ?", (it.ticket_type_id,))
@@ -262,11 +277,14 @@ class TicketingService:
             if order["status"] == "refunded":
                 raise TicketingError("Order is already refunded")
 
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT SUM(unit_price_cents * (qty - refunded_qty)) AS refundable
                 FROM ticket_order_items
                 WHERE order_id = ?
-            """, (order_id,))
+                """,
+                (order_id,),
+            )
             row = cur.fetchone()
             refundable = int(row["refundable"] or 0)
             if refundable <= 0:
@@ -274,12 +292,22 @@ class TicketingService:
 
             try:
                 cur.execute("BEGIN IMMEDIATE")
-                cur.execute("UPDATE ticket_orders SET status = 'refunded', updated_at = datetime('now') WHERE id = ?", (order_id,))
-                cur.execute("UPDATE ticket_order_items SET refunded_qty = qty WHERE order_id = ?", (order_id,))
-                cur.execute("""
+                cur.execute(
+                    "UPDATE ticket_orders SET status = 'refunded', updated_at = datetime('now') WHERE id = ?",
+                    (order_id,),
+                )
+                cur.execute(
+                    "UPDATE ticket_order_items SET refunded_qty = qty WHERE order_id = ?",
+                    (order_id,),
+                )
+                cur.execute(
+                    """
                     INSERT INTO ticket_refunds (order_id, amount_cents, reason)
                     VALUES (?, ?, ?)
-                """, (order_id, refundable, reason))
+                    """,
+                    (order_id, refundable, reason),
+                )
+                self.economy.deposit(order["user_id"], refundable, currency=order["currency"])
                 conn.commit()
                 return {"order_id": order_id, "refunded_cents": refundable}
             except Exception:
