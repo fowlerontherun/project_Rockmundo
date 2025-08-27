@@ -1,45 +1,50 @@
-from flask import Blueprint, jsonify, request
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from services.quest_service import QuestService
 from seeds.quest_data import get_seed_quests
+from models.quest import QuestStage, QuestReward
 
-quest_routes = Blueprint("quest_routes", __name__)
+
+quest_routes = APIRouter()
 quest_service = QuestService()
 QUESTS = {quest.id: quest for quest in get_seed_quests()}
 
 
-@quest_routes.route("/quests/start/<quest_id>", methods=["POST"])
-def start_quest(quest_id):
-    data = request.get_json()
-    user_id = data["user_id"]
+class UserRequest(BaseModel):
+    user_id: int
+
+
+class ProgressRequest(UserRequest):
+    choice: str
+
+
+@quest_routes.post("/quests/start/{quest_id}", response_model=QuestStage)
+def start_quest(quest_id: str, payload: UserRequest):
     quest = QUESTS.get(quest_id)
     if quest is None:
-        return jsonify({"error": "quest not found"}), 404
-    quest_service.assign_quest(user_id, quest)
+        raise HTTPException(status_code=404, detail="quest not found")
+    quest_service.assign_quest(payload.user_id, quest)
     stage = quest.get_stage(quest.initial_stage)
-    return jsonify(stage.dict()), 200
+    return stage
 
 
-@quest_routes.route("/quests/progress/<quest_id>", methods=["POST"])
-def report_progress(quest_id):
-    data = request.get_json()
-    user_id = data["user_id"]
-    choice = data["choice"]
+@quest_routes.post("/quests/progress/{quest_id}", response_model=QuestStage)
+def report_progress(quest_id: str, payload: ProgressRequest):
     quest = QUESTS.get(quest_id)
     if quest is None:
-        return jsonify({"error": "quest not found"}), 404
+        raise HTTPException(status_code=404, detail="quest not found")
     try:
-        stage = quest_service.report_progress(user_id, quest, choice)
-        return jsonify(stage.dict()), 200
+        stage = quest_service.report_progress(payload.user_id, quest, payload.choice)
+        return stage
     except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
-@quest_routes.route("/quests/claim/<quest_id>", methods=["POST"])
-def claim_reward(quest_id):
-    data = request.get_json()
-    user_id = data["user_id"]
-    reward = quest_service.claim_reward(user_id, quest_id)
+@quest_routes.post("/quests/claim/{quest_id}", response_model=QuestReward)
+def claim_reward(quest_id: str, payload: UserRequest):
+    reward = quest_service.claim_reward(payload.user_id, quest_id)
     if reward:
-        return jsonify(reward.dict()), 200
-    return jsonify({"error": "no reward"}), 404
+        return reward
+    raise HTTPException(status_code=404, detail="no reward")
+

@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from backend.models.quest import (
     QuestDB,
@@ -63,7 +63,7 @@ class QuestAdminService:
             conn.commit()
 
     # ------------------------------------------------------------------
-    def _validate_branches(self, stages: List[Dict[str, any]]) -> None:
+    def _validate_branches(self, stages: List[Dict[str, Any]]) -> None:
         stage_ids = {s["id"] for s in stages}
         for st in stages:
             for dest in st.get("branches", {}).values():
@@ -71,7 +71,7 @@ class QuestAdminService:
                     raise ValueError(f"Invalid branch destination: {dest}")
 
     # ------------------------------------------------------------------
-    def create_quest(self, name: str, stages: List[Dict[str, any]], initial_stage: str) -> Dict[str, any]:
+    def create_quest(self, name: str, stages: List[Dict[str, Any]], initial_stage: str) -> Dict[str, Any]:
         self._validate_branches(stages)
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
@@ -107,7 +107,7 @@ class QuestAdminService:
         return self.get_quest(quest_id)
 
     # ------------------------------------------------------------------
-    def get_quest(self, quest_id: int) -> Optional[Dict[str, any]]:
+    def get_quest(self, quest_id: int) -> Optional[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
@@ -157,8 +157,8 @@ class QuestAdminService:
         stage_id: str,
         description: Optional[str] = None,
         branches: Optional[Dict[str, str]] = None,
-        reward: Optional[Dict[str, any]] = None,
-    ) -> Optional[Dict[str, any]]:
+        reward: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
@@ -207,7 +207,7 @@ class QuestAdminService:
         return quest["stages"].get(stage_id) if quest else None
 
     # ------------------------------------------------------------------
-    def version_quest(self, quest_id: int) -> Optional[Dict[str, any]]:
+    def version_quest(self, quest_id: int) -> Optional[Dict[str, Any]]:
         quest = self.get_quest(quest_id)
         if not quest:
             return None
