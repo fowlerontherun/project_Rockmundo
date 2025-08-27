@@ -3,8 +3,11 @@
 from fastapi import FastAPI
 from routes import event_routes, lifestyle_routes, sponsorship, social_routes  # ← added social_routes import
 from database import init_db
+from middleware.locale import LocaleMiddleware
+from utils.i18n import _
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
+app.add_middleware(LocaleMiddleware)
 
 @app.on_event("startup")
 def startup():
@@ -20,4 +23,4 @@ app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to RockMundo API"}
+    return {"message": _("Welcome to RockMundo API")}

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from utils.i18n import _
 
 from auth.dependencies import get_current_user_id
 from backend.services.social_service import social_service
@@ -23,7 +24,7 @@ async def accept_friend_request(request_id: int, user_id: int = Depends(get_curr
     try:
         await social_service.accept_friend_request(request_id, user_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid friend request")
+        raise HTTPException(status_code=400, detail=_("Invalid friend request"))
     return {"status": "accepted"}
 
 
@@ -32,7 +33,7 @@ async def reject_friend_request(request_id: int, user_id: int = Depends(get_curr
     try:
         await social_service.reject_friend_request(request_id, user_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid friend request")
+        raise HTTPException(status_code=400, detail=_("Invalid friend request"))
     return {"status": "rejected"}
 
 
@@ -57,7 +58,7 @@ async def join_group(group_id: int, user_id: int = Depends(get_current_user_id))
     try:
         social_service.join_group(group_id, user_id)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Group not found")
+        raise HTTPException(status_code=404, detail=_("Group not found"))
     return {"status": "joined"}
 
 
@@ -74,7 +75,7 @@ async def leave_group(group_id: int, user_id: int = Depends(get_current_user_id)
 async def list_group_members(group_id: int, user_id: int = Depends(get_current_user_id)):
     # ensure group exists
     if group_id not in social_service._groups:
-        raise HTTPException(status_code=404, detail="Group not found")
+        raise HTTPException(status_code=404, detail=_("Group not found"))
     return social_service.list_group_members(group_id)
 
 
@@ -107,6 +108,6 @@ async def add_post(thread_id: int, data: PostCreateIn, user_id: int = Depends(ge
 @router.get("/threads/{thread_id}")
 async def get_thread(thread_id: int, user_id: int = Depends(get_current_user_id)):
     if thread_id not in social_service._threads:
-        raise HTTPException(status_code=404, detail="Thread not found")
+        raise HTTPException(status_code=404, detail=_("Thread not found"))
     posts = social_service.get_thread_posts(thread_id)
     return {"thread": social_service._threads[thread_id], "posts": posts}

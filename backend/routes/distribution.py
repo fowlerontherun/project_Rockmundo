@@ -5,6 +5,7 @@ from database import get_db
 from models.distribution import SongDistribution
 from models.music import Song
 from schemas.distribution import DistributionUpdate, DistributionResponse
+from utils.i18n import _
 
 router = APIRouter(prefix="/distribution", tags=["Distribution"])
 
@@ -43,7 +44,7 @@ def update_distribution(data: DistributionUpdate, db: Session = Depends(get_db))
 def get_song_earnings(song_id: int, db: Session = Depends(get_db)):
     dist = db.query(SongDistribution).filter_by(song_id=song_id).first()
     if not dist:
-        raise HTTPException(status_code=404, detail="No earnings recorded for this song")
+        raise HTTPException(status_code=404, detail=_("No earnings recorded for this song"))
     return dist
 
 @router.get("/charts")

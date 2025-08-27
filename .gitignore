@@ -1,0 +1,10 @@
+# Ignore node dependencies
+frontend/node_modules/
+
+# Ignore compiled message catalogs
+backend/locales/**/LC_MESSAGES/*.mo
+
+# Python caches
+__pycache__/
+*.pyc
+
