@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
+
 def _load_dotenv(dotenv_path: Optional[str] = None) -> None:
     path = dotenv_path or (Path(__file__).resolve().parents[2] / ".env")
     try:
@@ -26,6 +27,7 @@ class Settings:
     JWT_SECRET: str = os.getenv("ROCKMUNDO_JWT_SECRET", "dev-change-me")
     JWT_ISS: str = os.getenv("ROCKMUNDO_JWT_ISS", "rockmundo")
     JWT_AUD: str = os.getenv("ROCKMUNDO_JWT_AUD", "rockmundo-app")
+    JWT_ALG: str = os.getenv("ROCKMUNDO_JWT_ALG", "HS256")
     ACCESS_TOKEN_TTL_MIN: int = int(os.getenv("ROCKMUNDO_ACCESS_TTL_MIN", "30"))
     REFRESH_TOKEN_TTL_DAYS: int = int(os.getenv("ROCKMUNDO_REFRESH_TTL_DAYS", "30"))
 
