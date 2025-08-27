@@ -38,6 +38,18 @@ async def delete_npc(npc_id: int, req: Request):
     return {"status": "deleted"}
 
 
+@router.post("/preview")
+async def preview_npc(data: dict, req: Request):
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    return svc.preview_npc(
+        identity=data.get("identity", "unknown"),
+        npc_type=data.get("npc_type", "generic"),
+        dialogue_hooks=data.get("dialogue_hooks"),
+        stats=data.get("stats"),
+    )
+
+
 @router.post("/{npc_id}/simulate")
 async def simulate_npc(npc_id: int, req: Request):
     admin_id = await get_current_user_id(req)
