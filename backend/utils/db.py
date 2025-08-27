@@ -1,7 +1,8 @@
 # File: backend/utils/db.py
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, Any, List, Dict
+from functools import lru_cache
 
 try:
     from core.config import settings
@@ -26,3 +27,17 @@ def get_conn(db_path: Optional[str] = None) -> sqlite3.Connection:
             pass
         _WAL_INITIALISED = True
     return conn
+
+
+@lru_cache(maxsize=128)
+def cached_query(
+    db_path: str,
+    query: str,
+    params: Tuple[Any, ...] = (),
+) -> List[Dict[str, Any]]:
+    """Execute a query and cache the results."""
+
+    with get_conn(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(query, params)
+        return [dict(r) for r in cur.fetchall()]
