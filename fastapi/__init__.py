@@ -41,6 +41,12 @@ class APIRouter:
             return func
         return decorator
 
+    def put(self, path: str):
+        def decorator(func):
+            self.routes.append(("PUT", path, func))
+            return func
+        return decorator
+
 
 class FastAPI:
     def __init__(self, *args, **kwargs):
