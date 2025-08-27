@@ -20,6 +20,7 @@ jobs:
           printf '%s' "{\"content\":\"${MSG}\"}" > payload.json
 
       - name: Post to Discord
+        continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |

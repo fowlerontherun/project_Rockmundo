@@ -10,6 +10,7 @@ const navItems: NavItem[] = [
   { label: 'Quests', href: '/admin/quests' },
   { label: 'Economy', href: '/admin/economy' },
   { label: 'Venues', href: '/admin/venues' },
+  { label: 'Audit Logs', href: '/admin/audit' },
 ];
 
 const Sidebar: React.FC = () => (

@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from auth.dependencies import get_current_user_id, require_role
 from services.quest_admin_service import QuestAdminService
+from services.admin_audit_service import audit_dependency
 
-router = APIRouter(prefix="/quests", tags=["AdminQuests"])
+router = APIRouter(
+    prefix="/quests", tags=["AdminQuests"], dependencies=[Depends(audit_dependency)]
+)
 svc = QuestAdminService()
 
 

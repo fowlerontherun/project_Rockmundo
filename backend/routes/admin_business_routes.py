@@ -1,10 +1,13 @@
 """Administrative CRUD routes for businesses."""
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from auth.dependencies import get_current_user_id, require_role
 from services.business_service import BusinessService
+from services.admin_audit_service import audit_dependency
 
-router = APIRouter(prefix="/businesses", tags=["AdminBusinesses"])
+router = APIRouter(
+    prefix="/businesses", tags=["AdminBusinesses"], dependencies=[Depends(audit_dependency)]
+)
 svc = BusinessService()
 
 
