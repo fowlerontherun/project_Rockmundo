@@ -1,81 +1,114 @@
-# File: backend/routes/tour_routes.py
-from fastapi import APIRouter, HTTPException, Query
-from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
-from pydantic import BaseModel, Field
-from typing import Optional, List
+"""API routes for tour simulation."""
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+try:  # Pydantic may be stubbed in tests
+    from pydantic import Field
+except Exception:  # pragma: no cover - fallback for minimal pydantic
+    def Field(default=None, **kwargs):  # type: ignore
+        return default
+from typing import List
 
 from services.tour_service import TourService, TourError
-from services.achievement_service import AchievementService
+from models.tour import TicketTier, Expense
+from services.weather_service import WeatherService
+from services.economy_service import EconomyService
 
 router = APIRouter(prefix="/tours", tags=["Tours"])
-_achievements = AchievementService()
-svc = TourService(achievements=_achievements)
 
-# ---- Models ----
+# Initialise service with simple weather and economy modules
+_economy = EconomyService()
+try:
+    _economy.ensure_schema()
+except Exception:
+    pass
+svc = TourService(weather=WeatherService(), economy=_economy)
+
+
+# ----------------------- Pydantic models -----------------------
 class CreateTourIn(BaseModel):
-    
-band_id: int = Field(..., ge=1)
+    band_id: int = Field(..., ge=1)
+    title: str
+    start_date: str = ""
+    end_date: str = ""
+    route: List[str] = []
+    vehicle_type: str = "van"
+
+
+class TicketTierIn(BaseModel):
     name: str
+    price: float
+    capacity: int
 
-class AddStopIn(BaseModel):
-    
-tour_id: int = Field(..., ge=1)
-    venue_id: int = Field(..., ge=1)
-    date_start: str  # ISO format
-    date_end: str
-    order_index: int = 0
-    notes: Optional[str] = ""
 
-class UpdateStopStatusIn(BaseModel):
-    
-stop_id: int = Field(..., ge=1)
-    status: str
+class ExpenseIn(BaseModel):
+    description: str
+    amount: float
 
-# ---- Routes ----
+
+class ScheduleShowIn(BaseModel):
+    tour_id: int
+    city: str
+    venue: str
+    date: str
+    ticket_tiers: List[TicketTierIn] = []
+    expenses: List[ExpenseIn] = []
+
+
+class SellTicketsIn(BaseModel):
+    tour_id: int
+    leg_index: int
+    tier_name: str
+    quantity: int
+
+
+class SimulateIn(BaseModel):
+    tour_id: int
+    leg_index: int
+
+
+# ----------------------- Routes -----------------------
 @router.post("/")
-def create_tour(payload: CreateTourIn, user_id: int = Depends(get_current_user_id)):
-    return svc.create_tour(band_id=payload.band_id, name=payload.name)
+def create_tour(payload: CreateTourIn):
+    info = svc.create_tour(
+        band_id=payload.band_id,
+        name=payload.title,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        route=payload.route,
+        vehicle_type=payload.vehicle_type,
+    )
+    return svc.tours[info["id"]].to_dict()
 
-@router.get("/")
-def list_tours(band_id: Optional[int] = None, status: Optional[str] = None, limit: int = 50, offset: int = 0, user_id: int = Depends(get_current_user_id)):
-    return svc.list_tours(band_id=band_id, status=status, limit=limit, offset=offset)
 
-@router.get("/{tour_id}")
-def get_tour(tour_id: int, user_id: int = Depends(get_current_user_id)):
+@router.post("/schedule")
+def schedule_show(payload: ScheduleShowIn):
+    tiers = [TicketTier(**(t.dict() if hasattr(t, "dict") else t)) for t in payload.ticket_tiers]
+    expenses = [Expense(**(e.dict() if hasattr(e, "dict") else e)) for e in payload.expenses]
     try:
-        return svc.get_tour(tour_id)
+        return svc.schedule_show(payload.tour_id, payload.city, payload.venue, payload.date, tiers, expenses)
     except TourError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-@router.post("/confirm/{tour_id}")
-def confirm_tour(tour_id: int, user_id: int = Depends(get_current_user_id)):
+
+@router.post("/sell")
+def sell_tickets(payload: SellTicketsIn):
     try:
-        return svc.confirm_tour(tour_id)
+        return svc.sell_tickets(payload.tour_id, payload.leg_index, payload.tier_name, payload.quantity)
     except TourError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/stops")
-def add_stop(payload: AddStopIn, user_id: int = Depends(get_current_user_id)):
+
+@router.post("/simulate")
+def simulate(payload: SimulateIn):
     try:
-        return svc.add_stop(
-            tour_id=payload.tour_id,
-            venue_id=payload.venue_id,
-            date_start=payload.date_start,
-            date_end=payload.date_end,
-            order_index=payload.order_index,
-            notes=payload.notes or ""
-        )
+        return svc.simulate_attendance(payload.tour_id, payload.leg_index)
     except TourError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{tour_id}/stops")
-def list_stops(tour_id: int, user_id: int = Depends(get_current_user_id)):
-    return svc.list_stops(tour_id)
 
-@router.post("/stops/status")
-def update_stop_status(payload: UpdateStopStatusIn, user_id: int = Depends(get_current_user_id)):
+@router.get("/{tour_id}/report")
+def report(tour_id: int):
     try:
-        return svc.update_stop_status(stop_id=payload.stop_id, status=payload.status)
+        return svc.report(tour_id)
     except TourError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
