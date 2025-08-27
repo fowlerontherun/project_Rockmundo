@@ -4,6 +4,7 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 from .economy_service import EconomyService, EconomyError
+from .achievement_service import AchievementService
 
 try:
     from .fame_service import FameService  # type: ignore
@@ -23,10 +24,12 @@ class PropertyService:
         db_path: Optional[str] = None,
         economy: Optional[EconomyService] = None,
         fame: Optional[Any] = None,
+        achievements: Optional[AchievementService] = None,
     ) -> None:
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
         self.fame = fame
+        self.achievements = achievements or AchievementService(self.db_path)
         # ensure economy schema as well
         self.economy.ensure_schema()
 
@@ -87,7 +90,12 @@ class PropertyService:
                 (owner_id, name, property_type, location, price_cents, base_rent),
             )
             conn.commit()
-            return int(cur.lastrowid or 0)
+            pid = int(cur.lastrowid or 0)
+        try:
+            self.achievements.grant(owner_id, "first_property")
+        except Exception:
+            pass
+        return pid
 
     def list_properties(self, owner_id: Optional[int] = None) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:

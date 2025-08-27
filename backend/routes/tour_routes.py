@@ -6,9 +6,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 from services.tour_service import TourService, TourError
+from services.achievement_service import AchievementService
 
 router = APIRouter(prefix="/tours", tags=["Tours"])
-svc = TourService()
+_achievements = AchievementService()
+svc = TourService(achievements=_achievements)
 
 # ---- Models ----
 class CreateTourIn(BaseModel):
