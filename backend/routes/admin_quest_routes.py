@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from auth.dependencies import get_current_user_id, require_role
 from services.quest_admin_service import QuestAdminService
+from services.admin_audit_service import audit_dependency
 
-router = APIRouter(prefix="/quests", tags=["AdminQuests"])
+router = APIRouter(
+    prefix="/quests", tags=["AdminQuests"], dependencies=[Depends(audit_dependency)]
+)
 svc = QuestAdminService()
 
 
@@ -57,3 +60,14 @@ async def delete_quest(quest_id: int, req: Request):
     await require_role(["admin"], admin_id)
     svc.delete_quest(quest_id)
     return {"status": "deleted"}
+
+
+@router.post("/preview")
+async def preview_quest(data: dict, req: Request):
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    try:
+        svc._validate_branches(data.get("stages", []))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"valid": True}

@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from auth.dependencies import get_current_user_id, require_role
 from services.npc_service import NPCService
+from services.admin_audit_service import audit_dependency
 
-router = APIRouter(prefix="/npcs", tags=["AdminNPCs"])
+router = APIRouter(
+    prefix="/npcs", tags=["AdminNPCs"], dependencies=[Depends(audit_dependency)]
+)
 svc = NPCService()
 
 
@@ -36,6 +39,18 @@ async def delete_npc(npc_id: int, req: Request):
     if not svc.delete_npc(npc_id):
         raise HTTPException(status_code=404, detail="NPC not found")
     return {"status": "deleted"}
+
+
+@router.post("/preview")
+async def preview_npc(data: dict, req: Request):
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    return svc.preview_npc(
+        identity=data.get("identity", "unknown"),
+        npc_type=data.get("npc_type", "generic"),
+        dialogue_hooks=data.get("dialogue_hooks"),
+        stats=data.get("stats"),
+    )
 
 
 @router.post("/{npc_id}/simulate")

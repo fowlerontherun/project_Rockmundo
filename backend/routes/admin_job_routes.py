@@ -1,8 +1,8 @@
 # File: backend/routes/admin_job_routes.py
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from auth.dependencies import get_current_user_id, require_role
 from utils.i18n import _
-from services.admin_service import AdminService
+from services.admin_audit_service import audit_dependency
 
 try:
     from jobs.world_pulse_jobs import run_daily_world_pulse, run_weekly_rollup
@@ -18,15 +18,9 @@ except Exception:
             return True
         return _ok
 
-router = APIRouter(prefix="/jobs", tags=["AdminJobs"])
-
-
-class _AdminDB:
-    def insert_admin_action(self, action):
-        pass
-
-
-admin_logger = AdminService(_AdminDB())
+router = APIRouter(
+    prefix="/jobs", tags=["AdminJobs"], dependencies=[Depends(audit_dependency)]
+)
 
 @router.post("/world-pulse/daily")
 async def trigger_world_pulse_daily(req: Request):
@@ -35,7 +29,6 @@ async def trigger_world_pulse_daily(req: Request):
     admin_id = await get_current_user_id(req)
     await require_role(["admin"], admin_id)
     await run_daily_world_pulse()
-    admin_logger.log_action(admin_id, "jobs_world_pulse_daily", {})
     return {"status": "ok", "job": "world_pulse_daily"}
 
 @router.post("/world-pulse/weekly")
@@ -45,5 +38,4 @@ async def trigger_world_pulse_weekly(req: Request):
     admin_id = await get_current_user_id(req)
     await require_role(["admin"], admin_id)
     await run_weekly_rollup()
-    admin_logger.log_action(admin_id, "jobs_world_pulse_weekly", {})
     return {"status": "ok", "job": "world_pulse_weekly"}
