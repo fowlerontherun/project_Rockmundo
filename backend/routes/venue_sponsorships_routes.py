@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, List, Dict, Any
 from services.venue_sponsorships_service import VenueSponsorshipsService, VenueSponsorshipError, SponsorshipIn
+from utils.i18n import _
 
 # Auth dependency
 try:
@@ -41,7 +42,7 @@ def upsert_sponsorship(payload: SponsorshipInModel):
 def get_sponsorship(venue_id: int):
     s = svc.get_sponsorship(venue_id)
     if not s:
-        raise HTTPException(status_code=404, detail="No sponsorship set for this venue")
+        raise HTTPException(status_code=404, detail=_("No sponsorship set for this venue"))
     return s
 
 @router.post("/{venue_id}/deactivate", dependencies=[Depends(require_role(["admin", "moderator"]))])
