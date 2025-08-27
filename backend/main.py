@@ -1,7 +1,7 @@
 # backend/main.py
 
 from fastapi import FastAPI
-from routes import event_routes, lifestyle_routes, sponsorship, social_routes  # ← added social_routes import
+from routes import event_routes, lifestyle_routes, sponsorship, social_routes, admin_routes
 from database import init_db
 from middleware.locale import LocaleMiddleware
 from utils.i18n import _
@@ -16,6 +16,7 @@ def startup():
 # Existing routers
 app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
+app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
 
 # New sponsorship router
 app.include_router(sponsorship.router, prefix="/api/sponsorships", tags=["Sponsorships"])
