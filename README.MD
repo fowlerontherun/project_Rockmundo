@@ -113,6 +113,15 @@ This document outlines the current state of implemented features, the roadmap fo
 5. Run the server: `uvicorn main:app --reload`
 6. Access the API docs at `http://localhost:8000/docs`
 
+## Testing
+Run the test suite from the project root:
+
+```bash
+pytest
+```
+
+The tests will automatically create a temporary SQLite database and seed sample data. Coverage information is printed after the run.
+
 ---
 
 ## Contributing
