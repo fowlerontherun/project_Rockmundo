@@ -1,12 +1,13 @@
 import asyncio
 
 import pytest
-from auth.jwt import encode, now_ts
-from auth.dependencies import get_current_user_id, require_role
-from core.config import settings
-from services.analytics_service import AnalyticsService
-from utils.db import get_conn
 import utils.db as db_utils
+from auth.jwt import encode, now_ts
+from core.config import settings
+from utils.db import get_conn
+
+from backend.auth.dependencies import get_current_user_id, require_role
+from backend.services.analytics_service import AnalyticsService
 from fastapi import HTTPException, Request
 
 DDL = """

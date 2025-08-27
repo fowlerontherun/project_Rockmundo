@@ -1,13 +1,14 @@
 # File: backend/routes/admin_analytics_routes.py
-from fastapi import APIRouter, HTTPException, Request, Depends
-from auth.dependencies import get_current_user_id, require_role
-from services.analytics_service import AnalyticsService
-from services.admin_service import AdminService
 from services.admin_audit_service import audit_dependency
+from services.admin_service import AdminService
+
+from backend.auth.dependencies import get_current_user_id, require_role
+from backend.services.analytics_service import AnalyticsService
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 # Auth middleware / role dependency hook
 try:
-    from auth.dependencies import require_role
+    from backend.auth.dependencies import require_role
 except Exception:
     def require_role(roles):
         async def _noop():
