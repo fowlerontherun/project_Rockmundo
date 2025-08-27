@@ -8,19 +8,17 @@ from .admin_economy_routes import router as economy_router
 from .admin_job_routes import router as jobs_router
 from .admin_media_moderation_routes import router as media_router
 from .admin_npc_routes import router as npc_router
-codex/implement-crud-for-venues-and-businesses-3gvg83
-
-
+from .admin_quest_routes import router as quest_router
+from .admin_venue_routes import router as venue_router
+from .admin_audit_routes import router as audit_router
 
 router = APIRouter()
-
-# Mount individual admin feature routers
 router.include_router(analytics_router)
 router.include_router(business_router)
 router.include_router(economy_router)
 router.include_router(jobs_router)
 router.include_router(media_router)
 router.include_router(npc_router)
-codex/implement-crud-for-venues-and-businesses-3gvg83
-
-
+router.include_router(quest_router)
+router.include_router(venue_router)
+router.include_router(audit_router)

@@ -1,10 +1,15 @@
 """Administrative CRUD routes for venues."""
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 
 from auth.dependencies import get_current_user_id, require_role
 from services.venue_service import VenueService
+from services.admin_audit_service import audit_dependency
+from models.economy_config import set_config, EconomyConfig
 
-router = APIRouter(prefix="/venues", tags=["AdminVenues"])
+router = APIRouter(
+    prefix="/venues", tags=["AdminVenues"], dependencies=[Depends(audit_dependency)]
+)
+set_config(EconomyConfig())
 svc = VenueService()
 
 
