@@ -60,3 +60,14 @@ async def delete_quest(quest_id: int, req: Request):
     await require_role(["admin"], admin_id)
     svc.delete_quest(quest_id)
     return {"status": "deleted"}
+
+
+@router.post("/preview")
+async def preview_quest(data: dict, req: Request):
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    try:
+        svc._validate_branches(data.get("stages", []))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"valid": True}

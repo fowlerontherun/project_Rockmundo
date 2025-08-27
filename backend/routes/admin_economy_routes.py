@@ -38,6 +38,18 @@ async def update_config(payload: ConfigUpdateIn, req: Request):
         raise HTTPException(status_code=400, detail=str(exc))
 
 
+@router.put("/config/preview")
+async def preview_config(payload: ConfigUpdateIn, req: Request):
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    current = svc.get_config()
+    preview = current.__dict__.copy()
+    for k, v in payload.dict().items():
+        if v is not None:
+            preview[k] = v
+    return preview
+
+
 @router.get("/transactions")
 async def recent_transactions(req: Request, limit: int = 50):
     admin_id = await get_current_user_id(req)

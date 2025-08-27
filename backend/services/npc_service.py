@@ -69,6 +69,19 @@ class NPCService:
         return self.db.delete(npc_id)
 
     # ---- Simulation ------------------------------------------------------
+    def preview_npc(self, identity: str, npc_type: str, dialogue_hooks=None, stats=None) -> Dict:
+        """Simulate NPC stats without persisting to the DB."""
+        npc = NPC(
+            id=None,
+            identity=identity,
+            npc_type=npc_type,
+            dialogue_hooks=dialogue_hooks or {},
+            stats=stats or {},
+        )
+        fame_gain = random.randint(0, npc.stats.get('activity', 5))
+        npc.stats['fame'] = npc.stats.get('fame', 0) + fame_gain
+        return {"fame_gain": fame_gain, "stats": npc.stats}
+
     def simulate_npc(self, npc_id: int) -> Optional[Dict]:
         npc = self.db.get(npc_id)
         if not npc:
