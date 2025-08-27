@@ -1,0 +1,15 @@
+{
+  "title": "Rockmundo Metrics",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Economy Transactions",
+      "targets": [{"expr": "economy_transactions_total"}]
+    },
+    {
+      "type": "graph",
+      "title": "Realtime Messages",
+      "targets": [{"expr": "realtime_messages_published_total"}]
+    }
+  ]
+}
