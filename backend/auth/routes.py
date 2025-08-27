@@ -2,11 +2,15 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Dict, Any
+from datetime import datetime, timedelta
+import random
+import uuid
 
 from auth.service import AuthService
 from auth.jwt import decode
 from auth.dependencies import get_current_user_id, require_role
 from utils.db import get_conn
+from models.admin import AdminSession, admin_sessions
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 svc = AuthService()
@@ -99,3 +103,45 @@ def revoke_role(payload: RoleAssignIn):
             raise HTTPException(status_code=404, detail={"code":"ROLE_NOT_FOUND","message":"Role not found"})
         conn.execute("DELETE FROM user_roles WHERE user_id=? AND role_id=?", (payload.user_id, r['id']))
         return {"ok": True}
+
+
+# --- Admin MFA endpoints ----------------------------------------------------
+
+admin_mfa_router = APIRouter(prefix="/admin/mfa", tags=["AdminMFA"])
+
+
+class MFASetupIn(BaseModel):
+    device: str
+
+
+class MFAVerifyIn(BaseModel):
+    session_id: str
+    code: str
+
+
+@admin_mfa_router.post("/setup")
+def mfa_setup(request: Request, payload: MFASetupIn):
+    code = f"{random.randint(0, 999999):06d}"
+    session_id = uuid.uuid4().hex
+    ip = request.client.host if request.client else ""
+    session = AdminSession(
+        id=session_id,
+        device=payload.device,
+        ip=ip,
+        code=code,
+        expires_at=datetime.utcnow() + timedelta(minutes=5),
+    )
+    admin_sessions[session_id] = session
+    # In a real app the code would be delivered via an out-of-band channel; we
+    # return it directly here to simplify testing.
+    return {"session_id": session_id, "code": code}
+
+
+@admin_mfa_router.post("/verify")
+def mfa_verify(payload: MFAVerifyIn):
+    session = admin_sessions.get(payload.session_id)
+    if not session or session.is_expired() or session.code != payload.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    session.verified = True
+    return {"ok": True}
+

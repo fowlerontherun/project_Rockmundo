@@ -1,0 +1,7 @@
+route:
+  receiver: 'default'
+
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'alerts@example.com'

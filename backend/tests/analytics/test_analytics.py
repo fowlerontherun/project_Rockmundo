@@ -1,0 +1,93 @@
+import asyncio
+
+import pytest
+from auth.jwt import encode, now_ts
+from auth.dependencies import get_current_user_id, require_role
+from core.config import settings
+from services.analytics_service import AnalyticsService
+from utils.db import get_conn
+import utils.db as db_utils
+from fastapi import HTTPException, Request
+
+DDL = """
+CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT);
+CREATE TABLE roles(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);
+CREATE TABLE user_roles(user_id INTEGER, role_id INTEGER, PRIMARY KEY(user_id, role_id));
+CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, amount_cents INTEGER, created_at TEXT);
+CREATE TABLE active_events(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, event_id INTEGER, start_date TEXT, duration_days INTEGER);
+CREATE TABLE skill_progress(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, skill TEXT, amount INTEGER, created_at TEXT);
+"""
+
+
+def setup_db(path: str) -> None:
+    with get_conn(path) as conn:
+        conn.executescript(DDL)
+        conn.executemany("INSERT INTO roles(id,name) VALUES (?,?)", [(1, "admin"), (2, "user")])
+        conn.executemany("INSERT INTO users(id,username) VALUES (?,?)", [(1, "admin"), (2, "player")])
+        conn.executemany("INSERT INTO user_roles(user_id,role_id) VALUES (?,?)", [(1,1), (2,2)])
+        conn.executemany(
+            "INSERT INTO transactions(amount_cents, created_at) VALUES (?,?)",
+            [(100, "2024-01-01"), (200, "2024-01-02")],
+        )
+        conn.executemany(
+            "INSERT INTO active_events(user_id,event_id,start_date,duration_days) VALUES (?,?,?,?)",
+            [(1, 1, "2024-01-01", 1), (1, 1, "2024-01-02", 1), (2, 1, "2024-01-02", 1)],
+        )
+        conn.executemany(
+            "INSERT INTO skill_progress(user_id,skill,amount,created_at) VALUES (?,?,?,?)",
+            [
+                (1, "guitar", 5, "2024-01-01"),
+                (1, "guitar", 8, "2024-01-01"),
+                (2, "vocals", 10, "2024-01-02"),
+            ],
+        )
+
+
+def token(user_id: int) -> str:
+    payload = {
+        "sub": str(user_id),
+        "iss": settings.JWT_ISS,
+        "aud": settings.JWT_AUD,
+        "exp": now_ts() + 3600,
+    }
+    return encode(payload, settings.JWT_SECRET)
+
+
+def test_metrics_and_permissions(tmp_path):
+    db = str(tmp_path / "analytics.db")
+    setup_db(db)
+    db_utils.DEFAULT_DB = db
+    svc = AnalyticsService(db_path=db)
+
+    # metrics accuracy
+    metrics = svc.time_series("2024-01-01", "2024-01-02")
+    assert [m.dict() for m in metrics.economy] == [
+        {"date": "2024-01-01", "value": 100},
+        {"date": "2024-01-02", "value": 200},
+    ]
+    assert [m.dict() for m in metrics.events] == [
+        {"date": "2024-01-01", "value": 1},
+        {"date": "2024-01-02", "value": 2},
+    ]
+    assert [m.dict() for m in metrics.skills] == [
+        {"date": "2024-01-01", "value": 13},
+        {"date": "2024-01-02", "value": 10},
+    ]
+
+    # permission: missing token -> 401
+    req = Request(headers={})
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(get_current_user_id(req))
+    assert exc.value.status_code == 401
+
+    # permission: non-admin -> 403
+    user_req = Request(headers={"Authorization": f"Bearer {token(2)}"})
+    uid = asyncio.run(get_current_user_id(user_req))
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(require_role(["admin"], user_id=uid))
+    assert exc.value.status_code == 403
+
+    # permission: admin succeeds
+    admin_req = Request(headers={"Authorization": f"Bearer {token(1)}"})
+    uid = asyncio.run(get_current_user_id(admin_req))
+    assert asyncio.run(require_role(["admin"], user_id=uid))

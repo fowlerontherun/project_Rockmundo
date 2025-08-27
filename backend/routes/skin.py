@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 from models.skin import Skin, SkinInventory
 from schemas.skin import SkinCreate, SkinResponse, SkinEquipRequest, SkinInventoryItem
 from database import get_db
+from utils.i18n import _
 
 router = APIRouter(prefix="/skins", tags=["Skins"])
 
@@ -23,7 +24,7 @@ def list_all_skins(db: Session = Depends(get_db)):
 def approve_skin(skin_id: int, db: Session = Depends(get_db)):
     skin = db.query(Skin).get(skin_id)
     if not skin:
-        raise HTTPException(status_code=404, detail="Skin not found")
+        raise HTTPException(status_code=404, detail=_("Skin not found"))
     skin.is_approved = True
     db.commit()
     db.refresh(skin)
@@ -38,14 +39,14 @@ def equip_skin(req: SkinEquipRequest, db: Session = Depends(get_db)):
     # Check if owned
     inv = db.query(SkinInventory).filter_by(character_id=req.character_id, skin_id=req.skin_id).first()
     if not inv:
-        raise HTTPException(status_code=400, detail="Skin not owned")
+        raise HTTPException(status_code=400, detail=_("Skin not owned"))
 
     # Equip it
     inv.is_equipped = True
     inv.slot = req.slot
     db.commit()
     db.refresh(inv)
-    return {"message": "Skin equipped", "slot": inv.slot}
+    return {"message": _("Skin equipped"), "slot": inv.slot}
 
 @router.get("/inventory/{character_id}", response_model=list[SkinInventoryItem])
 def get_inventory(character_id: int, db: Session = Depends(get_db)):

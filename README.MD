@@ -113,6 +113,28 @@ This document outlines the current state of implemented features, the roadmap fo
 5. Run the server: `uvicorn main:app --reload`
 6. Access the API docs at `http://localhost:8000/docs`
 
+## Monitoring & Alerts
+
+For operational insight, the backend exposes an admin metrics endpoint and
+WebSocket channels:
+
+- `GET /admin/monitoring/metrics` returns CPU usage, memory consumption, and the
+  number of active admin sessions.
+- `WS /admin/realtime/ws/{channel}` streams real-time alerts where `{channel}`
+  is either `economy` or `moderation`.
+
+These endpoints power the admin dashboard widget under
+`frontend/src/admin/monitoring/`.
+
+## Testing
+Run the test suite from the project root:
+
+```bash
+pytest
+```
+
+The tests will automatically create a temporary SQLite database and seed sample data. Coverage information is printed after the run.
+
 ---
 
 ## Contributing

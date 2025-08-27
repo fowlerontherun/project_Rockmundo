@@ -35,3 +35,16 @@ async def publish_admin_job_status(event: Dict[str, Any]) -> int:
     """
     payload: Dict[str, Any] = {"type": "admin_job", **event}
     return await hub.publish(ADMIN_JOBS_TOPIC, payload)
+
+async def publish_friend_request(target_user_id: int, from_user_id: int) -> int:
+    """Notify a user of a new friend request."""
+    payload: Dict[str, Any] = {"type": "friend_request", "from_user_id": int(from_user_id)}
+    topic = topic_for_user(int(target_user_id))
+    return await hub.publish(topic, payload)
+
+
+async def publish_forum_reply(target_user_id: int, thread_id: int, post_id: int) -> int:
+    """Notify a user that someone replied to their forum post."""
+    payload: Dict[str, Any] = {"type": "forum_reply", "thread_id": int(thread_id), "post_id": int(post_id)}
+    topic = topic_for_user(int(target_user_id))
+    return await hub.publish(topic, payload)

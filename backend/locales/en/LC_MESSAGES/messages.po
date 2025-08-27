@@ -1,0 +1,69 @@
+msgid ""
+msgstr ""
+"Language: en\n"
+
+msgid "Welcome to RockMundo API"
+msgstr "Welcome to RockMundo API"
+
+msgid "Invalid credentials"
+msgstr "Invalid credentials"
+
+msgid "Invalid friend request"
+msgstr "Invalid friend request"
+
+msgid "Group not found"
+msgstr "Group not found"
+
+msgid "Thread not found"
+msgstr "Thread not found"
+
+msgid "Band name already exists"
+msgstr "Band name already exists"
+
+msgid "Band not found"
+msgstr "Band not found"
+
+msgid "Already a band member"
+msgstr "Already a band member"
+
+msgid "Member invited"
+msgstr "Member invited"
+
+msgid "A band cannot collaborate with itself"
+msgstr "A band cannot collaborate with itself"
+
+msgid "Skin not found"
+msgstr "Skin not found"
+
+msgid "Skin not owned"
+msgstr "Skin not owned"
+
+msgid "Skin equipped"
+msgstr "Skin equipped"
+
+msgid "Band not eligible for acoustic performance (min fame: 300, skill: 70)."
+msgstr "Band not eligible for acoustic performance (min fame: 300, skill: 70)."
+
+msgid "Venue not found"
+msgstr "Venue not found"
+
+msgid "No earnings recorded for this song"
+msgstr "No earnings recorded for this song"
+
+msgid "Must provide band_id or collaboration_id"
+msgstr "Must provide band_id or collaboration_id"
+
+msgid "Song not found"
+msgstr "Song not found"
+
+msgid "EPs can have a maximum of 4 songs"
+msgstr "EPs can have a maximum of 4 songs"
+
+msgid "Daily job not available"
+msgstr "Daily job not available"
+
+msgid "Weekly job not available"
+msgstr "Weekly job not available"
+
+msgid "No sponsorship set for this venue"
+msgstr "No sponsorship set for this venue"

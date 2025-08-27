@@ -3,11 +3,13 @@ from typing import List, Dict, Any, Optional
 from utils.db import get_conn
 from services.venue_availability import VenueAvailabilityService
 from core.errors import AppError, VenueConflictError, TourMinStopsError
+from services.achievement_service import AchievementService
 
 class TourService:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, achievements: Optional[AchievementService] = None):
         self.db_path = db_path
         self.availability = VenueAvailabilityService(self.db_path)
+        self.achievements = achievements or AchievementService(self.db_path)
 
     # ---- Tours ----
     def create_tour(self, band_id: int, name: str) -> Dict[str, Any]:
@@ -48,7 +50,12 @@ class TourService:
             if int(c.fetchone()[0]) < 2:
                 raise TourMinStopsError("A tour must have at least 2 active stops before confirmation.")
             c.execute("UPDATE tours SET status='confirmed' WHERE id=?", (tour_id,))
-        return self.get_tour(tour_id)
+        tour = self.get_tour(tour_id)
+        try:
+            self.achievements.grant(tour["band_id"], "first_tour")
+        except Exception:
+            pass
+        return tour
 
     # ---- Stops ----
     def add_stop(self, tour_id: int, venue_id: int, date_start: str, date_end: str, order_index: int, notes: str = "") -> Dict[str, Any]:
