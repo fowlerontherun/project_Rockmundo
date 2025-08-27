@@ -1,8 +1,14 @@
 import sqlite3
-from passlib.hash import bcrypt
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "database.db"
+from passlib.hash import bcrypt
+
+# Use the shared application database so auth data stays consistent with
+# other services.  The previous path pointed to ``database.db`` which is not
+# used anywhere else in the project and would create a separate, empty
+# database file.  This caused newly created users to be invisible to
+# components that relied on the main ``rockmundo.db`` file.
+DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
