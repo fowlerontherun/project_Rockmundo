@@ -1,0 +1,29 @@
+name: Discord: pull request events
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build message
+        run: |
+          SHA_SHORT=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
+          REPO="${{ github.repository }}"
+          PR_NUM="${{ github.event.pull_request.number }}"
+          TITLE="${{ github.event.pull_request.title }}"
+          AUTHOR="${{ github.actor }}"
+          URL="${{ github.event.pull_request.html_url }}"
+          MSG="🔵 PR #${PR_NUM} in **${REPO}** by **${AUTHOR}** — \`${SHA_SHORT}\`\n${TITLE}\n${URL}"
+
+          printf '%s' "{\"content\":\"${MSG}\"}" > payload.json
+
+      - name: Post to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -sS -H "Content-Type: application/json" \
+               -X POST -d @payload.json \
+               "$DISCORD_WEBHOOK"
