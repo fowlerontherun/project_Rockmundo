@@ -30,5 +30,6 @@ class Settings:
     JWT_ALG: str = os.getenv("ROCKMUNDO_JWT_ALG", "HS256")
     ACCESS_TOKEN_TTL_MIN: int = int(os.getenv("ROCKMUNDO_ACCESS_TTL_MIN", "30"))
     REFRESH_TOKEN_TTL_DAYS: int = int(os.getenv("ROCKMUNDO_REFRESH_TTL_DAYS", "30"))
+    DISCORD_WEBHOOK_URL: str = os.getenv("DISCORD_WEBHOOK_URL", "")
 
 settings = Settings()
