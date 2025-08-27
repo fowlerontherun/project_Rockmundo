@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from backend.models.payment import PremiumCurrency
+codex/standardize-logging-in-backend/utils/logging.py
 from backend.utils.logging import get_logger
 from backend.utils.metrics import Counter
 from backend.utils.tracing import get_tracer
@@ -15,6 +16,9 @@ from backend.utils.tracing import get_tracer
 logger = get_logger(__name__)
 tracer = get_tracer(__name__)
 TRANSACTIONS = Counter("economy_transactions_total", "Total economy transactions", ("type",))
+=======
+from backend.models.economy_config import get_config
+main
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -113,6 +117,7 @@ class EconomyService:
 
     # ---------------- operations ----------------
     def deposit(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
+codex/standardize-logging-in-backend/utils/logging.py
         with tracer.start_as_current_span("economy.deposit"):
             if amount_cents <= 0:
                 raise EconomyError("Deposit must be positive")
@@ -139,6 +144,35 @@ class EconomyService:
                 TRANSACTIONS.labels("deposit").inc()
                 logger.info("deposit", extra={"user_id": user_id, "amount_cents": amount_cents})
                 return tid
+=======
+        if amount_cents <= 0:
+            raise EconomyError("Deposit must be positive")
+        cfg = get_config()
+        # apply inflation then tax
+        amount_cents = int(amount_cents * (1 + cfg.inflation_rate))
+        net = int(amount_cents * (1 - cfg.tax_rate))
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("BEGIN IMMEDIATE")
+            acc_id = self._require_account(cur, user_id, currency)
+            cur.execute(
+                "INSERT INTO transactions (type, amount_cents, currency, dest_account_id) VALUES ('deposit', ?, ?, ?)",
+                (net, currency, acc_id),
+            )
+            tid = int(cur.lastrowid or 0)
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE id = ?",
+                (net, acc_id),
+            )
+            cur.execute("SELECT balance_cents FROM accounts WHERE id = ?", (acc_id,))
+            balance = int(cur.fetchone()[0])
+            cur.execute(
+                "INSERT INTO ledger_entries (account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (acc_id, tid, net, balance),
+            )
+            conn.commit()
+            return tid
+main
 
     def withdraw(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
         with tracer.start_as_current_span("economy.withdraw"):
@@ -241,6 +275,17 @@ class EconomyService:
                 LIMIT ?
                 """,
                 (user_id, limit),
+            )
+            rows = cur.fetchall()
+            return [TransactionRecord(**dict(r)) for r in rows]
+
+    def list_recent_transactions(self, limit: int = 50) -> List[TransactionRecord]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT * FROM transactions ORDER BY created_at DESC, id DESC LIMIT ?",
+                (limit,),
             )
             rows = cur.fetchall()
             return [TransactionRecord(**dict(r)) for r in rows]

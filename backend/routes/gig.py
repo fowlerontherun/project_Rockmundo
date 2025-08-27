@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from models.gig import Gig
 from schemas.gig import GigCreate, GigOut
 from database import get_db
+from utils.i18n import _
 
 # Simulated fame and skill lookup (to be replaced with real logic or DB queries)
 def get_band_fame(band_id: int, db: Session) -> int:
@@ -25,11 +26,11 @@ def book_gig(gig: GigCreate, db: Session = Depends(get_db), user_id: int = Depen
         else:
             fame = get_band_fame(gig.band_id, db)
             skill = get_band_acoustic_skill_score(gig.band_id, db)
-            if fame < 300 or skill < 70:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Band not eligible for acoustic performance (min fame: 300, skill: 70)."
-                )
+              if fame < 300 or skill < 70:
+                  raise HTTPException(
+                      status_code=403,
+                      detail=_("Band not eligible for acoustic performance (min fame: 300, skill: 70).")
+                  )
 
     new_gig = Gig(**gig.dict())
     db.add(new_gig)

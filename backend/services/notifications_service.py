@@ -35,8 +35,8 @@ class NotificationsService:
             try:
                 content = f"{title}\n{body}".strip()
                 send_message(content)
-            except DiscordServiceError:
-                pass
+            except DiscordServiceError as exc:
+                print(f"Discord notification failed: {exc}")
 
         return notif_id
 

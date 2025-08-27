@@ -4,6 +4,7 @@ from typing import List
 
 from services.economy_service import EconomyService
 from services.property_service import PropertyService, PropertyError
+from services.achievement_service import AchievementService
 
 
 def require_role(roles):  # placeholder auth dependency
@@ -12,7 +13,8 @@ def require_role(roles):  # placeholder auth dependency
     return _noop
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
-svc = PropertyService(economy=EconomyService())
+_achievements = AchievementService()
+svc = PropertyService(economy=EconomyService(), achievements=_achievements)
 svc.ensure_schema()
 
 

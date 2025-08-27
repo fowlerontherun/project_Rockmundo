@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 import os
+from utils.i18n import _
 
 # Import style chosen to match many existing projects where routes/ and services/ are siblings
 from services.sponsorship_service import SponsorshipService
@@ -91,7 +92,7 @@ async def get_venue_with_sponsorship(venue_id: int, svc: SponsorshipService = De
     try:
         return await svc.get_venue_with_sponsorship(venue_id)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Venue not found")
+        raise HTTPException(status_code=404, detail=_("Venue not found"))
 
 # ---------- Tracking ----------
 @router.post("/events")

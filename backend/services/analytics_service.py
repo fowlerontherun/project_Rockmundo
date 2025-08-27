@@ -10,6 +10,11 @@ section is simply skipped so the API still returns useful data.
 import sqlite3
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from datetime import datetime, timedelta
+from functools import lru_cache
+
+from utils.db import get_conn
+from models.analytics import MetricPoint, AggregatedMetrics
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -217,6 +222,20 @@ class AnalyticsService:
             """, (limit,))
             return self._fetchall(cur)
 
+    # ---------- aggregated metrics ----------
+    def time_series(self, start_date: str, end_date: str) -> AggregatedMetrics:
+        """Return time-series metrics for economy, events, and skills.
+
+        The results are cached per (db_path, start_date, end_date) triple to
+        avoid recalculating heavy queries repeatedly.
+        """
+
+        db = self.db_path
+        economy = _economy_series(db, start_date, end_date)
+        events = _event_series(db, start_date, end_date)
+        skills = _skill_series(db, start_date, end_date)
+        return AggregatedMetrics(economy=economy, events=events, skills=skills)
+
     def royalties_summary_by_band(self, run_id: int) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -231,3 +250,65 @@ class AnalyticsService:
                 ORDER BY amount_cents DESC
             """, (run_id,))
             return self._fetchall(cur)
+
+
+def _daterange(start: str, end: str) -> List[str]:
+    s = datetime.fromisoformat(start).date()
+    e = datetime.fromisoformat(end).date()
+    days = (e - s).days
+    return [(s + timedelta(days=i)).isoformat() for i in range(days + 1)]
+
+
+def _build_series(rows: Dict[str, int], start: str, end: str) -> List[MetricPoint]:
+    return [MetricPoint(date=d, value=rows.get(d, 0)) for d in _daterange(start, end)]
+
+
+@lru_cache(maxsize=128)
+def _economy_series(db_path: str, start: str, end: str) -> List[MetricPoint]:
+    with get_conn(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT date(created_at) AS d, SUM(amount_cents) AS v
+            FROM transactions
+            WHERE date(created_at) BETWEEN ? AND ?
+            GROUP BY d
+            """,
+            (start, end),
+        )
+        rows = {r["d"]: int(r["v"] or 0) for r in cur.fetchall()}
+    return _build_series(rows, start, end)
+
+
+@lru_cache(maxsize=128)
+def _event_series(db_path: str, start: str, end: str) -> List[MetricPoint]:
+    with get_conn(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT date(start_date) AS d, COUNT(*) AS c
+            FROM active_events
+            WHERE date(start_date) BETWEEN ? AND ?
+            GROUP BY d
+            """,
+            (start, end),
+        )
+        rows = {r["d"]: int(r["c"] or 0) for r in cur.fetchall()}
+    return _build_series(rows, start, end)
+
+
+@lru_cache(maxsize=128)
+def _skill_series(db_path: str, start: str, end: str) -> List[MetricPoint]:
+    with get_conn(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT date(created_at) AS d, SUM(amount) AS a
+            FROM skill_progress
+            WHERE date(created_at) BETWEEN ? AND ?
+            GROUP BY d
+            """,
+            (start, end),
+        )
+        rows = {r["d"]: int(r["a"] or 0) for r in cur.fetchall()}
+    return _build_series(rows, start, end)

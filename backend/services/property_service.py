@@ -1,9 +1,10 @@
 """Service logic for property management."""
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .economy_service import EconomyService, EconomyError
+from .achievement_service import AchievementService
+from .economy_service import EconomyError, EconomyService
 
 try:
     from .fame_service import FameService  # type: ignore
@@ -23,10 +24,14 @@ class PropertyService:
         db_path: Optional[str] = None,
         economy: Optional[EconomyService] = None,
         fame: Optional[Any] = None,
+        achievements: Optional[AchievementService] = None,
+        weather: Optional[Any] = None,
     ) -> None:
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
         self.fame = fame
+        self.achievements = achievements or AchievementService(self.db_path)
+        self.weather = weather
         # ensure economy schema as well
         self.economy.ensure_schema()
 
@@ -87,7 +92,12 @@ class PropertyService:
                 (owner_id, name, property_type, location, price_cents, base_rent),
             )
             conn.commit()
-            return int(cur.lastrowid or 0)
+            pid = int(cur.lastrowid or 0)
+        try:
+            self.achievements.grant(owner_id, "first_property")
+        except Exception:
+            pass
+        return pid
 
     def list_properties(self, owner_id: Optional[int] = None) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -134,7 +144,16 @@ class PropertyService:
 
     def collect_rent(self, owner_id: int) -> int:
         props = self.list_properties(owner_id)
-        total = sum(p["base_rent"] * p["level"] for p in props)
+        total = 0
+        for p in props:
+            rent = p["base_rent"] * p["level"]
+            if self.weather:
+                forecast = self.weather.get_forecast(p["location"])
+                if forecast.event and forecast.event.type == "storm":
+                    rent = int(rent * 0.5)
+                elif forecast.event and forecast.event.type == "festival":
+                    rent = int(rent * 1.2)
+            total += rent
         if total:
             self.economy.deposit(owner_id, total)
         return total
