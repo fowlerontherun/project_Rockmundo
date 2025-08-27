@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from backend.models.payment import PremiumCurrency
+from backend.services.moderation_service import moderation_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -128,6 +129,11 @@ class EconomyService:
                 (acc_id, tid, amount_cents, balance),
             )
             conn.commit()
+            if amount_cents > 100000:
+                moderation_service.log_suspicious_activity(
+                    "large_deposit",
+                    {"user_id": user_id, "amount_cents": amount_cents},
+                )
             return tid
 
     def withdraw(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
@@ -156,6 +162,11 @@ class EconomyService:
                 (acc_id, tid, -amount_cents, balance),
             )
             conn.commit()
+            if amount_cents > 100000:
+                moderation_service.log_suspicious_activity(
+                    "large_withdraw",
+                    {"user_id": user_id, "amount_cents": amount_cents},
+                )
             return tid
 
     def transfer(self, from_user: int, to_user: int, amount_cents: int, currency: str = "USD") -> int:

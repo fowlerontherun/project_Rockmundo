@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from backend.services.moderation_service import moderation_service
+
 seasonal_events = []
 active_event = None
 
@@ -15,6 +17,11 @@ def create_seasonal_event(data):
         "modifiers": data["modifiers"],
         "active": True
     }
+    if active_event:
+        moderation_service.log_suspicious_activity(
+            "event_override",
+            {"existing_event": active_event["event_id"], "new_event": event["event_id"]},
+        )
     seasonal_events.append(event)
     active_event = event
     return {"status": "event_started", "event": event}
@@ -28,6 +35,7 @@ def end_seasonal_event(event_id):
             if active_event and active_event["event_id"] == event_id:
                 active_event = None
             return {"status": "event_ended", "event": e}
+    moderation_service.log_suspicious_activity("end_unknown_event", {"event_id": event_id})
     return {"error": "event not found"}
 
 def get_active_event():
