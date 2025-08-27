@@ -1,7 +1,10 @@
 # File: backend/services/notifications_service.py
-import sqlite3
-from typing import Optional, Dict, Any, List
+
+from typing import Any, Dict, List, Optional
+
+from services.discord_service import DiscordServiceError, send_message
 from utils.db import get_conn
+
 
 class NotificationsError(Exception):
     pass
@@ -11,7 +14,14 @@ class NotificationsService:
         self.db_path = db_path
 
     # --- CRUD / helpers ---
-    def create(self, user_id: int, title: str, body: str = "", type_: str = "system") -> int:
+    def create(
+        self,
+        user_id: int,
+        title: str,
+        body: str = "",
+        type_: str = "system",
+        send_to_discord: bool = False,
+    ) -> int:
         with get_conn(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
@@ -19,7 +29,16 @@ class NotificationsService:
                        VALUES (?, ?, ?, ?)""",
                 (user_id, type_, title, body),
             )
-            return int(cur.lastrowid)
+            notif_id = int(cur.lastrowid)
+
+        if send_to_discord:
+            try:
+                content = f"{title}\n{body}".strip()
+                send_message(content)
+            except DiscordServiceError:
+                pass
+
+        return notif_id
 
     def list(self, user_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
         with get_conn(self.db_path) as conn:
