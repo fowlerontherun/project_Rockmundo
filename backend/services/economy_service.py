@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
+from backend.models.payment import PremiumCurrency
+
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
 
@@ -197,6 +199,13 @@ class EconomyService:
             )
             conn.commit()
             return tid
+
+    def credit_purchase(self, user_id: int, amount_cents: int, currency: PremiumCurrency) -> int:
+        """Convert real money into premium currency and deposit it."""
+        coins = (amount_cents // 100) * currency.exchange_rate
+        if coins <= 0:
+            raise EconomyError('Purchase amount too low')
+        return self.deposit(user_id, coins, currency=currency.code)
 
     # ---------------- queries ----------------
     def list_transactions(self, user_id: int, limit: int = 50) -> List[TransactionRecord]:
