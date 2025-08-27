@@ -6,7 +6,7 @@ import hashlib, secrets
 
 from utils.db import get_conn
 from core.security import hash_password, verify_password
-from auth.jwt import encode, now_ts
+from auth import jwt as jwt_helper
 from core.config import settings
 
 UTC = timezone.utc
@@ -41,10 +41,10 @@ class AuthService:
 
     # --- tokens ---
     def _make_access_token(self, user_id: int) -> str:
-        now = now_ts()
+        now = jwt_helper.now_ts()
         exp = now + settings.ACCESS_TOKEN_TTL_MIN * 60
         payload = {"iss": settings.JWT_ISS, "aud": settings.JWT_AUD, "iat": now, "nbf": now, "exp": exp, "sub": str(user_id)}
-        return encode(payload, secret=settings.JWT_SECRET)
+        return jwt_helper.encode(payload, secret=settings.JWT_SECRET)
 
     def _hash_refresh(self, token: str) -> str:
         return hashlib.sha256(token.encode('utf-8')).hexdigest()

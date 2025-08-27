@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from utils.db import get_conn
 from auth.routes import router as auth_router
+from auth.jwt import decode
+from core.config import settings
 
 def make_app():
     app = FastAPI()
@@ -56,6 +58,10 @@ def test_register_login_refresh_me_logout():
     at = data["access_token"]; rt = data["refresh_token"]
     assert at and rt
 
+    # Token should decode with expected claims
+    payload = decode(at, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
+    assert payload["sub"] == str(uid)
+
     # Me
     headers = {"Authorization": f"Bearer {at}"}
     r = c.get("/auth/me", headers=headers)
@@ -69,6 +75,9 @@ def test_register_login_refresh_me_logout():
     assert r.status_code == 200
     at2 = r.json()["access_token"]
     assert at2 and at2 != at
+
+    payload2 = decode(at2, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
+    assert payload2["sub"] == str(uid)
 
     # Logout (revoke current refresh)
     r = c.post("/auth/logout", json={"refresh_token": rt})
