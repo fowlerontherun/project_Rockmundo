@@ -3,14 +3,27 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import time
-from typing import Any, AsyncIterator, Dict, List, Optional, Set, Tuple
+from typing import Any, AsyncIterator, Dict, List, Optional, Set
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import StreamingResponse
 
-logger = logging.getLogger(__name__)
+from backend.utils.logging import get_logger
+from backend.utils.metrics import Counter
+from backend.utils.tracing import get_tracer
+
+logger = get_logger(__name__)
+tracer = get_tracer(__name__)
+PUBLISHED = Counter("realtime_messages_published_total", "Messages published via realtime hub")
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 
 # --- Auth helpers -------------------------------------------------------------
@@ -109,20 +122,22 @@ class RealtimeHub:
 
     async def publish(self, topic: str, payload: Dict[str, Any]) -> int:
         """Publish JSON payload to topic. Returns number of recipients."""
-        message = json.dumps(
-            {
-                "topic": topic,
-                "ts": int(time.time() * 1000),
-                "data": payload,
-            },
-            separators=(",", ":"),
-        )
-        async with self._lock:
-            subs = list(self._topics.get(topic, []))
-        for s in subs:
-            await s.send(message)
-        logger.debug("Published to %s -> %d subscribers", topic, len(subs))
-        return len(subs)
+        with tracer.start_as_current_span("realtime.publish"):
+            message = json.dumps(
+                {
+                    "topic": topic,
+                    "ts": int(time.time() * 1000),
+                    "data": payload,
+                },
+                separators=(",", ":"),
+            )
+            async with self._lock:
+                subs = list(self._topics.get(topic, []))
+            for s in subs:
+                await s.send(message)
+            PUBLISHED.labels().inc(len(subs))
+            logger.debug("Published to %s -> %d subscribers", topic, len(subs))
+            return len(subs)
 
 hub = RealtimeHub()
 
