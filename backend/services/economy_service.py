@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from backend.utils.logging import get_logger
 from backend.models.economy_config import get_config
+from backend.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -128,7 +128,59 @@ class EconomyService:
             rows = cur.fetchall()
             return [TransactionRecord(**dict(row)) for row in rows]
 
-    def credit_purchase(self, user_id: int, amount_cents: int, currency="USD") -> int:
-        """Credit a user's account after successful purchase."""
-        code = getattr(currency, "code", currency)
-        return self.deposit(user_id, amount_cents, code)
+    def credit_purchase(self, user_id: int, amount_cents: int, premium_currency) -> int:
+        """Credit premium currency to a user's ledger after a purchase.
+
+        Parameters
+        ----------
+        user_id:
+            The ID of the user receiving the credit.
+        amount_cents:
+            Real money amount (in cents) spent by the user.
+        premium_currency:
+            A :class:`~backend.models.payment.PremiumCurrency` describing the
+            currency to credit. Only the ``code`` and ``exchange_rate`` fields
+            are required which keeps the function flexible for tests.
+
+        Returns
+        -------
+        int
+            The amount of premium currency units credited.
+        """
+
+        # Determine how many premium units correspond to ``amount_cents``.  The
+        # ``exchange_rate`` represents how many premium units are granted per
+        # 100 cents (i.e. 1 USD).  We floor the result to an integer number of
+        # units.
+        rate = getattr(premium_currency, "exchange_rate", 1)
+        units = amount_cents * int(rate) // 100
+        code = getattr(premium_currency, "code", str(premium_currency))
+
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            # Ensure the user account exists.  We store premium currency in the
+            # same accounts table keyed by ``user_id``.  ``INSERT OR IGNORE``
+            # allows re-use of an existing account without raising.
+            cur.execute(
+                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
+                (user_id, code),
+            )
+            # Update the balance and record the purchase transaction.
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ?",
+                (units, user_id),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('purchase', ?, ?, ?)",
+                (units, code, user_id),
+            )
+            tx_id = cur.lastrowid
+            # Write a ledger entry reflecting the new balance.
+            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
+            balance = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (user_id, tx_id, units, balance),
+            )
+            conn.commit()
+            return units
