@@ -1,8 +1,8 @@
 # File: backend/routes/admin_job_routes.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi import Depends
+from fastapi import APIRouter, HTTPException, Request
 from auth.dependencies import get_current_user_id, require_role
 from utils.i18n import _
+from services.admin_service import AdminService
 
 try:
     from jobs.world_pulse_jobs import run_daily_world_pulse, run_weekly_rollup
@@ -18,18 +18,32 @@ except Exception:
             return True
         return _ok
 
-router = APIRouter(prefix="/admin/jobs", tags=["AdminJobs"])
+router = APIRouter(prefix="/jobs", tags=["AdminJobs"])
 
-@router.post("/world-pulse/daily", dependencies=[Depends(require_role(["admin"]))])
-async def trigger_world_pulse_daily():
+
+class _AdminDB:
+    def insert_admin_action(self, action):
+        pass
+
+
+admin_logger = AdminService(_AdminDB())
+
+@router.post("/world-pulse/daily")
+async def trigger_world_pulse_daily(req: Request):
     if run_daily_world_pulse is None:
         raise HTTPException(status_code=501, detail=_("Daily job not available"))
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
     await run_daily_world_pulse()
+    admin_logger.log_action(admin_id, "jobs_world_pulse_daily", {})
     return {"status": "ok", "job": "world_pulse_daily"}
 
-@router.post("/world-pulse/weekly", dependencies=[Depends(require_role(["admin"]))])
-async def trigger_world_pulse_weekly():
+@router.post("/world-pulse/weekly")
+async def trigger_world_pulse_weekly(req: Request):
     if run_weekly_rollup is None:
         raise HTTPException(status_code=501, detail=_("Weekly job not available"))
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
     await run_weekly_rollup()
+    admin_logger.log_action(admin_id, "jobs_world_pulse_weekly", {})
     return {"status": "ok", "job": "world_pulse_weekly"}
