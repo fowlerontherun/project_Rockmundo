@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from utils.db import cached_query
-from models.analytics import (
+
+from backend.models.analytics import (
     AgeBucket,
-    RegionBucket,
-    SpendBucket,
     FanSegmentSummary,
     FanTrends,
     MetricPoint,
+    RegionBucket,
+    SpendBucket,
 )
 
 

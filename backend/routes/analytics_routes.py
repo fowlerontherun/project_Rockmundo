@@ -6,14 +6,14 @@ except Exception:  # pragma: no cover - fallback for stubs
     def Depends(dependency):  # type: ignore
         return dependency
 
-from auth.dependencies import require_role
-from services.analytics_service import AnalyticsService
-from services.fan_insight_service import FanInsightService
-from models.analytics import (
+from backend.auth.dependencies import require_role
+from backend.models.analytics import (
     AggregatedMetrics,
     FanSegmentSummary,
     FanTrends,
 )
+from backend.services.analytics_service import AnalyticsService
+from backend.services.fan_insight_service import FanInsightService
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 svc = AnalyticsService()

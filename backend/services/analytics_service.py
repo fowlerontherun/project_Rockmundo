@@ -8,13 +8,14 @@ section is simply skipped so the API still returns useful data.
 """
 
 import sqlite3
-from pathlib import Path
-from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from functools import lru_cache
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from utils.db import get_conn
-from models.analytics import MetricPoint, AggregatedMetrics
+
+from backend.models.analytics import AggregatedMetrics, MetricPoint
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
