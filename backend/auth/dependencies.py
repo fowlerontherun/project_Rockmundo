@@ -2,7 +2,7 @@
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status, Request
 from utils.db import get_conn
-from auth.jwt import decode
+from auth import jwt as jwt_helper
 from core.config import settings
 
 def _extract_bearer_token(req: Request) -> Optional[str]:
@@ -16,7 +16,12 @@ async def get_current_user_id(req: Request) -> int:
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'code':'AUTH_REQUIRED','message':'Missing bearer token'})
     try:
-        payload = decode(token, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
+        payload = jwt_helper.decode(
+            token,
+            secret=settings.JWT_SECRET,
+            expected_iss=settings.JWT_ISS,
+            expected_aud=settings.JWT_AUD,
+        )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'code':'AUTH_INVALID','message':str(e)})
     user_id = int(payload.get('sub', 0))

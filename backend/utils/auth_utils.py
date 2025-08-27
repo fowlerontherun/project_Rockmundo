@@ -1,17 +1,30 @@
 from datetime import datetime, timedelta
-from jose import jwt
+
+from auth.jwt import encode
+from core.config import settings
 from services.auth_service import get_user_by_username, verify_password
 
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_TTL_MIN
+
 
 def create_access_token(username: str, role: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode = {"sub": username, "role": role, "exp": expire}
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    """Create a signed JWT for the given user."""
 
-def verify_user_credentials(username: str, password: str) -> dict:
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": username,
+        "role": role,
+        "exp": expire,
+        "iss": settings.JWT_ISS,
+        "aud": settings.JWT_AUD,
+    }
+    return encode(to_encode, settings.JWT_SECRET)
+
+
+def verify_user_credentials(username: str, password: str) -> dict | None:
+    """Validate a username/password pair and return basic user info."""
+
     user = get_user_by_username(username)
     if user and verify_password(password, user["password_hash"]):
         return {"username": user["username"], "role": user["role"]}

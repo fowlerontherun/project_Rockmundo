@@ -1,48 +1,58 @@
 # File: backend/auth/jwt.py
-import os, time, json, hmac, base64, hashlib
-from typing import Dict, Any, Optional
+"""JWT helper utilities using PyJWT.
 
-def _b64url(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
+This module provides thin wrappers around the `PyJWT` library so the rest of
+the code base can create and verify JSON Web Tokens without depending on a
+custom implementation.  All token creation and validation should flow through
+these helpers to ensure consistent behaviour across the application.
+"""
 
-def _b64url_json(obj: Dict[str, Any]) -> str:
-    return _b64url(json.dumps(obj, separators=(',', ':'), ensure_ascii=False).encode('utf-8'))
+from __future__ import annotations
 
-def _b64url_decode(s: str) -> bytes:
-    pad = '=' * (-len(s) % 4)
-    return base64.urlsafe_b64decode(s + pad)
+import time
+from typing import Any, Dict, List, Optional
 
-def _sign(msg: bytes, secret: str) -> str:
-    sig = hmac.new(secret.encode('utf-8'), msg, hashlib.sha256).digest()
-    return _b64url(sig)
+import jwt
 
-def encode(payload: Dict[str, Any], secret: str, header: Optional[Dict[str, Any]] = None) -> str:
-    header = header or {'alg': 'HS256', 'typ': 'JWT'}
-    h = _b64url_json(header)
-    p = _b64url_json(payload)
-    msg = f"{h}.{p}".encode('utf-8')
-    s = _sign(msg, secret)
-    return f"{h}.{p}.{s}"
+DEFAULT_ALGORITHM = "HS256"
 
-def decode(token: str, secret: str, verify_exp: bool = True, leeway: int = 0, expected_iss: Optional[str] = None, expected_aud: Optional[str] = None) -> Dict[str, Any]:
-    parts = token.split('.')
-    if len(parts) != 3:
-        raise ValueError('invalid token')
-    h_b64, p_b64, s_b64 = parts
-    msg = f"{h_b64}.{p_b64}".encode('utf-8')
-    expected_sig = _sign(msg, secret)
-    if not hmac.compare_digest(expected_sig, s_b64):
-        raise ValueError('invalid signature')
-    payload = json.loads(_b64url_decode(p_b64).decode('utf-8'))
-    now = int(time.time())
-    if verify_exp and 'exp' in payload and now > int(payload['exp']) + int(leeway):
-        raise ValueError('token expired')
-    if expected_iss and payload.get('iss') != expected_iss:
-        raise ValueError('issuer mismatch')
-    if expected_aud and payload.get('aud') != expected_aud:
-        raise ValueError('audience mismatch')
-    return payload
+
+def encode(payload: Dict[str, Any], secret: str, *, algorithm: str = DEFAULT_ALGORITHM) -> str:
+    """Encode a payload into a JWT string."""
+
+    return jwt.encode(payload, secret, algorithm=algorithm)
+
+
+def decode(
+    token: str,
+    secret: str,
+    *,
+    verify_exp: bool = True,
+    leeway: int = 0,
+    expected_iss: Optional[str] = None,
+    expected_aud: Optional[str] = None,
+    algorithms: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Decode a JWT token and return the payload.
+
+    Parameters mirror the previous custom implementation so existing callers
+    can continue to supply issuer/audience expectations and control expiration
+    verification.
+    """
+
+    return jwt.decode(
+        token,
+        secret,
+        algorithms=algorithms or [DEFAULT_ALGORITHM],
+        issuer=expected_iss,
+        audience=expected_aud,
+        leeway=leeway,
+        options={"verify_exp": verify_exp},
+    )
+
 
 def now_ts() -> int:
-    import time
+    """Return the current UTC timestamp as an integer."""
+
     return int(time.time())
+
