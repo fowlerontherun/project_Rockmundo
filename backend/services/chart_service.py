@@ -1,6 +1,9 @@
 import sqlite3
 from datetime import datetime, timedelta
 from backend.database import DB_PATH
+from backend.services.achievement_service import AchievementService
+
+achievement_service = AchievementService(DB_PATH)
 
 
 def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str = None) -> dict:
@@ -14,7 +17,7 @@ def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str =
 
     # Retrieve stream counts and revenues per song in date range
     cur.execute("""
-        SELECT s.id, s.title, b.name,
+        SELECT s.id, s.title, b.id, b.name,
                SUM(CASE WHEN str.timestamp BETWEEN ? AND ? 
                    THEN 1 ELSE 0 END) AS streams,
                SUM(CASE WHEN e.source_type = 'stream' AND e.source_id = s.id 
@@ -31,25 +34,37 @@ def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str =
 
     rows = cur.fetchall()
     scoring = []
-    for song_id, title, band_name, streams, revenue in rows:
+    for song_id, title, band_id, band_name, streams, revenue in rows:
         score = streams * 0.4 + revenue * 10
-        scoring.append((song_id, title, band_name, score))
+        scoring.append((song_id, title, band_id, band_name, score))
 
     # Sort and take top 100
     scoring.sort(key=lambda x: x[3], reverse=True)
     top = scoring[:100]
 
     # Persist chart entries
-    for position, (song_id, title, band_name, score) in enumerate(top, start=1):
-        cur.execute("""
-            INSERT INTO chart_entries 
+    for position, (song_id, title, band_id, band_name, score) in enumerate(top, start=1):
+        cur.execute(
+            """
+            INSERT INTO chart_entries
             (chart_type, week_start, position, song_id, band_name, score, generated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (chart_type, start_date, position, song_id, band_name, score, datetime.utcnow().isoformat()))
+            """,
+            (chart_type, start_date, position, song_id, band_name, score, datetime.utcnow().isoformat()),
+        )
 
     conn.commit()
     conn.close()
-    return {'chart_type': chart_type, 'week_start': start_date, 'entries': top}
+
+    for position, (_, _, band_id, _, _) in enumerate(top, start=1):
+        if position == 1:
+            try:
+                achievement_service.grant(band_id, "chart_topper")
+            except Exception:
+                pass
+
+    top_entries = [(s, t, b_name, sc) for (s, t, _, b_name, sc) in top]
+    return {'chart_type': chart_type, 'week_start': start_date, 'entries': top_entries}
 
 
 def get_chart(chart_type: str, week_start: str) -> list:
