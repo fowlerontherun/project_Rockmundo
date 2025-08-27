@@ -1,24 +1,83 @@
 # File: backend/services/tour_service.py
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
+
 from utils.db import get_conn
 from services.venue_availability import VenueAvailabilityService
 from core.errors import AppError, VenueConflictError, TourMinStopsError
 from services.achievement_service import AchievementService
+from services.weather_service import WeatherService
+from services.economy_service import EconomyService
+from models.economy_config import get_config
+from models.tour import Tour as TourModel, TourLeg, TicketTier, Expense
 
 class TourService:
-    def __init__(self, db_path: Optional[str] = None, achievements: Optional[AchievementService] = None):
+    """Service handling both legacy DB backed operations and lightweight tour
+    simulations used in tests.
+
+    The existing methods (create_tour, add_stop, ...) remain untouched so that
+    older tests continue to function.  New functionality for scheduling shows,
+    computing travel logistics and simulating attendance operates purely on
+    in-memory dataclasses defined in :mod:`models.tour`.
+    """
+
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        achievements: Optional[AchievementService] = None,
+        weather: Optional[WeatherService] = None,
+        economy: Optional[EconomyService] = None,
+    ):
         self.db_path = db_path
         self.availability = VenueAvailabilityService(self.db_path)
         self.achievements = achievements or AchievementService(self.db_path)
+        self.weather = weather or WeatherService()
+        self.economy = economy or EconomyService(self.db_path)
+        # Ensure economy tables exist for simulations
+        try:
+            self.economy.ensure_schema()
+        except Exception:
+            pass
+
+        # in-memory storage for simulated tours
+        self.tours: Dict[int, TourModel] = {}
 
     # ---- Tours ----
-    def create_tour(self, band_id: int, name: str) -> Dict[str, Any]:
+    def create_tour(
+        self,
+        band_id: int,
+        name: str,
+        start_date: str = "",
+        end_date: str = "",
+        route: Optional[List[str]] = None,
+        vehicle_type: str = "van",
+    ) -> Dict[str, Any]:
+        """Create a tour record.
+
+        This preserves the original behaviour of inserting into the ``tours``
+        table while also instantiating an in-memory :class:`Tour` model that is
+        used by the simulation helpers defined later in this service.
+        """
+
         if not name or not name.strip():
             raise AppError("Tour name is required.", code="TOUR_NAME_REQUIRED")
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute("INSERT INTO tours (band_id, name) VALUES (?, ?)", (band_id, name.strip()))
-            return {"id": int(c.lastrowid), "band_id": band_id, "name": name.strip(), "status": "draft"}
+            tour_id = int(c.lastrowid)
+
+        model = TourModel(
+            id=tour_id,
+            band_id=band_id,
+            title=name.strip(),
+            start_date=start_date,
+            end_date=end_date,
+            route=route or [],
+            vehicle_type=vehicle_type,
+        )
+        self.tours[tour_id] = model
+
+        return {"id": tour_id, "band_id": band_id, "name": name.strip(), "status": "draft"}
 
     def get_tour(self, tour_id: int) -> Dict[str, Any]:
         with get_conn(self.db_path) as conn:
@@ -140,3 +199,103 @@ class TourService:
                           (limit, offset))
             cols = [d[0] for d in c.description]
             return [dict(zip(cols, r)) for r in c.fetchall()]
+
+    # ------------------------------------------------------------------
+    # New simulation helpers
+    # ------------------------------------------------------------------
+
+    def schedule_show(
+        self,
+        tour_id: int,
+        city: str,
+        venue: str,
+        date: str,
+        ticket_tiers: Optional[List[TicketTier]] = None,
+        expenses: Optional[List[Expense]] = None,
+    ) -> Dict[str, Any]:
+        tour = self.tours.get(tour_id)
+        if not tour:
+            raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
+        leg = TourLeg(city=city, venue=venue, date=date,
+                      ticket_tiers=ticket_tiers or [],
+                      expenses=expenses or [])
+        if tour.legs:
+            prev_city = tour.legs[-1].city
+            leg.travel_distance = self._estimate_distance(prev_city, city)
+            leg.travel_hours = round(leg.travel_distance / 60.0, 2)
+        tour.legs.append(leg)
+        tour.route.append(city)
+        return leg.to_dict()
+
+    def sell_tickets(
+        self, tour_id: int, leg_index: int, tier_name: str, quantity: int
+    ) -> Dict[str, Any]:
+        tour = self.tours.get(tour_id)
+        if not tour:
+            raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
+        try:
+            leg = tour.legs[leg_index]
+        except IndexError:
+            raise AppError("Invalid leg index.", code="LEG_NOT_FOUND")
+        tier = next((t for t in leg.ticket_tiers if t.name == tier_name), None)
+        if not tier:
+            raise AppError("Ticket tier not found.", code="TIER_NOT_FOUND")
+        available = max(tier.capacity - tier.sold, 0)
+        qty = min(quantity, available)
+        tier.sold += qty
+        return {"sold": tier.sold, "remaining": tier.capacity - tier.sold}
+
+    def simulate_attendance(self, tour_id: int, leg_index: int) -> Dict[str, Any]:
+        tour = self.tours.get(tour_id)
+        if not tour:
+            raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
+        try:
+            leg = tour.legs[leg_index]
+        except IndexError:
+            raise AppError("Invalid leg index.", code="LEG_NOT_FOUND")
+
+        forecast = self.weather.get_forecast(leg.city)
+        sold = sum(t.sold for t in leg.ticket_tiers)
+        attendance = sold
+        status = "completed"
+        if getattr(forecast, "event", None) and getattr(forecast.event, "type", "") == "storm":
+            attendance = 0
+            status = "cancelled"
+        elif forecast.condition == "rain":
+            attendance = int(sold * 0.7)
+        leg.attendance = attendance
+        leg.status = status
+
+        payout_cents = get_config().payout_rate
+        revenue = attendance * payout_cents / 100.0
+        leg.revenue = revenue
+        total_expenses = sum(e.amount for e in leg.expenses)
+        leg.profit = revenue - total_expenses
+        if leg.profit > 0:
+            # deposit profit in cents
+            try:
+                self.economy.deposit(tour.band_id, int(leg.profit * 100))
+            except Exception:
+                pass
+        return leg.to_dict()
+
+    def report(self, tour_id: int) -> Dict[str, Any]:
+        tour = self.tours.get(tour_id)
+        if not tour:
+            raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
+        totals = {
+            "attendance": sum(l.attendance for l in tour.legs),
+            "revenue": sum(l.revenue for l in tour.legs),
+            "profit": sum(l.profit for l in tour.legs),
+        }
+        return {"tour": tour.to_dict(), "totals": totals}
+
+    # ---- util ----
+    @staticmethod
+    def _estimate_distance(a: str, b: str) -> float:
+        """Very rough distance estimator used for tests."""
+        return abs(len(a) - len(b)) * 50 + 100
+
+
+# Alias retained for compatibility with older imports
+TourError = AppError
