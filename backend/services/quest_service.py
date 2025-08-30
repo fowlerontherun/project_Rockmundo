@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Dict
 
-from models.quest import Quest, QuestReward
+from models.quest import Quest, QuestReward, QuestStage
+from backend.services.city_service import city_service
 
 
 class QuestService:
@@ -47,3 +48,14 @@ class QuestService:
         """Return the reward for the current stage without claiming it."""
         stage = self.get_current_stage(user_id, quest)
         return stage.reward if stage else None
+
+    # --------- city influenced quests ---------
+    def generate_city_quest(self, city_name: str) -> Quest:
+        """Create a simple quest themed around the city's popular style."""
+        city = city_service.get_city(city_name)
+        if not city:
+            raise ValueError("Unknown city")
+        style = city.popular_style()
+        reward = QuestReward(type="fame", amount=max(1, city.population // 100_000))
+        stage = QuestStage(id="start", description=f"Perform a {style} show in {city_name}", branches={}, reward=reward)
+        return Quest(id=f"{city_name}_{style}", name=f"{city_name} {style} Craze", stages={"start": stage}, initial_stage="start")
