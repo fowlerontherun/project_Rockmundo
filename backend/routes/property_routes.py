@@ -50,6 +50,17 @@ def upgrade_property(property_id: int, owner_id: int = Depends(get_current_user_
 
 
 @router.post(
+    "/rent/{property_id}",
+    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+)
+def rent_property(property_id: int, renter_id: int = Depends(get_current_user_id)):
+    try:
+        return svc.rent_property(property_id, renter_id)
+    except PropertyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
     "/sell/{property_id}",
     dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
 )
