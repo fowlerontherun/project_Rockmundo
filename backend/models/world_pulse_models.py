@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from typing import List, Dict
 
 class GenreTrend(BaseModel):
-    genre: str
+    genre_id: int
+    subgenre_id: int | None = None
     trend_score: float
 
 class CityKarma(BaseModel):

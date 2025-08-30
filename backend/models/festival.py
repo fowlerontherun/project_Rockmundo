@@ -20,5 +20,5 @@ class Festival(BaseModel):
     ticket_price: float
     attendance: int
     revenue: float
-    genre_focus: Optional[str]
+    genre_id: Optional[int]
     success_score: Optional[float]
