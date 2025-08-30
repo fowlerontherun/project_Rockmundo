@@ -3,6 +3,7 @@
 import random
 
 from .weather_service import weather_service
+from .city_service import city_service
 
 
 def roll_for_daily_event(user_id, lifestyle_data, active_skills):
@@ -30,10 +31,13 @@ def is_skill_blocked(user_id, skill):
 
 
 def adjust_event_attendance(base_attendance: int, region: str) -> int:
-    """Modify event attendance based on current weather."""
+    """Modify event attendance based on weather and city trends."""
     forecast = weather_service.get_forecast(region)
+    attendance = base_attendance
     if forecast.event and forecast.event.type == "storm":
-        return int(base_attendance * 0.7)
-    if forecast.event and forecast.event.type == "festival":
-        return int(base_attendance * 1.3)
-    return base_attendance
+        attendance = int(attendance * 0.7)
+    elif forecast.event and forecast.event.type == "festival":
+        attendance = int(attendance * 1.3)
+    # apply city economic modifier
+    attendance = int(attendance * city_service.get_event_modifier(region))
+    return attendance

@@ -2,6 +2,7 @@ import sqlite3
 import random
 from datetime import datetime
 from backend.database import DB_PATH
+from backend.services.city_service import city_service
 
 
 def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
@@ -19,11 +20,12 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
     # Simulate crowd size based on fame and randomness
     base_crowd = fame * 2
     crowd_size = min(random.randint(base_crowd, base_crowd + 300), 2000)
+    crowd_size = int(crowd_size * city_service.get_event_modifier(city))
 
     fame_earned = crowd_size // 10
     revenue_earned = crowd_size * 5
     skill_gain = len(setlist) * 0.3
-    merch_sold = int(crowd_size * 0.15)
+    merch_sold = int(crowd_size * 0.15 * city_service.get_market_demand(city))
 
     # Record performance
     cur.execute("""
