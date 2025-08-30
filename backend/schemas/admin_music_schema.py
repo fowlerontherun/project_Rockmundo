@@ -16,7 +16,6 @@ class GenreSchema(BaseModel):
     subgenres: List[str] = []
     popularity: Dict[str, Dict[str, float]] = {}
 
-
 class StageEquipmentSchema(BaseModel):
     id: int
     name: str
