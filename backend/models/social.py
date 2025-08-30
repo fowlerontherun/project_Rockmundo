@@ -48,6 +48,7 @@ class ForumThread(Base):
     title = Column(String)
     creator_id = Column(Integer, index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    fan_club_id = Column(Integer, ForeignKey("fan_clubs.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -59,4 +60,34 @@ class ForumPost(Base):
     author_id = Column(Integer, index=True)
     content = Column(Text)
     parent_post_id = Column(Integer, ForeignKey("forum_posts.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FanClub(Base):
+    __tablename__ = "fan_clubs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    owner_id = Column(Integer, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FanClubMembership(Base):
+    __tablename__ = "fan_club_memberships"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fan_club_id = Column(Integer, ForeignKey("fan_clubs.id"))
+    user_id = Column(Integer, index=True)
+    role = Column(String, default="member")  # 'owner','moderator','member'
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FanClubEvent(Base):
+    __tablename__ = "fan_club_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fan_club_id = Column(Integer, ForeignKey("fan_clubs.id"))
+    title = Column(String)
+    scheduled_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
