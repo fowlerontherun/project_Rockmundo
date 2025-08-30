@@ -65,7 +65,7 @@ class BandSkill(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     band_id = Column(Integer, ForeignKey("bands.id"), nullable=False)
-    skill = Column(String, nullable=False)
+    skill_id = Column(Integer, nullable=False)
     level = Column(Integer, default=0)
 
 

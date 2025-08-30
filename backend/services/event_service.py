@@ -1,12 +1,15 @@
 # services/event_service.py
+import logging
 import random
 import sqlite3
-import logging
+
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
 from backend.models.event_effect import EventEffect
-from .weather_service import weather_service
+
 from .city_service import city_service
+from .weather_service import weather_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +26,7 @@ def _ensure_schema() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 effect TEXT NOT NULL,
-                skill TEXT,
+                skill_id INTEGER,
                 start_date TEXT NOT NULL,
                 duration_days INTEGER NOT NULL
             )
@@ -33,13 +36,18 @@ def _ensure_schema() -> None:
 
 
 def roll_for_daily_event(user_id, lifestyle_data, active_skills):
+    """Determine if a daily event triggers for the user."""
+
+    vocals_id = SKILL_NAME_TO_ID["vocals"]
+    guitar_id = SKILL_NAME_TO_ID["guitar"]
+
     # Sample logic: if drinking high and vocals practiced 5 days in a row
-    if lifestyle_data.get("drinking") == "high" and "vocals" in active_skills:
+    if lifestyle_data.get("drinking") == "high" and vocals_id in active_skills:
         if random.random() < 0.15:
             return {
                 "event": "vocal fatigue",
                 "effect": "freeze_progress",
-                "skill": "vocals",
+                "skill_id": vocals_id,
                 "duration": 3,
             }
 
@@ -47,7 +55,7 @@ def roll_for_daily_event(user_id, lifestyle_data, active_skills):
         return {
             "event": "sprained wrist",
             "effect": "block_skill",
-            "skill": "guitar",
+            "skill_id": guitar_id,
             "duration": 5,
         }
 
@@ -60,15 +68,21 @@ def apply_event_effect(user_id, event_data):
         user_id=user_id,
         effect=event_data.get("effect"),
         duration=event_data.get("duration", 0),
-        skill=event_data.get("skill"),
+        skill_id=event_data.get("skill_id"),
     )
     with _conn() as conn:
         conn.execute(
             """
-            INSERT INTO event_effects (user_id, effect, skill, start_date, duration_days)
+            INSERT INTO event_effects (user_id, effect, skill_id, start_date, duration_days)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (effect.user_id, effect.effect, effect.skill, effect.start, effect.duration),
+            (
+                effect.user_id,
+                effect.effect,
+                effect.skill_id,
+                effect.start,
+                effect.duration,
+            ),
         )
         conn.commit()
     logger.info("Applied %s to user %s", event_data, user_id)
@@ -87,16 +101,16 @@ def clear_expired_events() -> int:
         return cur.rowcount if cur.rowcount is not None else 0
 
 
-def is_skill_blocked(user_id, skill):
+def is_skill_blocked(user_id, skill_id: int):
     _ensure_schema()
     with _conn() as conn:
         cur = conn.execute(
             """
             SELECT 1 FROM event_effects
-             WHERE user_id = ? AND skill = ? AND effect = 'block_skill'
+             WHERE user_id = ? AND skill_id = ? AND effect = 'block_skill'
                AND datetime(start_date, '+' || duration_days || ' days') > datetime('now')
             """,
-            (user_id, skill),
+            (user_id, skill_id),
         )
         return cur.fetchone() is not None
 

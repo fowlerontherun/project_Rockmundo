@@ -12,6 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
 
+from seeds.skill_seed import SKILL_NAME_TO_ID
+
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 
@@ -120,7 +122,8 @@ class RehearsalService:
             )
             rehearsal_id = c.lastrowid
             # update band skills and performance
-            skill_gain = 0 if is_skill_blocked(band_id, "rehearsal") else bonus
+            performance_id = SKILL_NAME_TO_ID["performance"]
+            skill_gain = 0 if is_skill_blocked(band_id, performance_id) else bonus
             c.execute(
                 "UPDATE bands SET skill = skill + ?, performance_quality = performance_quality + ? WHERE id = ?",
                 (skill_gain, bonus * 0.5, band_id),
