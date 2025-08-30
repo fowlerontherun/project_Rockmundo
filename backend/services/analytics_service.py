@@ -8,6 +8,7 @@ section is simply skipped so the API still returns useful data.
 """
 
 import sqlite3
+import time
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -16,8 +17,20 @@ from typing import Any, Dict, List, Optional
 from utils.db import get_conn
 
 from backend.models.analytics import AggregatedMetrics, MetricPoint
+from backend.utils.metrics import _REGISTRY, Histogram
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
+
+
+if "service_latency_ms" in _REGISTRY:
+    SERVICE_LATENCY_MS = _REGISTRY["service_latency_ms"]  # type: ignore[assignment]
+else:
+    SERVICE_LATENCY_MS = Histogram(
+        "service_latency_ms",
+        "Service call latency in milliseconds",
+        [50, 100, 250, 500, 1000, 2500, 5000],
+        ("service", "operation"),
+    )
 
 class AnalyticsService:
     def __init__(self, db_path: Optional[str] = None):
@@ -36,79 +49,85 @@ class AnalyticsService:
         """
         High-level aggregates between [period_start, period_end] inclusive (UTC).
         """
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
+        start = time.perf_counter()
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cur = conn.cursor()
 
-            res = {
-                "streams": {"plays": 0},
-                "radio": {"plays": 0},
-                "digital": {"revenue_cents": 0, "count": 0},
-                "vinyl": {"revenue_cents": 0, "units": 0},
-                "tickets": {"revenue_cents": 0, "orders": 0},
-            }
+                res = {
+                    "streams": {"plays": 0},
+                    "radio": {"plays": 0},
+                    "digital": {"revenue_cents": 0, "count": 0},
+                    "vinyl": {"revenue_cents": 0, "units": 0},
+                    "tickets": {"revenue_cents": 0, "orders": 0},
+                }
 
-            # Streams
-            if self._table_exists(cur, "streams"):
-                cur.execute("""
-                    SELECT COUNT(*)
-                    FROM streams
-                    WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?)
-                """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
-                res["streams"]["plays"] = int(cur.fetchone()[0])
+                # Streams
+                if self._table_exists(cur, "streams"):
+                    cur.execute("""
+                        SELECT COUNT(*)
+                        FROM streams
+                        WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?)
+                    """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
+                    res["streams"]["plays"] = int(cur.fetchone()[0])
 
-            # Radio listeners
-            if self._table_exists(cur, "radio_listeners"):
-                cur.execute(
-                    """
-                    SELECT COUNT(*)
-                    FROM radio_listeners
-                    WHERE datetime(listened_at) >= datetime(?) AND datetime(listened_at) <= datetime(?)
-                    """,
-                    (f"{period_start} 00:00:00", f"{period_end} 23:59:59"),
-                )
-                res["radio"]["plays"] = int(cur.fetchone()[0])
+                # Radio listeners
+                if self._table_exists(cur, "radio_listeners"):
+                    cur.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM radio_listeners
+                        WHERE datetime(listened_at) >= datetime(?) AND datetime(listened_at) <= datetime(?)
+                        """,
+                        (f"{period_start} 00:00:00", f"{period_end} 23:59:59"),
+                    )
+                    res["radio"]["plays"] = int(cur.fetchone()[0])
 
-            # Digital sales
-            if self._table_exists(cur, "digital_sales"):
-                cur.execute("""
-                    SELECT IFNULL(SUM(price_cents),0), COUNT(*)
-                    FROM digital_sales
-                    WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?)
-                """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
-                cents, cnt = cur.fetchone()
-                res["digital"]["revenue_cents"] = int(cents or 0)
-                res["digital"]["count"] = int(cnt or 0)
+                # Digital sales
+                if self._table_exists(cur, "digital_sales"):
+                    cur.execute("""
+                        SELECT IFNULL(SUM(price_cents),0), COUNT(*)
+                        FROM digital_sales
+                        WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?)
+                    """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
+                    cents, cnt = cur.fetchone()
+                    res["digital"]["revenue_cents"] = int(cents or 0)
+                    res["digital"]["count"] = int(cnt or 0)
 
-            # Vinyl
-            if all(self._table_exists(cur, t) for t in ("vinyl_order_items","vinyl_orders")):
-                cur.execute("""
-                    SELECT IFNULL(SUM(oi.unit_price_cents * (oi.qty - oi.refunded_qty)),0) AS rev,
-                           IFNULL(SUM(oi.qty - oi.refunded_qty),0) AS units
-                    FROM vinyl_order_items oi
-                    JOIN vinyl_orders o ON o.id = oi.order_id
-                    WHERE o.status = 'confirmed'
-                      AND datetime(o.created_at) >= datetime(?)
-                      AND datetime(o.created_at) <= datetime(?)
-                """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
-                rev, units = cur.fetchone()
-                res["vinyl"]["revenue_cents"] = int(rev or 0)
-                res["vinyl"]["units"] = int(units or 0)
+                # Vinyl
+                if all(self._table_exists(cur, t) for t in ("vinyl_order_items","vinyl_orders")):
+                    cur.execute("""
+                        SELECT IFNULL(SUM(oi.unit_price_cents * (oi.qty - oi.refunded_qty)),0) AS rev,
+                               IFNULL(SUM(oi.qty - oi.refunded_qty),0) AS units
+                        FROM vinyl_order_items oi
+                        JOIN vinyl_orders o ON o.id = oi.order_id
+                        WHERE o.status = 'confirmed'
+                          AND datetime(o.created_at) >= datetime(?)
+                          AND datetime(o.created_at) <= datetime(?)
+                    """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
+                    rev, units = cur.fetchone()
+                    res["vinyl"]["revenue_cents"] = int(rev or 0)
+                    res["vinyl"]["units"] = int(units or 0)
 
-            # Tickets
-            if self._table_exists(cur, "ticket_orders"):
-                cur.execute("""
-                    SELECT IFNULL(SUM(total_cents),0), COUNT(*)
-                    FROM ticket_orders
-                    WHERE status = 'confirmed'
-                      AND datetime(created_at) >= datetime(?)
-                      AND datetime(created_at) <= datetime(?)
-                """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
-                rev, cnt = cur.fetchone()
-                res["tickets"]["revenue_cents"] = int(rev or 0)
-                res["tickets"]["orders"] = int(cnt or 0)
+                # Tickets
+                if self._table_exists(cur, "ticket_orders"):
+                    cur.execute("""
+                        SELECT IFNULL(SUM(total_cents),0), COUNT(*)
+                        FROM ticket_orders
+                        WHERE status = 'confirmed'
+                          AND datetime(created_at) >= datetime(?)
+                          AND datetime(created_at) <= datetime(?)
+                    """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
+                    rev, cnt = cur.fetchone()
+                    res["tickets"]["revenue_cents"] = int(rev or 0)
+                    res["tickets"]["orders"] = int(cnt or 0)
 
-            return res
+                return res
+        finally:
+            SERVICE_LATENCY_MS.labels("analytics_service", "kpis").observe(
+                (time.perf_counter() - start) * 1000
+            )
 
     # ---------- Leaderboards ----------
     def top_songs(self, period_start: str, period_end: str, limit: int = 20) -> Dict[str, Any]:
