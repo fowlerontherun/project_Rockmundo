@@ -9,8 +9,10 @@ from backend.routes import admin_media_moderation_routes as media_routes
 from backend.models.economy_config import set_config, save_config, EconomyConfig
 
 
-def test_log_action_and_query():
+def test_log_action_and_query(tmp_path):
     svc = get_admin_audit_service()
+    svc.db_path = str(tmp_path / "audit.db")
+    svc.ensure_schema()
     svc.clear()
     svc.log_action(1, "create", "/x")
     svc.log_action(2, "delete", "/y")
@@ -20,7 +22,7 @@ def test_log_action_and_query():
     assert svc.query(limit=1) == logs[:1]
 
 
-def test_admin_route_logs_action(monkeypatch):
+def test_admin_route_logs_action(monkeypatch, tmp_path):
     async def fake_current_user(req: Request):
         return 99
 
@@ -34,6 +36,8 @@ def test_admin_route_logs_action(monkeypatch):
     )
 
     svc = get_admin_audit_service()
+    svc.db_path = str(tmp_path / "audit.db")
+    svc.ensure_schema()
     svc.clear()
 
     req = type("Req", (), {"method": "POST", "url": type("U", (), {"path": "/admin/media/flag/1"})()})()
