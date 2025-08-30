@@ -46,6 +46,8 @@ def test_city_trends_affect_merch_sales(monkeypatch):
     monkeypatch.setattr(live_performance_service, "DB_PATH", ":memory:")
     monkeypatch.setattr(live_performance_service.sqlite3, "connect", lambda _: conn)
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
+    monkeypatch.setattr(event_service, "DB_PATH", ":memory:")
+    monkeypatch.setattr(event_service.sqlite3, "connect", lambda _: conn)
 
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", ["song"])
     assert result["crowd_size"] == 300  # 200 base * 1.5 modifier

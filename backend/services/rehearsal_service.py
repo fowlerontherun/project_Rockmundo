@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
 
+from backend.services.event_service import is_skill_blocked
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -117,9 +118,10 @@ class RehearsalService:
             )
             rehearsal_id = c.lastrowid
             # update band skills and performance
+            skill_gain = 0 if is_skill_blocked(band_id, "rehearsal") else bonus
             c.execute(
                 "UPDATE bands SET skill = skill + ?, performance_quality = performance_quality + ? WHERE id = ?",
-                (bonus, bonus * 0.5, band_id),
+                (skill_gain, bonus * 0.5, band_id),
             )
             conn.commit()
         return {"rehearsal_id": rehearsal_id, "bonus": bonus}
