@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Dict, List
 
 from backend.models.video import Video
 from backend.services.economy_service import EconomyService
+from backend.utils.metrics import _REGISTRY, Histogram
+
+if "service_latency_ms" in _REGISTRY:
+    SERVICE_LATENCY_MS = _REGISTRY["service_latency_ms"]  # type: ignore[assignment]
+else:
+    SERVICE_LATENCY_MS = Histogram(
+        "service_latency_ms",
+        "Service call latency in milliseconds",
+        [50, 100, 250, 500, 1000, 2500, 5000],
+        ("service", "operation"),
+    )
 
 
 class VideoService:
@@ -46,10 +58,16 @@ class VideoService:
 
     # -------------------- metrics --------------------
     def record_view(self, video_id: int) -> int:
-        video = self._videos.get(video_id)
-        if not video:
-            raise KeyError(f"Video {video_id} not found")
-        video.view_count += 1
-        # Deposit ad revenue to the owner
-        self.economy.deposit(video.owner_id, self.ad_rate_cents)
-        return video.view_count
+        start = time.perf_counter()
+        try:
+            video = self._videos.get(video_id)
+            if not video:
+                raise KeyError(f"Video {video_id} not found")
+            video.view_count += 1
+            # Deposit ad revenue to the owner
+            self.economy.deposit(video.owner_id, self.ad_rate_cents)
+            return video.view_count
+        finally:
+            SERVICE_LATENCY_MS.labels("video_service", "record_view").observe(
+                (time.perf_counter() - start) * 1000
+            )

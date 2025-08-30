@@ -7,7 +7,8 @@ from fastapi import HTTPException, Request
 from utils.db import get_conn
 
 from backend.auth.dependencies import get_current_user_id, require_role
-from backend.services.analytics_service import AnalyticsService
+from backend.services.analytics_service import SERVICE_LATENCY_MS, AnalyticsService
+from backend.utils.metrics import generate_latest
 
 DDL = """
 CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT);
@@ -92,3 +93,14 @@ def test_metrics_and_permissions(tmp_path):
     admin_req = Request(headers={"Authorization": f"Bearer {token(1, auth_svc)}"})
     uid = asyncio.run(get_current_user_id(admin_req))
     assert asyncio.run(require_role(["admin"], user_id=uid))
+
+
+def test_kpis_latency_metric(tmp_path):
+    db = str(tmp_path / "analytics.db")
+    svc = AnalyticsService(db_path=db)
+    before = SERVICE_LATENCY_MS._values.get(("analytics_service", "kpis"), {"count": 0})["count"]
+    svc.kpis("2024-01-01", "2024-01-02")
+    after = SERVICE_LATENCY_MS._values[("analytics_service", "kpis")]["count"]
+    assert after == before + 1
+    output = generate_latest().decode()
+    assert 'service_latency_ms_count{service="analytics_service",operation="kpis"}' in output
