@@ -2024,7 +2024,7 @@ def is_name_taken(name: str) -> bool:
         taken = cur.fetchone()[0] > 0
         conn.close()
         return taken
-    except:
+    except Exception:
         return False
 
 def generate_random_name(style="full") -> str:

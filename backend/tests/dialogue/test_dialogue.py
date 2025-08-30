@@ -1,12 +1,13 @@
 import asyncio
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+import pytest
 
 import backend.realtime.dialogue_gateway as dialogue_gateway
 from backend.models.dialogue import DialogueMessage
 from backend.realtime.dialogue_gateway import router as dialogue_router
 from backend.services.dialogue_service import DialogueService
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 
 class EchoLLM:
@@ -27,6 +28,7 @@ def test_service_moderates_response():
     assert reply.role == "npc"
 
 
+@pytest.mark.skipif(not hasattr(TestClient, "websocket_connect"), reason="websocket support not available")
 def test_dialogue_websocket_flow(monkeypatch):
     app = FastAPI()
     app.include_router(dialogue_router)
