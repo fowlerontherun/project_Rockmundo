@@ -1,6 +1,8 @@
 from auth.routes import admin_mfa_router
 from core.config import settings
 from database import init_db
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
 from middleware.observability import ObservabilityMiddleware
@@ -18,13 +20,13 @@ from routes import (
 from utils.db import init_pool
 from utils.i18n import _
 
+from backend.utils.error_handlers import http_exception_handler
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
 from backend.utils.tracing import setup_tracing
-from fastapi import FastAPI, Response
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
+app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
@@ -67,3 +69,4 @@ def metrics() -> Response:
 @app.get("/")
 def root() -> dict[str, str]:
     return {"message": _("Welcome to RockMundo API")}
+
