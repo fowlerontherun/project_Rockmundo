@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any, AsyncIterator, Dict, List, Optional, Set
+from typing import AsyncIterator, List, Optional, Set
 
 from fastapi import (
     APIRouter,
@@ -17,13 +17,10 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 
-from backend.utils.logging import get_logger
-from backend.utils.metrics import Counter
-from backend.utils.tracing import get_tracer
+from backend.core.config import settings
 
-logger = get_logger(__name__)
-tracer = get_tracer(__name__)
-PUBLISHED = Counter("realtime_messages_published_total", "Messages published via realtime hub")
+from .hub import InMemoryHub, RealtimeHub, RedisHub
+
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 
 # --- Auth helpers -------------------------------------------------------------
@@ -77,6 +74,7 @@ except Exception:
 
 # --- Pub/Sub Hub --------------------------------------------------------------
 
+
 class _Subscriber:
     """A subscriber owns an asyncio.Queue of outbound events."""
 
@@ -92,54 +90,11 @@ class _Subscriber:
             msg = await self.queue.get()
             yield msg
 
-class RealtimeHub:
-    """
-    In-memory pub/sub keyed by 'topics'.
-    Topics can be arbitrary strings; we use:
-      - user:<user_id>  (direct user channel)
-      - pulse           (global leaderboard ticks)
-      - admin:jobs      (admin job status)
-    """
 
-    def __init__(self) -> None:
-        self._lock = asyncio.Lock()
-        self._topics: Dict[str, Set[_Subscriber]] = {}
-
-    async def subscribe(self, topic: str, sub: _Subscriber) -> None:
-        async with self._lock:
-            self._topics.setdefault(topic, set()).add(sub)
-            logger.debug("Subscribed to %s (count=%d)", topic, len(self._topics[topic]))
-
-    async def unsubscribe(self, topic: str, sub: _Subscriber) -> None:
-        async with self._lock:
-            subs = self._topics.get(topic)
-            if not subs:
-                return
-            subs.discard(sub)
-            if not subs:
-                self._topics.pop(topic, None)
-            logger.debug("Unsubscribed from %s (remaining=%d)", topic, len(self._topics.get(topic, [])))
-
-    async def publish(self, topic: str, payload: Dict[str, Any]) -> int:
-        """Publish JSON payload to topic. Returns number of recipients."""
-        with tracer.start_as_current_span("realtime.publish"):
-            message = json.dumps(
-                {
-                    "topic": topic,
-                    "ts": int(time.time() * 1000),
-                    "data": payload,
-                },
-                separators=(",", ":"),
-            )
-            async with self._lock:
-                subs = list(self._topics.get(topic, []))
-            for s in subs:
-                await s.send(message)
-            PUBLISHED.labels().inc(len(subs))
-            logger.debug("Published to %s -> %d subscribers", topic, len(subs))
-            return len(subs)
-
-hub = RealtimeHub()
+if settings.realtime.backend == "redis":
+    hub: RealtimeHub = RedisHub(settings.realtime.redis_url)
+else:
+    hub = InMemoryHub()
 
 # --- Topic helpers ------------------------------------------------------------
 

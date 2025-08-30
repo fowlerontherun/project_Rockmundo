@@ -45,6 +45,15 @@ class CORSSettings(BaseModel):
     )
 
 
+class RealtimeSettings(BaseModel):
+    """Realtime hub configuration."""
+
+    backend: str = Field("memory", env="ROCKMUNDO_REALTIME_BACKEND")
+    redis_url: str = Field(
+        "redis://localhost:6379/0", env="ROCKMUNDO_REALTIME_REDIS_URL"
+    )
+
+
 class Settings(BaseSettings):
     """Top level application settings."""
 
@@ -54,6 +63,7 @@ class Settings(BaseSettings):
     auth: AuthSettings = Field(default_factory=AuthSettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     cors: CORSSettings = Field(default_factory=CORSSettings)
+    realtime: RealtimeSettings = Field(default_factory=RealtimeSettings)
 
     class Config:
         env_file = Path(__file__).resolve().parents[2] / ".env"
