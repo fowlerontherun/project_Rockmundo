@@ -20,7 +20,9 @@ def _load_dotenv(dotenv_path: Optional[str] = None) -> None:
 _load_dotenv()
 
 class Settings:
-    DB_PATH: str = os.getenv("ROCKMUNDO_DB_PATH", str((Path(__file__).resolve().parents[1] / "rockmundo.db")))
+    DB_PATH: str = os.getenv(
+        "ROCKMUNDO_DB_PATH", str((Path(__file__).resolve().parents[1] / "rockmundo.db"))
+    )
     ENV: str = os.getenv("ROCKMUNDO_ENV", "dev")
     LOG_LEVEL: str = os.getenv("ROCKMUNDO_LOG_LEVEL", "INFO")
     # Auth
@@ -39,5 +41,11 @@ class Settings:
     RATE_LIMIT_REDIS_URL: str = os.getenv(
         "ROCKMUNDO_RATE_LIMIT_REDIS_URL", "redis://localhost:6379/0"
     )
+    # CORS
+    CORS_ALLOWED_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv("ROCKMUNDO_CORS_ALLOWED_ORIGINS", "*").split(",")
+        if origin.strip()
+    ]
 
 settings = Settings()
