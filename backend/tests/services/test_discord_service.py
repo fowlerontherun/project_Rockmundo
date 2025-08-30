@@ -21,7 +21,7 @@ def test_send_message_posts_content(monkeypatch):
 
             return Resp()
 
-    monkeypatch.setattr(settings, "DISCORD_WEBHOOK_URL", "https://example.com/webhook")
+    monkeypatch.setattr(settings.auth, "discord_webhook_url", "https://example.com/webhook")
     monkeypatch.setattr(discord_service, "requests", DummyRequests())
 
     discord_service.send_message("hello world")
@@ -43,7 +43,7 @@ def test_send_message_raises_on_error(monkeypatch):
         def post(self, *args, **kwargs):
             return fake_post(*args, **kwargs)
 
-    monkeypatch.setattr(settings, "DISCORD_WEBHOOK_URL", "https://example.com/webhook")
+    monkeypatch.setattr(settings.auth, "discord_webhook_url", "https://example.com/webhook")
     monkeypatch.setattr(discord_service, "requests", DummyRequests())
 
     with pytest.raises(discord_service.DiscordServiceError):
@@ -51,6 +51,6 @@ def test_send_message_raises_on_error(monkeypatch):
 
 
 def test_send_message_requires_url(monkeypatch):
-    monkeypatch.setattr(settings, "DISCORD_WEBHOOK_URL", "")
+    monkeypatch.setattr(settings.auth, "discord_webhook_url", "")
     with pytest.raises(discord_service.DiscordServiceError):
         discord_service.send_message("oops")

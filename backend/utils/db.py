@@ -7,7 +7,7 @@ from queue import Queue
 
 try:
     from core.config import settings
-    DEFAULT_DB = settings.DB_PATH
+    DEFAULT_DB = settings.database.path
 except Exception:
     DEFAULT_DB = str(Path(__file__).resolve().parents[1] / "rockmundo.db")
 

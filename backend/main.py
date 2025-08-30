@@ -29,7 +29,7 @@ app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ALLOWED_ORIGINS,
+    allow_origins=settings.cors.allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

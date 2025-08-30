@@ -65,7 +65,12 @@ def test_register_login_refresh_me_logout():
     assert at and rt
 
     # Token should decode with expected claims
-    payload = decode(at, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
+    payload = decode(
+        at,
+        secret=settings.auth.jwt_secret,
+        expected_iss=settings.auth.jwt_iss,
+        expected_aud=settings.auth.jwt_aud,
+    )
     assert payload["sub"] == str(uid)
     assert payload.get("jti")
 
@@ -94,7 +99,12 @@ def test_register_login_refresh_me_logout():
     at2 = r.json()["access_token"]
     assert at2 and at2 != at
 
-    payload2 = decode(at2, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
+    payload2 = decode(
+        at2,
+        secret=settings.auth.jwt_secret,
+        expected_iss=settings.auth.jwt_iss,
+        expected_aud=settings.auth.jwt_aud,
+    )
     assert payload2["sub"] == str(uid)
 
     # Logout (revoke current refresh)

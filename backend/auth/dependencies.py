@@ -22,9 +22,9 @@ async def get_current_user_id(req: Request) -> int:
     try:
         payload = jwt_helper.decode(
             token,
-            secret=settings.JWT_SECRET,
-            expected_iss=settings.JWT_ISS,
-            expected_aud=settings.JWT_AUD,
+            secret=settings.auth.jwt_secret,
+            expected_iss=settings.auth.jwt_iss,
+            expected_aud=settings.auth.jwt_aud,
         )
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'code':'AUTH_INVALID','message':str(e)})

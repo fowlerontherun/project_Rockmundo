@@ -18,10 +18,10 @@ class AchievementService:
 
         Args:
             db_path: Optional path to the SQLite database. Defaults to
-                :data:`core.config.settings.DB_PATH`.
+                :data:`core.config.settings.database.path`.
         """
 
-        self.db_path = db_path or settings.DB_PATH
+        self.db_path = db_path or settings.database.path
         self.ensure_schema()
         self._ensure_default_definitions()
 
