@@ -1,6 +1,6 @@
 # File: backend/routes/admin_analytics_routes.py
 from services.admin_audit_service import audit_dependency
-from services.admin_service import AdminService
+from services.admin_service import AdminService, AdminActionRepository
 
 from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.analytics_service import AnalyticsService
@@ -21,14 +21,8 @@ router = APIRouter(
 svc = AnalyticsService()
 
 
-class _AdminDB:
-    """Minimal stand‑in used for audit logging during tests."""
-
-    def insert_admin_action(self, action):
-        pass
-
-
-admin_logger = AdminService(_AdminDB())
+# Real admin action logger backed by SQLite
+admin_logger = AdminService(AdminActionRepository())
 
 @router.get("/kpis")
 async def kpis(req: Request, period_start: str, period_end: str):
