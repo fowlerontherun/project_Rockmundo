@@ -10,9 +10,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from backend.utils.metrics import Counter
+from backend.utils.metrics import Counter, Histogram
 from backend.utils.tracing import get_tracer
-
 
 # Metrics ---------------------------------------------------------------------
 
@@ -21,10 +20,11 @@ REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP requests", ("method", "path", "status")
 )
 
-# Cumulative request latency in milliseconds.
-REQUEST_LATENCY_MS = Counter(
-    "http_request_duration_ms_total",
-    "Total request latency in milliseconds",
+# Request latency in milliseconds recorded as a histogram.
+REQUEST_LATENCY_MS = Histogram(
+    "http_request_duration_ms",
+    "Request latency in milliseconds",
+    [5, 10, 25, 50, 100, 250, 500, 1000],
     ("method", "path", "status"),
 )
 
@@ -55,7 +55,7 @@ class ObservabilityMiddleware:
                 elapsed_ms = int((time.perf_counter() - start) * 1000)
                 labels = (method, path, str(status))
                 REQUEST_COUNT.labels(*labels).inc()
-                REQUEST_LATENCY_MS.labels(*labels).inc(elapsed_ms)
+                REQUEST_LATENCY_MS.labels(*labels).observe(elapsed_ms)
 
         return response
 
