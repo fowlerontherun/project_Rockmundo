@@ -1,7 +1,12 @@
 import os
 import sys
 from pathlib import Path
+from contextlib import asynccontextmanager
+
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -62,13 +67,35 @@ def db_path(tmp_path_factory, monkeypatch):
 
 @pytest.fixture
 def client(db_path):
-    from fastapi import FastAPI
     from auth.routes import router as auth_router
     from routes import event_routes, payment_routes
-    from fastapi.testclient import TestClient
 
     app = FastAPI()
     app.include_router(auth_router)
     app.include_router(event_routes.router)
     app.include_router(payment_routes.router)
     return TestClient(app)
+
+
+@pytest.fixture
+def client_factory():
+    def _client(app: FastAPI, overrides: dict | None = None) -> TestClient:
+        overrides = overrides or {}
+        for dep, override in overrides.items():
+            app.dependency_overrides[dep] = override
+        return TestClient(app)
+
+    return _client
+
+
+@pytest.fixture
+def async_client_factory():
+    @asynccontextmanager
+    async def _client(app: FastAPI, overrides: dict | None = None):
+        overrides = overrides or {}
+        for dep, override in overrides.items():
+            app.dependency_overrides[dep] = override
+        async with AsyncClient(app=app, base_url="http://test") as client:
+            yield client
+
+    return _client
