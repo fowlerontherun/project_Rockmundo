@@ -41,6 +41,7 @@ from backend.jobs import (
     cleanup_tokens,
     backup_db,
     cleanup_event_effects,
+    random_events,
 )  # type: ignore
 
 
@@ -61,6 +62,7 @@ def register_jobs() -> None:
     _registry["cleanup_tokens"] = cleanup_tokens.run
     _registry["backup_db"] = backup_db.run
     _registry["cleanup_event_effects"] = cleanup_event_effects.run
+    _registry["random_events"] = random_events.run
 
 
 def list_jobs() -> dict:
