@@ -46,6 +46,7 @@ class FanSegmentSummary(BaseModel):
     age: List[AgeBucket]
     region: List[RegionBucket]
     spend: List[SpendBucket]
+    engagement: List["EngagementBucket"]
 
 
 class FanTrends(BaseModel):
@@ -54,3 +55,21 @@ class FanTrends(BaseModel):
     events: List[MetricPoint]
     purchases: List[MetricPoint]
     streams: List[MetricPoint]
+    likes: List[MetricPoint]
+    comments: List[MetricPoint]
+    shares: List[MetricPoint]
+
+
+class EngagementBucket(BaseModel):
+    """Number of fans grouped by engagement level."""
+
+    bucket: str
+    fans: int
+
+
+class EngagementTrends(BaseModel):
+    """Time-series metrics for engagement signals."""
+
+    likes: List[MetricPoint]
+    comments: List[MetricPoint]
+    shares: List[MetricPoint]
