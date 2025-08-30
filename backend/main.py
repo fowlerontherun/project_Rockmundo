@@ -8,13 +8,14 @@ from routes import (  # ← added social_routes import
     lifestyle_routes,
     social_routes,
     sponsorship,
+    video_routes,
 )
 
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
 from backend.utils.tracing import setup_tracing
 from fastapi import FastAPI
-from routes import event_routes, lifestyle_routes, sponsorship, social_routes, admin_routes
+from routes import event_routes, lifestyle_routes, sponsorship, social_routes, admin_routes, video_routes
 from database import init_db
 from middleware.locale import LocaleMiddleware
 from middleware.admin_mfa import AdminMFAMiddleware
@@ -40,6 +41,7 @@ app.include_router(admin_mfa_router)
 # New sponsorship router
 app.include_router(sponsorship.router, prefix="/api/sponsorships", tags=["Sponsorships"])
 app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
+app.include_router(video_routes.router, tags=["Videos"])
 
 
 @app.get("/metrics")
