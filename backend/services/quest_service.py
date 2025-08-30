@@ -5,6 +5,7 @@ from typing import Dict
 from backend.models.quest import Quest, QuestReward, QuestStage
 from backend.services.city_service import city_service
 from backend.services.quest_admin_service import QuestAdminService
+from backend.services.xp_event_service import XPEventService
 
 
 class QuestService:
@@ -16,6 +17,7 @@ class QuestService:
         # user_id -> {quest_id: QuestReward}
         self.completed: Dict[int, Dict[str, QuestReward]] = {}
         self.admin_service = QuestAdminService()
+        self.xp_events = XPEventService()
 
     def assign_quest(self, user_id: int, quest: Quest) -> None:
         """Assign a quest to a user starting at the initial stage."""
@@ -44,7 +46,11 @@ class QuestService:
 
     def claim_reward(self, user_id: int, quest_id: str):
         """Retrieve the reward for a completed quest stage if available."""
-        return self.completed.get(user_id, {}).pop(quest_id, None)
+        reward = self.completed.get(user_id, {}).pop(quest_id, None)
+        if reward and reward.type == "xp":
+            mult = self.xp_events.get_active_multiplier()
+            reward = QuestReward(type="xp", amount=int(reward.amount * mult))
+        return reward
 
     def resolve_outcome(self, user_id: int, quest: Quest):
         """Return the reward for the current stage without claiming it."""

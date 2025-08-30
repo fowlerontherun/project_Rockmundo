@@ -4,6 +4,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from .xp_event_service import XPEventService
+
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
 # Daily decay values
@@ -18,14 +20,19 @@ DECAY = {
 def lifestyle_xp_modifier(sleep, stress, discipline, mental):
     modifier = 1.0
 
-    if sleep < 5: modifier *= 0.7
-    if stress > 80: modifier *= 0.75
-    if discipline < 30: modifier *= 0.85
-    if mental < 60: modifier *= 0.8
+    if sleep < 5:
+        modifier *= 0.7
+    if stress > 80:
+        modifier *= 0.75
+    if discipline < 30:
+        modifier *= 0.85
+    if mental < 60:
+        modifier *= 0.8
 
     return round(modifier, 2)
 
 def apply_lifestyle_decay_and_xp_effects():
+    event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
 
@@ -35,7 +42,7 @@ def apply_lifestyle_decay_and_xp_effects():
         for row in rows:
             user_id = row[1]
             sleep = max(0, row[2] - DECAY["sleep_hours"])
-            drinking = row[3]
+            _drinking = row[3]
             stress = min(100, row[4] + DECAY["stress"])
             discipline = max(0, row[5] - DECAY["training_discipline"])
             mental = max(0, row[6] - DECAY["mental_health"])
@@ -47,6 +54,7 @@ def apply_lifestyle_decay_and_xp_effects():
             """, (sleep, stress, discipline, mental, datetime.utcnow().isoformat(), user_id))
 
             modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental)
+            modifier *= event_svc.get_active_multiplier()
 
             cur.execute("""
                 INSERT INTO xp_modifiers (user_id, modifier, date)

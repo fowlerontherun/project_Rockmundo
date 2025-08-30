@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Request
-from pydantic import BaseModel
-from typing import Dict, Any, List
+from datetime import datetime
+from typing import Any, Dict, List
 
 from auth.dependencies import get_current_user_id, require_role
 
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
 
 
 class NPCSchema(BaseModel):
@@ -38,6 +39,14 @@ class XPConfigSchema(BaseModel):
     rested_xp_rate: float | None = None
 
 
+class XPEventSchema(BaseModel):
+    name: str
+    start_time: datetime
+    end_time: datetime
+    multiplier: float
+    skill_target: str | None = None
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -68,3 +77,9 @@ async def economy_schema(req: Request) -> Dict[str, Any]:
 async def xp_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return XPConfigSchema.model_json_schema()
+
+
+@router.get("/xp_event")
+async def xp_event_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return XPEventSchema.model_json_schema()

@@ -10,6 +10,7 @@ const navItems: NavItem[] = [
   { label: 'Quests', href: '/admin/quests' },
   { label: 'Economy', href: '/admin/economy' },
   { label: 'XP', href: '/admin/xp' },
+  { label: 'XP Events', href: '/admin/xp-events' },
   { label: 'Venues', href: '/admin/venues' },
   { label: 'Audit Logs', href: '/admin/audit' },
 ];

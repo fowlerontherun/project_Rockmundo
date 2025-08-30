@@ -3,6 +3,7 @@ import React from 'react';
 import Sidebar from './components/Sidebar';
 import { AuditTable } from './audit';
 import { MonitoringWidget } from './monitoring';
+import XPEventForm from './components/XPEventForm';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -17,6 +18,8 @@ const App: React.FC = () => {
 
   if (path.includes('/admin/audit')) {
     content = <AuditTable />;
+  } else if (path.includes('/admin/xp-events')) {
+    content = <XPEventForm />;
   }
 
   return (
