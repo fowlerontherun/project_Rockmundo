@@ -1,16 +1,10 @@
+from services.achievement_service import AchievementService
+from services.economy_service import EconomyService
+from services.property_service import PropertyError, PropertyService
+
+from backend.auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import List
-
-from services.economy_service import EconomyService
-from services.property_service import PropertyService, PropertyError
-from services.achievement_service import AchievementService
-
-
-def require_role(roles):  # placeholder auth dependency
-    async def _noop():
-        return True
-    return _noop
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
 _achievements = AchievementService()
@@ -19,7 +13,6 @@ svc.ensure_schema()
 
 
 class PropertyPurchaseIn(BaseModel):
-    owner_id: int
     name: str
     property_type: str
     location: str
@@ -27,15 +20,13 @@ class PropertyPurchaseIn(BaseModel):
     base_rent: int
 
 
-class PropertyActionIn(BaseModel):
-    owner_id: int
-
-
 @router.post("/buy", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
-def buy_property(payload: PropertyPurchaseIn):
+def buy_property(
+    payload: PropertyPurchaseIn, owner_id: int = Depends(get_current_user_id)
+):
     try:
         pid = svc.buy_property(
-            owner_id=payload.owner_id,
+            owner_id=owner_id,
             name=payload.name,
             property_type=payload.property_type,
             location=payload.location,
@@ -47,23 +38,29 @@ def buy_property(payload: PropertyPurchaseIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/upgrade/{property_id}", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
-def upgrade_property(property_id: int, payload: PropertyActionIn):
+@router.post(
+    "/upgrade/{property_id}",
+    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+)
+def upgrade_property(property_id: int, owner_id: int = Depends(get_current_user_id)):
     try:
-        return svc.upgrade_property(property_id, payload.owner_id)
+        return svc.upgrade_property(property_id, owner_id)
     except PropertyError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/sell/{property_id}", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
-def sell_property(property_id: int, payload: PropertyActionIn):
+@router.post(
+    "/sell/{property_id}",
+    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+)
+def sell_property(property_id: int, owner_id: int = Depends(get_current_user_id)):
     try:
-        amount = svc.sell_property(property_id, payload.owner_id)
+        amount = svc.sell_property(property_id, owner_id)
         return {"received_cents": amount}
     except PropertyError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/list/{owner_id}", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
-def list_properties(owner_id: int):
+@router.get("/list", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+def list_properties(owner_id: int = Depends(get_current_user_id)):
     return svc.list_properties(owner_id)
