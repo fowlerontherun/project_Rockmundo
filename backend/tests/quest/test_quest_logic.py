@@ -1,5 +1,5 @@
-from models.quest import Quest, QuestStage, QuestReward
-from services.quest_service import QuestService
+from backend.models.quest import Quest, QuestStage, QuestReward
+from backend.services.quest_service import QuestService
 
 
 def sample_quest():

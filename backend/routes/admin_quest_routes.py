@@ -10,10 +10,15 @@ router = APIRouter(
 svc = QuestAdminService()
 
 
-@router.post("/")
-async def create_quest(data: dict, req: Request):
+async def _require_admin(req: Request) -> int:
     admin_id = await get_current_user_id(req)
     await require_role(["admin"], admin_id)
+    return admin_id
+
+
+@router.post("/")
+async def create_quest(data: dict, req: Request):
+    await _require_admin(req)
     try:
         quest = svc.create_quest(
             name=data.get("name", "Unnamed"),
@@ -27,8 +32,7 @@ async def create_quest(data: dict, req: Request):
 
 @router.put("/{quest_id}/stage/{stage_id}")
 async def update_stage(quest_id: int, stage_id: str, data: dict, req: Request):
-    admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await _require_admin(req)
     try:
         stage = svc.update_stage(
             quest_id,
@@ -46,8 +50,7 @@ async def update_stage(quest_id: int, stage_id: str, data: dict, req: Request):
 
 @router.post("/{quest_id}/version")
 async def version_quest(quest_id: int, req: Request):
-    admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await _require_admin(req)
     quest = svc.version_quest(quest_id)
     if not quest:
         raise HTTPException(status_code=404, detail="Quest not found")
@@ -56,16 +59,14 @@ async def version_quest(quest_id: int, req: Request):
 
 @router.delete("/{quest_id}")
 async def delete_quest(quest_id: int, req: Request):
-    admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await _require_admin(req)
     svc.delete_quest(quest_id)
     return {"status": "deleted"}
 
 
 @router.post("/preview")
 async def preview_quest(data: dict, req: Request):
-    admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await _require_admin(req)
     try:
         svc._validate_branches(data.get("stages", []))
     except ValueError as exc:

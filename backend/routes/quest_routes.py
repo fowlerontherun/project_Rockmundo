@@ -1,14 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services.quest_service import QuestService
-from seeds.quest_data import get_seed_quests
-from models.quest import QuestStage, QuestReward
+from backend.services.quest_service import QuestService
+from backend.models.quest import QuestStage, QuestReward
 
 
 quest_routes = APIRouter()
 quest_service = QuestService()
-QUESTS = {quest.id: quest for quest in get_seed_quests()}
 
 
 class UserRequest(BaseModel):
@@ -20,9 +18,10 @@ class ProgressRequest(UserRequest):
 
 
 @quest_routes.post("/quests/start/{quest_id}", response_model=QuestStage)
-def start_quest(quest_id: str, payload: UserRequest):
-    quest = QUESTS.get(quest_id)
-    if quest is None:
+def start_quest(quest_id: int, payload: UserRequest):
+    try:
+        quest = quest_service.load_quest(quest_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="quest not found")
     quest_service.assign_quest(payload.user_id, quest)
     stage = quest.get_stage(quest.initial_stage)
@@ -30,9 +29,10 @@ def start_quest(quest_id: str, payload: UserRequest):
 
 
 @quest_routes.post("/quests/progress/{quest_id}", response_model=QuestStage)
-def report_progress(quest_id: str, payload: ProgressRequest):
-    quest = QUESTS.get(quest_id)
-    if quest is None:
+def report_progress(quest_id: int, payload: ProgressRequest):
+    try:
+        quest = quest_service.load_quest(quest_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="quest not found")
     try:
         stage = quest_service.report_progress(payload.user_id, quest, payload.choice)
@@ -42,8 +42,8 @@ def report_progress(quest_id: str, payload: ProgressRequest):
 
 
 @quest_routes.post("/quests/claim/{quest_id}", response_model=QuestReward)
-def claim_reward(quest_id: str, payload: UserRequest):
-    reward = quest_service.claim_reward(payload.user_id, quest_id)
+def claim_reward(quest_id: int, payload: UserRequest):
+    reward = quest_service.claim_reward(payload.user_id, str(quest_id))
     if reward:
         return reward
     raise HTTPException(status_code=404, detail="no reward")

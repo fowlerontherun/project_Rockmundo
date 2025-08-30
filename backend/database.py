@@ -152,4 +152,32 @@ def init_db():
         CREATE INDEX IF NOT EXISTS ix_ad_events_sponsorship_time ON sponsorship_ad_events(sponsorship_id, occurred_at);
         """)
 
+        # Quest definition tables
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS quests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            version INTEGER NOT NULL DEFAULT 1,
+            initial_stage TEXT NOT NULL
+        )
+        """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS quest_stages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            quest_id INTEGER NOT NULL REFERENCES quests(id),
+            stage_id TEXT NOT NULL,
+            description TEXT NOT NULL,
+            reward_type TEXT,
+            reward_amount INTEGER
+        )
+        """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS quest_branches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stage_id INTEGER NOT NULL REFERENCES quest_stages(id),
+            choice TEXT NOT NULL,
+            next_stage_id TEXT NOT NULL
+        )
+        """)
+
         conn.commit()

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Dict
 
-from models.quest import Quest, QuestReward, QuestStage
+from backend.models.quest import Quest, QuestReward, QuestStage
 from backend.services.city_service import city_service
+from backend.services.quest_admin_service import QuestAdminService
 
 
 class QuestService:
@@ -14,6 +15,7 @@ class QuestService:
         self.assignments: Dict[int, Dict[str, str]] = {}
         # user_id -> {quest_id: QuestReward}
         self.completed: Dict[int, Dict[str, QuestReward]] = {}
+        self.admin_service = QuestAdminService()
 
     def assign_quest(self, user_id: int, quest: Quest) -> None:
         """Assign a quest to a user starting at the initial stage."""
@@ -48,6 +50,27 @@ class QuestService:
         """Return the reward for the current stage without claiming it."""
         stage = self.get_current_stage(user_id, quest)
         return stage.reward if stage else None
+
+    def load_quest(self, quest_id: int) -> Quest:
+        """Load a quest definition from the database."""
+        data = self.admin_service.get_quest(quest_id)
+        if not data:
+            raise ValueError("Quest not found")
+        stages = {}
+        for st in data["stages"].values():
+            reward = QuestReward(**st["reward"]) if st.get("reward") else None
+            stages[st["id"]] = QuestStage(
+                id=st["id"],
+                description=st["description"],
+                branches=st.get("branches", {}),
+                reward=reward,
+            )
+        return Quest(
+            id=str(data["id"]),
+            name=data["name"],
+            stages=stages,
+            initial_stage=data["initial_stage"],
+        )
 
     # --------- city influenced quests ---------
     def generate_city_quest(self, city_name: str) -> Quest:
