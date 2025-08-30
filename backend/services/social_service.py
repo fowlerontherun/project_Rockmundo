@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+import sqlite3
+from pathlib import Path
+from typing import Dict, List, Optional, Set
 
 from backend.realtime.social_gateway import publish_forum_reply, publish_friend_request
 
@@ -38,48 +40,110 @@ class ForumPost:
     parent_post_id: Optional[int]
 
 
-class SocialService:
-    """In-memory social features for friend requests, groups and forums."""
+DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
-    def __init__(self) -> None:
-        self._friend_requests: Dict[int, FriendRequest] = {}
-        self._friendships: Set[Tuple[int, int]] = set()
+
+class SocialService:
+    """Social features with persistent friend data."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = str(db_path or DB_PATH)
+        self.ensure_schema()
         self._groups: Dict[int, Group] = {}
         self._group_members: Dict[int, Set[int]] = {}
         self._threads: Dict[int, ForumThread] = {}
         self._posts: Dict[int, ForumPost] = {}
-        self._ids = {"friend_request": 1, "group": 1, "thread": 1, "post": 1}
+        self._ids = {"group": 1, "thread": 1, "post": 1}
+
+    def ensure_schema(self) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friend_requests (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    from_user_id INTEGER NOT NULL,
+                    to_user_id INTEGER NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    created_at TEXT DEFAULT (datetime('now'))
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS friendships (
+                    user_a INTEGER NOT NULL,
+                    user_b INTEGER NOT NULL,
+                    created_at TEXT DEFAULT (datetime('now')),
+                    UNIQUE(user_a, user_b)
+                )
+                """,
+            )
+            conn.commit()
 
     # ---- Friend requests ----
     async def send_friend_request(self, from_user_id: int, to_user_id: int) -> FriendRequest:
-        rid = self._ids["friend_request"]
-        self._ids["friend_request"] += 1
-        req = FriendRequest(rid, from_user_id, to_user_id)
-        self._friend_requests[rid] = req
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO friend_requests(from_user_id, to_user_id, status) VALUES (?, ?, 'pending')",
+                (from_user_id, to_user_id),
+            )
+            rid = cur.lastrowid
+            conn.commit()
         await publish_friend_request(to_user_id, from_user_id)
-        return req
+        return FriendRequest(rid, from_user_id, to_user_id)
 
     def list_friends(self, user_id: int) -> List[int]:
-        friends: List[int] = []
-        for a, b in self._friendships:
-            if a == user_id:
-                friends.append(b)
-            elif b == user_id:
-                friends.append(a)
-        return friends
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT user_a, user_b FROM friendships WHERE user_a = ? OR user_b = ?",
+                (user_id, user_id),
+            )
+            rows = cur.fetchall()
+            friends: List[int] = []
+            for a, b in rows:
+                friends.append(b if a == user_id else a)
+            return friends
 
     async def accept_friend_request(self, request_id: int, user_id: int) -> None:
-        req = self._friend_requests.get(request_id)
-        if not req or req.to_user_id != user_id or req.status != "pending":
-            raise ValueError("Invalid friend request")
-        req.status = "accepted"
-        self._friendships.add(tuple(sorted((req.from_user_id, req.to_user_id))))
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT from_user_id, to_user_id, status FROM friend_requests WHERE id = ?",
+                (request_id,),
+            )
+            row = cur.fetchone()
+            if not row or row[1] != user_id or row[2] != "pending":
+                raise ValueError("Invalid friend request")
+            from_id, to_id, _ = row
+            cur.execute(
+                "UPDATE friend_requests SET status = 'accepted' WHERE id = ?",
+                (request_id,),
+            )
+            a, b = sorted((from_id, to_id))
+            cur.execute(
+                "INSERT OR IGNORE INTO friendships(user_a, user_b) VALUES (?, ?)",
+                (a, b),
+            )
+            conn.commit()
 
     async def reject_friend_request(self, request_id: int, user_id: int) -> None:
-        req = self._friend_requests.get(request_id)
-        if not req or req.to_user_id != user_id or req.status != "pending":
-            raise ValueError("Invalid friend request")
-        req.status = "rejected"
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT to_user_id, status FROM friend_requests WHERE id = ?",
+                (request_id,),
+            )
+            row = cur.fetchone()
+            if not row or row[0] != user_id or row[1] != "pending":
+                raise ValueError("Invalid friend request")
+            cur.execute(
+                "UPDATE friend_requests SET status = 'rejected' WHERE id = ?",
+                (request_id,),
+            )
+            conn.commit()
 
     # ---- Groups ----
     def create_group(self, owner_id: int, name: str) -> Group:

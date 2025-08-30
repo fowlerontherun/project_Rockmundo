@@ -27,9 +27,18 @@ class FakeWebSocket:
 
 def test_jam_session_flow(tmp_path):
     async def run() -> None:
-        jam_service.sessions.clear()
-        jam_service.economy.db_path = str(tmp_path / "jam.db")
+        jam_service.invites.clear()
+        jam_service.participants.clear()
+        jam_service.db_path = str(tmp_path / "jam.db")
+        jam_service.ensure_schema()
+        jam_service.economy.db_path = str(tmp_path / "jam_eco.db")
         jam_service.economy.ensure_schema()
+        # clear jam tables
+        import sqlite3
+        with sqlite3.connect(jam_service.db_path) as conn:
+            conn.execute("DELETE FROM jam_sessions")
+            conn.execute("DELETE FROM jam_streams")
+            conn.commit()
 
         host_id = 1
         user_id = 2
