@@ -117,6 +117,90 @@ class EconomyService:
             conn.commit()
             return net
 
+    def withdraw(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
+        """Withdraw funds from a user's account.
+
+        Raises
+        ------
+        EconomyError
+            If the user has insufficient funds or no account.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
+                (user_id, currency),
+            )
+            row = cur.fetchone()
+            balance = int(row[0]) if row else 0
+            if balance < amount_cents:
+                raise EconomyError("Insufficient funds")
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents - ? WHERE user_id = ? AND currency = ?",
+                (amount_cents, user_id, currency),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, src_account_id) VALUES ('withdraw', ?, ?, ?)",
+                (amount_cents, currency, user_id),
+            )
+            tx_id = cur.lastrowid
+            cur.execute(
+                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
+                (user_id, currency),
+            )
+            balance_after = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (user_id, tx_id, -amount_cents, balance_after),
+            )
+            conn.commit()
+            return balance_after
+
+    def transfer(
+        self,
+        from_user_id: int,
+        to_user_id: int,
+        amount_cents: int,
+        currency: str = "USD",
+    ) -> None:
+        """Transfer funds between two user accounts."""
+        self.withdraw(from_user_id, amount_cents, currency)
+        # deposit without applying tax; use direct update
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
+                (to_user_id, currency),
+            )
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ? AND currency = ?",
+                (amount_cents, to_user_id, currency),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, src_account_id, dest_account_id) VALUES ('transfer', ?, ?, ?, ?)",
+                (amount_cents, currency, from_user_id, to_user_id),
+            )
+            tx_id = cur.lastrowid
+            cur.execute(
+                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
+                (from_user_id, currency),
+            )
+            from_balance = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (from_user_id, tx_id, -amount_cents, from_balance),
+            )
+            cur.execute(
+                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
+                (to_user_id, currency),
+            )
+            to_balance = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (to_user_id, tx_id, amount_cents, to_balance),
+            )
+            conn.commit()
+
     def list_recent_transactions(self, limit: int = 50) -> list[TransactionRecord]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row

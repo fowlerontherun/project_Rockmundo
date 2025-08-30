@@ -1,45 +1,27 @@
 # File: backend/services/merch_service.py
 import sqlite3
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.models.merch import CartItem, ProductIn, SKUIn
 from services.economy_service import EconomyError, EconomyService
+from services.payment_service import PaymentError, PaymentService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
-
-@dataclass
-class SKUIn:
-    product_id: int
-    price_cents: int
-    stock_qty: int
-    option_size: Optional[str] = None
-    option_color: Optional[str] = None
-    currency: str = "USD"
-    barcode: Optional[str] = None
-    is_active: bool = True
-
-@dataclass
-class ProductIn:
-    name: str
-    category: str             # 'tshirt','hoodie','poster','sticker','hat', etc.
-    band_id: Optional[int] = None
-    description: Optional[str] = None
-    image_url: Optional[str] = None
-    is_active: bool = True
-
-@dataclass
-class CartItem:
-    sku_id: int
-    qty: int
 
 class MerchError(Exception):
     pass
 
 class MerchService:
-    def __init__(self, db_path: Optional[str] = None, economy: EconomyService | None = None):
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        economy: EconomyService | None = None,
+        payments: PaymentService | None = None,
+    ):
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
+        self.payments = payments
         self.economy.ensure_schema()
 
     # -------- schema --------
@@ -232,33 +214,51 @@ class MerchService:
 
     # -------- orders --------
     def purchase(self, buyer_user_id: int, items: List[Dict[str, int]], shipping_address: Optional[str] = None) -> int:
-        norm = [CartItem(int(x["sku_id"]), int(x["qty"])) for x in items if int(x.get("qty",0)) > 0]
+        norm = [CartItem(int(x["sku_id"]), int(x["qty"])) for x in items if int(x.get("qty", 0)) > 0]
         if not norm:
             raise MerchError("No items specified")
+        band_totals: Dict[int, int] = {}
+        total_cents = 0
+        currency = "USD"
+        # gather sku info first
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            for it in norm:
+                cur.execute(
+                    """
+                    SELECT s.*, p.band_id FROM merch_skus s
+                    JOIN merch_products p ON p.id = s.product_id
+                    WHERE s.id = ? AND s.is_active = 1
+                    """,
+                    (it.sku_id,),
+                )
+                sku = cur.fetchone()
+                if not sku:
+                    raise MerchError("SKU not found or inactive")
+                remaining = int(sku["stock_qty"])
+                if remaining < it.qty:
+                    raise MerchError(f"Insufficient stock for SKU {it.sku_id}")
+                total_cents += int(sku["price_cents"]) * it.qty
+                currency = sku["currency"] or currency
+                band_id = sku["band_id"]
+                if band_id is not None:
+                    band_totals[band_id] = band_totals.get(band_id, 0) + int(sku["price_cents"]) * it.qty
+        if self.payments:
+            try:
+                pid = self.payments.initiate_purchase(buyer_user_id, total_cents, currency)
+                self.payments.verify_callback(pid)
+            except PaymentError as e:
+                raise MerchError(str(e))
+        try:
+            self.economy.withdraw(buyer_user_id, total_cents, currency)
+        except EconomyError as e:
+            raise MerchError(str(e))
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             try:
                 cur.execute("BEGIN IMMEDIATE")
-                total_cents = 0
-                currency = "USD"
-                for it in norm:
-                    cur.execute("SELECT * FROM merch_skus WHERE id = ? AND is_active = 1", (it.sku_id,))
-                    sku = cur.fetchone()
-                    if not sku:
-                        raise MerchError("SKU not found or inactive")
-                    remaining = int(sku["stock_qty"])
-                    if remaining < it.qty:
-                        raise MerchError(f"Insufficient stock for SKU {it.sku_id}")
-                    total_cents += int(sku["price_cents"]) * it.qty
-                    currency = sku["currency"] or currency
-
-                try:
-                    self.economy.withdraw(buyer_user_id, total_cents, currency)
-                except EconomyError as e:
-                    raise MerchError(str(e))
-
-                # Create order
                 cur.execute(
                     """
                     INSERT INTO merch_orders (buyer_user_id, total_cents, currency, status, shipping_address)
@@ -267,23 +267,27 @@ class MerchService:
                     (buyer_user_id, total_cents, currency, shipping_address),
                 )
                 order_id = int(cur.lastrowid or 0)
-
-                # Items and decrement stock
                 for it in norm:
                     cur.execute("SELECT price_cents FROM merch_skus WHERE id = ?", (it.sku_id,))
                     price = int(cur.fetchone()[0])
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO merch_order_items (order_id, sku_id, unit_price_cents, qty)
                         VALUES (?, ?, ?, ?)
-                    """, (order_id, it.sku_id, price, it.qty))
+                        """,
+                        (order_id, it.sku_id, price, it.qty),
+                    )
                     cur.execute("UPDATE merch_skus SET stock_qty = stock_qty - ? WHERE id = ?", (it.qty, it.sku_id))
-
                 conn.commit()
-                return order_id
             except Exception:
                 conn.rollback()
                 raise
-
+        for band_id, amt in band_totals.items():
+            try:
+                self.economy.deposit(band_id, amt, currency)
+            except EconomyError:
+                pass
+        return order_id
     def refund_order(self, order_id: int, reason: str = "") -> Dict[str, Any]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
