@@ -1,9 +1,13 @@
 # File: backend/auth/dependencies.py
 from typing import List, Optional
-from fastapi import Depends, HTTPException, status, Request
-from utils.db import get_conn
+
 from auth import jwt as jwt_helper
 from core.config import settings
+from services.rbac_service import get_roles_for_user
+from utils.db import get_conn
+
+from fastapi import Depends, HTTPException, Request, status
+
 
 def _extract_bearer_token(req: Request) -> Optional[str]:
     auth = req.headers.get('Authorization') or req.headers.get('authorization')
@@ -45,14 +49,11 @@ async def get_current_user_id(req: Request) -> int:
     return user_id
 
 async def require_role(roles: List[str], user_id: int = Depends(get_current_user_id)) -> bool:
-    # allow if any role matches
-    with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT r.name FROM user_roles ur
-            JOIN roles r ON r.id = ur.role_id
-            WHERE ur.user_id = ?
-        """, (user_id,)).fetchall()
-        user_roles = {r['name'] for r in rows}
+    """Ensure ``user_id`` has at least one of the required roles."""
+    user_roles = get_roles_for_user(user_id)
     if any(r in user_roles for r in roles):
         return True
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail={'code':'FORBIDDEN','message':'Insufficient role'})
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={'code': 'FORBIDDEN', 'message': 'Insufficient role'},
+    )
