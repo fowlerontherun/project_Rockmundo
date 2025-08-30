@@ -55,6 +55,18 @@ class PropertyService:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS property_upgrades (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    property_id INTEGER NOT NULL,
+                    level INTEGER NOT NULL,
+                    rent_bonus INTEGER NOT NULL DEFAULT 0,
+                    rehearsal_bonus INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE
+                )
+                """
+            )
             conn.commit()
 
     # ---------------- helpers ----------------
@@ -65,6 +77,16 @@ class PropertyService:
             cur.execute("SELECT * FROM properties WHERE id = ?", (property_id,))
             row = cur.fetchone()
             return dict(row) if row else None
+
+    def _fetch_upgrades(self, property_id: int) -> List[Dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT * FROM property_upgrades WHERE property_id = ? ORDER BY level",
+                (property_id,),
+            )
+            return [dict(r) for r in cur.fetchall()]
 
     # ---------------- operations ----------------
     def buy_property(
@@ -124,19 +146,27 @@ class PropertyService:
             self.economy.withdraw(owner_id, cost)
         except EconomyError as e:
             raise PropertyError(str(e)) from e
-        new_rent = int(prop["base_rent"] * 1.2)
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
                 UPDATE properties
-                SET level = ?, base_rent = ?, updated_at = datetime('now')
+                SET level = ?, updated_at = datetime('now')
                 WHERE id = ?
                 """,
-                (new_level, new_rent, property_id),
+                (new_level, property_id),
             )
             if cur.rowcount == 0:
                 raise PropertyError("Upgrade failed")
+            rent_bonus = int(prop["base_rent"] * 0.2)
+            rehearsal_bonus = new_level
+            cur.execute(
+                """
+                INSERT INTO property_upgrades(property_id, level, rent_bonus, rehearsal_bonus)
+                VALUES (?, ?, ?, ?)
+                """,
+                (property_id, new_level, rent_bonus, rehearsal_bonus),
+            )
             conn.commit()
         if self.fame:
             try:
@@ -145,11 +175,27 @@ class PropertyService:
                 pass
         return self._fetch_property(property_id) or {}
 
+    def rent_property(self, property_id: int, renter_id: int) -> Dict[str, Any]:
+        prop = self._fetch_property(property_id)
+        if not prop:
+            raise PropertyError("Property not found")
+        if prop["owner_id"] == renter_id:
+            raise PropertyError("Cannot rent your own property")
+        upgrades = self._fetch_upgrades(property_id)
+        rent = prop["base_rent"] + sum(u["rent_bonus"] for u in upgrades)
+        try:
+            self.economy.transfer(renter_id, prop["owner_id"], rent)
+        except EconomyError as e:
+            raise PropertyError(str(e)) from e
+        rehearsal_bonus = sum(u["rehearsal_bonus"] for u in upgrades)
+        return {"rent_paid": rent, "rehearsal_bonus": rehearsal_bonus}
+
     def collect_rent(self, owner_id: int) -> int:
         props = self.list_properties(owner_id)
         total = 0
         for p in props:
-            rent = p["base_rent"] * p["level"]
+            upgrades = self._fetch_upgrades(p["id"])
+            rent = p["base_rent"] + sum(u["rent_bonus"] for u in upgrades)
             if self.weather:
                 forecast = self.weather.get_forecast(p["location"])
                 if forecast.event and forecast.event.type == "storm":
@@ -168,6 +214,9 @@ class PropertyService:
         sale_price = int(prop["purchase_price"] * 0.8)
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM property_upgrades WHERE property_id = ?", (property_id,)
+            )
             cur.execute("DELETE FROM properties WHERE id = ?", (property_id,))
             if cur.rowcount == 0:
                 raise PropertyError("Sale failed")

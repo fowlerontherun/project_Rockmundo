@@ -56,3 +56,17 @@ def test_sell_property():
     assert sale == int(50000 * 0.8)
     assert svc.list_properties(1) == []
     assert econ.get_balance(1) == 100000 - 50000 + int(50000 * 0.8)
+
+
+def test_rent_flow_and_economics():
+    svc, econ, fame = setup_service()
+    owner_id, renter_id = 1, 2
+    econ.deposit(owner_id, 100000)
+    econ.deposit(renter_id, 10000)
+    pid = svc.buy_property(owner_id, "Studio", "studio", "NYC", 50000, 1000)
+    svc.upgrade_property(pid, owner_id)
+    result = svc.rent_property(pid, renter_id)
+    assert result["rent_paid"] == 1200
+    assert result["rehearsal_bonus"] == 2
+    assert econ.get_balance(renter_id) == 10000 - 1200
+    assert econ.get_balance(owner_id) == 1200
