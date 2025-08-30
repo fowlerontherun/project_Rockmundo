@@ -32,6 +32,12 @@ class EconomyConfigSchema(BaseModel):
     payout_rate: int | None = None
 
 
+class XPConfigSchema(BaseModel):
+    daily_cap: int | None = None
+    new_player_multiplier: float | None = None
+    rested_xp_rate: float | None = None
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -56,3 +62,9 @@ async def quest_schema(req: Request) -> Dict[str, Any]:
 async def economy_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return EconomyConfigSchema.model_json_schema()
+
+
+@router.get("/xp")
+async def xp_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return XPConfigSchema.model_json_schema()
