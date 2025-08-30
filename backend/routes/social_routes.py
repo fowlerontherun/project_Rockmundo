@@ -4,6 +4,8 @@ from utils.i18n import _
 
 from auth.dependencies import get_current_user_id
 from backend.services.social_service import social_service
+from backend.services.fan_club_service import fan_club_service
+from datetime import datetime
 
 router = APIRouter(prefix="/social", tags=["social"])
 
@@ -111,3 +113,77 @@ async def get_thread(thread_id: int, user_id: int = Depends(get_current_user_id)
         raise HTTPException(status_code=404, detail=_("Thread not found"))
     posts = social_service.get_thread_posts(thread_id)
     return {"thread": social_service._threads[thread_id], "posts": posts}
+
+
+# ----- Fan club endpoints -----
+class FanClubCreateIn(BaseModel):
+    name: str
+    description: str | None = None
+
+
+@router.post("/fanclubs")
+async def create_fan_club(data: FanClubCreateIn, user_id: int = Depends(get_current_user_id)):
+    club = fan_club_service.create_club(user_id, data.name, data.description)
+    return club
+
+
+@router.post("/fanclubs/{club_id}/join")
+async def join_fan_club(club_id: int, user_id: int = Depends(get_current_user_id)):
+    try:
+        fan_club_service.join_club(club_id, user_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=_("Fan club not found"))
+    return {"status": "joined"}
+
+
+class FanClubThreadCreateIn(BaseModel):
+    title: str
+
+
+@router.post("/fanclubs/{club_id}/threads")
+async def create_fan_club_thread(
+    club_id: int, data: FanClubThreadCreateIn, user_id: int = Depends(get_current_user_id)
+):
+    try:
+        thread = fan_club_service.create_thread(club_id, user_id, data.title)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return thread
+
+
+class FanClubPostCreateIn(BaseModel):
+    content: str
+
+
+@router.post("/fanclubs/{club_id}/threads/{thread_id}/posts")
+async def add_fan_club_post(
+    club_id: int,
+    thread_id: int,
+    data: FanClubPostCreateIn,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        post = await fan_club_service.add_post(thread_id, user_id, data.content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return post
+
+
+class FanClubEventCreateIn(BaseModel):
+    title: str
+    scheduled_at: datetime
+
+
+@router.post("/fanclubs/{club_id}/events")
+async def schedule_fan_club_event(
+    club_id: int,
+    data: FanClubEventCreateIn,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        event = await fan_club_service.schedule_event(
+            club_id, user_id, data.title, data.scheduled_at
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return event

@@ -14,6 +14,25 @@ class Request:  # minimal request used in tests
         self.headers = headers or {}
 
 
+def Header(default=None, *args, **kwargs):  # pragma: no cover - testing stub
+    return default
+
+
+class WebSocket:  # pragma: no cover - testing stub
+    def __init__(self):
+        self.application_state = None
+
+    async def accept(self):
+        pass
+
+    async def close(self):
+        pass
+
+
+class WebSocketDisconnect(Exception):  # pragma: no cover - testing stub
+    pass
+
+
 class status:  # pragma: no cover - constants for tests
     HTTP_401_UNAUTHORIZED = 401
     HTTP_403_FORBIDDEN = 403
@@ -45,6 +64,12 @@ class APIRouter:
     def put(self, path: str):
         def decorator(func):
             self.routes.append(("PUT", self.prefix + path, func))
+            return func
+        return decorator
+
+    def websocket(self, path: str):  # pragma: no cover - testing stub
+        def decorator(func):
+            self.routes.append(("WS", self.prefix + path, func))
             return func
         return decorator
 
