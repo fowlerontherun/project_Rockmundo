@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from .gateway import hub, topic_for_user, PULSE_TOPIC, ADMIN_JOBS_TOPIC
+from .gateway import ADMIN_JOBS_TOPIC, PULSE_TOPIC, hub, topic_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -39,20 +39,6 @@ async def publish_admin_job_status(event: Dict[str, Any]) -> int:
     """
     payload: Dict[str, Any] = {"type": "admin_job", **event}
     return await hub.publish(ADMIN_JOBS_TOPIC, payload)
-
-async def publish_friend_request(target_user_id: int, from_user_id: int) -> int:
-    """Notify a user of a new friend request."""
-    payload: Dict[str, Any] = {"type": "friend_request", "from_user_id": int(from_user_id)}
-    topic = topic_for_user(int(target_user_id))
-    return await hub.publish(topic, payload)
-
-
-async def publish_forum_reply(target_user_id: int, thread_id: int, post_id: int) -> int:
-    """Notify a user that someone replied to their forum post."""
-    payload: Dict[str, Any] = {"type": "forum_reply", "thread_id": int(thread_id), "post_id": int(post_id)}
-    topic = topic_for_user(int(target_user_id))
-    return await hub.publish(topic, payload)
-
 
 async def publish_fan_club_post(fan_club_id: int, thread_id: int, post_id: int) -> int:
     """Broadcast a new fan club post to all club subscribers."""
