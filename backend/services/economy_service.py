@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from backend.models.banking import ExchangeRate, InterestAccount, Loan
+from services.xp_reward_service import xp_reward_service
 
+from backend.models.banking import Loan
 from backend.models.economy_config import get_config
 from backend.utils.logging import get_logger
 
@@ -238,6 +239,7 @@ class EconomyService:
                 (to_user_id, tx_id, amount_cents, to_balance),
             )
             conn.commit()
+            xp_reward_service.grant_hidden_xp(to_user_id, reason="transfer")
 
     def list_transactions(self, user_id: int, limit: int = 50) -> list[TransactionRecord]:
         with sqlite3.connect(self.db_path) as conn:
