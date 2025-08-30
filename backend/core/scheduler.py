@@ -38,6 +38,7 @@ except Exception:
 from backend.jobs import (
     cleanup_idempotency,
     cleanup_rate_limits,
+    cleanup_tokens,
     backup_db,
     cleanup_event_effects,
 )  # type: ignore
@@ -57,6 +58,7 @@ def register_jobs() -> None:
     _registry.clear()
     _registry["cleanup_idempotency"] = cleanup_idempotency.run
     _registry["cleanup_rate_limits"] = cleanup_rate_limits.run
+    _registry["cleanup_tokens"] = cleanup_tokens.run
     _registry["backup_db"] = backup_db.run
     _registry["cleanup_event_effects"] = cleanup_event_effects.run
 
