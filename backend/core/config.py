@@ -31,5 +31,13 @@ class Settings:
     ACCESS_TOKEN_TTL_MIN: int = int(os.getenv("ROCKMUNDO_ACCESS_TTL_MIN", "30"))
     REFRESH_TOKEN_TTL_DAYS: int = int(os.getenv("ROCKMUNDO_REFRESH_TTL_DAYS", "30"))
     DISCORD_WEBHOOK_URL: str = os.getenv("DISCORD_WEBHOOK_URL", "")
+    # Rate limiting
+    RATE_LIMIT_REQUESTS_PER_MIN: int = int(
+        os.getenv("ROCKMUNDO_RATE_LIMIT_REQUESTS_PER_MIN", "60")
+    )
+    RATE_LIMIT_STORAGE: str = os.getenv("ROCKMUNDO_RATE_LIMIT_STORAGE", "memory")
+    RATE_LIMIT_REDIS_URL: str = os.getenv(
+        "ROCKMUNDO_RATE_LIMIT_REDIS_URL", "redis://localhost:6379/0"
+    )
 
 settings = Settings()
