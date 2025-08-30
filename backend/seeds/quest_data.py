@@ -1,4 +1,4 @@
-from models.quest import Quest, QuestStage, QuestReward
+from backend.models.quest import Quest, QuestStage, QuestReward
 
 
 def get_seed_quests():
