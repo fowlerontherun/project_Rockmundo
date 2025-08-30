@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set, Tuple
 
-from backend.realtime.publish import publish_friend_request, publish_forum_reply
+from backend.realtime.social_gateway import publish_forum_reply, publish_friend_request
 
 
 @dataclass
