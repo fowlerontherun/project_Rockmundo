@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from utils.i18n import _
 
-from auth.dependencies import get_current_user_id
+from backend.utils.i18n import _
+from backend.auth.dependencies import get_current_user_id
 from backend.services.social_service import social_service
 from backend.services.fan_club_service import fan_club_service
 from datetime import datetime
