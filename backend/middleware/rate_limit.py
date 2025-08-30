@@ -21,8 +21,8 @@ class RateLimitMiddleware:
         limit: int | None = None,
         backend: str | None = None,
     ) -> None:
-        self.limit = limit or settings.RATE_LIMIT_REQUESTS_PER_MIN
-        self.backend = (backend or settings.RATE_LIMIT_STORAGE).lower()
+        self.limit = limit or settings.rate_limit.requests_per_min
+        self.backend = (backend or settings.rate_limit.storage).lower()
 
         self._memory: Dict[str, Tuple[int, float]] = {}
         self._redis = None
@@ -30,7 +30,7 @@ class RateLimitMiddleware:
             try:  # pragma: no cover - redis optional in tests
                 import redis.asyncio as aioredis
 
-                self._redis = aioredis.from_url(settings.RATE_LIMIT_REDIS_URL)
+                self._redis = aioredis.from_url(settings.rate_limit.redis_url)
             except Exception:  # fall back to memory if redis unavailable
                 self.backend = "memory"
 

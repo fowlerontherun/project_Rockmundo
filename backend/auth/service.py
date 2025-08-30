@@ -48,18 +48,18 @@ class AuthService:
         """
 
         now = jwt_helper.now_ts()
-        exp = now + settings.ACCESS_TOKEN_TTL_MIN * 60
+        exp = now + settings.auth.access_token_ttl_min * 60
         jti = uuid.uuid4().hex
         payload = {
-            "iss": settings.JWT_ISS,
-            "aud": settings.JWT_AUD,
+            "iss": settings.auth.jwt_iss,
+            "aud": settings.auth.jwt_aud,
             "iat": now,
             "nbf": now,
             "exp": exp,
             "sub": str(user_id),
             "jti": jti,
         }
-        token = jwt_helper.encode(payload, secret=settings.JWT_SECRET)
+        token = jwt_helper.encode(payload, secret=settings.auth.jwt_secret)
         expires_at = datetime.fromtimestamp(exp, UTC).isoformat()
         with get_conn(self.db_path) as conn:
             conn.execute(
@@ -74,7 +74,7 @@ class AuthService:
     def _new_refresh_token(self, user_id: int, user_agent: str = "", ip: str = "") -> Dict[str, Any]:
         token = secrets.token_urlsafe(48)
         token_hash = self._hash_refresh(token)
-        expires = _now() + timedelta(days=settings.REFRESH_TOKEN_TTL_DAYS)
+        expires = _now() + timedelta(days=settings.auth.refresh_token_ttl_days)
         with get_conn(self.db_path) as conn:
             conn.execute("""INSERT INTO refresh_tokens (user_id, token_hash, expires_at, user_agent, ip)
                           VALUES (?, ?, ?, ?, ?)""", (user_id, token_hash, expires.isoformat(), user_agent[:200], ip[:64]))

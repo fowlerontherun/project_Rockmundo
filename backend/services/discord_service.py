@@ -14,7 +14,7 @@ class DiscordServiceError(Exception):
 
 def send_message(content: str) -> None:
     """Send a message to a Discord webhook."""
-    url = getattr(settings, "DISCORD_WEBHOOK_URL", "")
+    url = settings.auth.discord_webhook_url
     if not url:
         raise DiscordServiceError("DISCORD_WEBHOOK_URL is not configured")
     if requests is None:

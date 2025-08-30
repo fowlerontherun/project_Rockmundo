@@ -5,7 +5,7 @@ from services.auth_service import get_user_by_username, verify_password
 
 from backend.auth.jwt import encode
 
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_TTL_MIN
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.auth.access_token_ttl_min
 
 
 def create_access_token(username: str, role: str) -> str:
@@ -15,10 +15,10 @@ def create_access_token(username: str, role: str) -> str:
         "sub": username,
         "role": role,
         "exp": expire,
-        "iss": settings.JWT_ISS,
-        "aud": settings.JWT_AUD,
+        "iss": settings.auth.jwt_iss,
+        "aud": settings.auth.jwt_aud,
     }
-    return encode(to_encode, settings.JWT_SECRET)
+    return encode(to_encode, settings.auth.jwt_secret)
 
 
 def verify_user_credentials(username: str, password: str) -> dict | None:

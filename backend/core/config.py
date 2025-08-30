@@ -1,51 +1,63 @@
 # File: backend/core/config.py
-import os
+"""Application configuration using lightweight Pydantic-style settings."""
+
 from pathlib import Path
-from typing import Optional
+
+from pydantic import BaseModel, BaseSettings, Field
 
 
-def _load_dotenv(dotenv_path: Optional[str] = None) -> None:
-    path = dotenv_path or (Path(__file__).resolve().parents[2] / ".env")
-    try:
-        if Path(path).exists():
-            for line in Path(path).read_text().splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
-    except Exception:
-        pass
+class DatabaseSettings(BaseModel):
+    """Database related configuration."""
 
-_load_dotenv()
-
-class Settings:
-    DB_PATH: str = os.getenv(
-        "ROCKMUNDO_DB_PATH", str((Path(__file__).resolve().parents[1] / "rockmundo.db"))
+    path: str = Field(
+        str(Path(__file__).resolve().parents[1] / "rockmundo.db"),
+        env="ROCKMUNDO_DB_PATH",
     )
-    ENV: str = os.getenv("ROCKMUNDO_ENV", "dev")
-    LOG_LEVEL: str = os.getenv("ROCKMUNDO_LOG_LEVEL", "INFO")
-    # Auth
-    JWT_SECRET: str = os.getenv("ROCKMUNDO_JWT_SECRET", "dev-change-me")
-    JWT_ISS: str = os.getenv("ROCKMUNDO_JWT_ISS", "rockmundo")
-    JWT_AUD: str = os.getenv("ROCKMUNDO_JWT_AUD", "rockmundo-app")
-    JWT_ALG: str = os.getenv("ROCKMUNDO_JWT_ALG", "HS256")
-    ACCESS_TOKEN_TTL_MIN: int = int(os.getenv("ROCKMUNDO_ACCESS_TTL_MIN", "30"))
-    REFRESH_TOKEN_TTL_DAYS: int = int(os.getenv("ROCKMUNDO_REFRESH_TTL_DAYS", "30"))
-    DISCORD_WEBHOOK_URL: str = os.getenv("DISCORD_WEBHOOK_URL", "")
-    # Rate limiting
-    RATE_LIMIT_REQUESTS_PER_MIN: int = int(
-        os.getenv("ROCKMUNDO_RATE_LIMIT_REQUESTS_PER_MIN", "60")
+
+
+class AuthSettings(BaseModel):
+    """Authentication and security settings."""
+
+    jwt_secret: str = Field("dev-change-me", env="ROCKMUNDO_JWT_SECRET")
+    jwt_iss: str = Field("rockmundo", env="ROCKMUNDO_JWT_ISS")
+    jwt_aud: str = Field("rockmundo-app", env="ROCKMUNDO_JWT_AUD")
+    jwt_alg: str = Field("HS256", env="ROCKMUNDO_JWT_ALG")
+    access_token_ttl_min: int = Field(30, env="ROCKMUNDO_ACCESS_TTL_MIN")
+    refresh_token_ttl_days: int = Field(30, env="ROCKMUNDO_REFRESH_TTL_DAYS")
+    discord_webhook_url: str = Field("", env="DISCORD_WEBHOOK_URL")
+
+
+class RateLimitSettings(BaseModel):
+    """Request rate limiting configuration."""
+
+    requests_per_min: int = Field(60, env="ROCKMUNDO_RATE_LIMIT_REQUESTS_PER_MIN")
+    storage: str = Field("memory", env="ROCKMUNDO_RATE_LIMIT_STORAGE")
+    redis_url: str = Field(
+        "redis://localhost:6379/0", env="ROCKMUNDO_RATE_LIMIT_REDIS_URL"
     )
-    RATE_LIMIT_STORAGE: str = os.getenv("ROCKMUNDO_RATE_LIMIT_STORAGE", "memory")
-    RATE_LIMIT_REDIS_URL: str = os.getenv(
-        "ROCKMUNDO_RATE_LIMIT_REDIS_URL", "redis://localhost:6379/0"
+
+
+class CORSSettings(BaseModel):
+    """Cross-origin resource sharing settings."""
+
+    allowed_origins: list[str] = Field(
+        default_factory=lambda: ["*"], env="ROCKMUNDO_CORS_ALLOWED_ORIGINS"
     )
-    # CORS
-    CORS_ALLOWED_ORIGINS: list[str] = [
-        origin.strip()
-        for origin in os.getenv("ROCKMUNDO_CORS_ALLOWED_ORIGINS", "*").split(",")
-        if origin.strip()
-    ]
+
+
+class Settings(BaseSettings):
+    """Top level application settings."""
+
+    env: str = Field("dev", env="ROCKMUNDO_ENV")
+    log_level: str = Field("INFO", env="ROCKMUNDO_LOG_LEVEL")
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
+    rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
+    cors: CORSSettings = Field(default_factory=CORSSettings)
+
+    class Config:
+        env_file = Path(__file__).resolve().parents[2] / ".env"
+
 
 settings = Settings()
+
