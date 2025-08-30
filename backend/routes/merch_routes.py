@@ -2,7 +2,8 @@ from typing import List
 
 from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
 from backend.services.economy_service import EconomyService
-from backend.services.merch_service import MerchError, MerchService, ProductIn, SKUIn
+from backend.services.merch_service import MerchError, MerchService
+from backend.models.merch import ProductIn, SKUIn
 from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 from pydantic import BaseModel
 
