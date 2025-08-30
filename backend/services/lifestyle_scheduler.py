@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from .skill_service import skill_service
 from .xp_event_service import XPEventService
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
@@ -60,6 +61,9 @@ def apply_lifestyle_decay_and_xp_effects():
                 INSERT INTO xp_modifiers (user_id, modifier, date)
                 VALUES (?, ?, ?)
             """, (user_id, modifier, datetime.utcnow().date()))
+
+            # Daily lifestyle decay affects skills slightly
+            skill_service.apply_daily_decay(user_id)
 
         conn.commit()
 
