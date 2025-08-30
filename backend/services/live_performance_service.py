@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 from backend.database import DB_PATH
 from backend.services.city_service import city_service
+from backend.services.event_service import is_skill_blocked
 
 
 def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
@@ -25,23 +26,36 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
     fame_earned = crowd_size // 10
     revenue_earned = crowd_size * 5
     skill_gain = len(setlist) * 0.3
+    applied_skill = 0 if is_skill_blocked(band_id, "performance") else skill_gain
     merch_sold = int(crowd_size * 0.15 * city_service.get_market_demand(city))
 
     # Record performance
-    cur.execute("""
+    cur.execute(
+        """
         INSERT INTO live_performances (
             band_id, city, venue, date, setlist,
             crowd_size, fame_earned, revenue_earned,
             skill_gain, merch_sold
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        band_id, city, venue, datetime.utcnow().isoformat(), ",".join(setlist),
-        crowd_size, fame_earned, revenue_earned, skill_gain, merch_sold
-    ))
+        """,
+        (
+            band_id,
+            city,
+            venue,
+            datetime.utcnow().isoformat(),
+            ",".join(setlist),
+            crowd_size,
+            fame_earned,
+            revenue_earned,
+            applied_skill,
+            merch_sold,
+        ),
+    )
 
     # Update band stats
     cur.execute("UPDATE bands SET fame = fame + ? WHERE id = ?", (fame_earned, band_id))
-    cur.execute("UPDATE bands SET skill = skill + ? WHERE id = ?", (skill_gain, band_id))
+    if applied_skill:
+        cur.execute("UPDATE bands SET skill = skill + ? WHERE id = ?", (applied_skill, band_id))
     cur.execute("UPDATE bands SET revenue = revenue + ? WHERE id = ?", (revenue_earned, band_id))
 
     conn.commit()
@@ -54,7 +68,7 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
         "crowd_size": crowd_size,
         "fame_earned": fame_earned,
         "revenue_earned": revenue_earned,
-        "skill_gain": skill_gain,
+        "skill_gain": applied_skill,
         "merch_sold": merch_sold
     }
 
