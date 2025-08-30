@@ -12,6 +12,9 @@ class NPC:
     identity: str
     npc_type: str
     dialogue_hooks: Dict[str, str] = field(default_factory=dict)
+    interaction_hooks: Dict[str, str] = field(default_factory=dict)
+    goals: Dict[str, Any] = field(default_factory=dict)
+    routine: Dict[str, Any] = field(default_factory=dict)
     stats: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -20,5 +23,8 @@ class NPC:
             "identity": self.identity,
             "npc_type": self.npc_type,
             "dialogue_hooks": dict(self.dialogue_hooks),
+            "interaction_hooks": dict(self.interaction_hooks),
+            "goals": dict(self.goals),
+            "routine": dict(self.routine),
             "stats": dict(self.stats),
         }

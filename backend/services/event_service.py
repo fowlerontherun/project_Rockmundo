@@ -7,9 +7,11 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
 from backend.models.event_effect import EventEffect
+from backend.models.npc import NPC
 
 from .city_service import city_service
 from .weather_service import weather_service
+from .npc_ai_service import npc_ai_service
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,12 @@ def roll_for_daily_event(user_id, lifestyle_data, active_skills):
         }
 
     return None
+
+
+def roll_for_npc_daily_events(npc: NPC, lifestyle_data=None):
+    """Generate daily NPC events via the AI service."""
+    lifestyle_data = lifestyle_data or {}
+    return npc_ai_service.generate_daily_behavior(npc, lifestyle_data)
 
 
 def apply_event_effect(user_id, event_data):

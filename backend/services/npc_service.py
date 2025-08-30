@@ -36,12 +36,24 @@ class NPCService:
         self.db = db or _InMemoryNPCDB()
 
     # ---- CRUD ------------------------------------------------------------
-    def create_npc(self, identity: str, npc_type: str, dialogue_hooks=None, stats=None) -> Dict:
+    def create_npc(
+        self,
+        identity: str,
+        npc_type: str,
+        dialogue_hooks=None,
+        stats=None,
+        goals=None,
+        routine=None,
+        interaction_hooks=None,
+    ) -> Dict:
         npc = NPC(
             id=None,
             identity=identity,
             npc_type=npc_type,
             dialogue_hooks=dialogue_hooks or {},
+            interaction_hooks=interaction_hooks or {},
+            goals=goals or {},
+            routine=routine or {},
             stats=stats or {},
         )
         self.db.add(npc)
@@ -61,6 +73,12 @@ class NPCService:
             npc.npc_type = updates['npc_type']
         if 'dialogue_hooks' in updates and updates['dialogue_hooks'] is not None:
             npc.dialogue_hooks = updates['dialogue_hooks']
+        if 'interaction_hooks' in updates and updates['interaction_hooks'] is not None:
+            npc.interaction_hooks = updates['interaction_hooks']
+        if 'goals' in updates and updates['goals'] is not None:
+            npc.goals = updates['goals']
+        if 'routine' in updates and updates['routine'] is not None:
+            npc.routine = updates['routine']
         if 'stats' in updates and updates['stats'] is not None:
             npc.stats = updates['stats']
         return npc.to_dict()
@@ -69,13 +87,25 @@ class NPCService:
         return self.db.delete(npc_id)
 
     # ---- Simulation ------------------------------------------------------
-    def preview_npc(self, identity: str, npc_type: str, dialogue_hooks=None, stats=None) -> Dict:
+    def preview_npc(
+        self,
+        identity: str,
+        npc_type: str,
+        dialogue_hooks=None,
+        stats=None,
+        goals=None,
+        routine=None,
+        interaction_hooks=None,
+    ) -> Dict:
         """Simulate NPC stats without persisting to the DB."""
         npc = NPC(
             id=None,
             identity=identity,
             npc_type=npc_type,
             dialogue_hooks=dialogue_hooks or {},
+            interaction_hooks=interaction_hooks or {},
+            goals=goals or {},
+            routine=routine or {},
             stats=stats or {},
         )
         fame_gain = random.randint(0, npc.stats.get('activity', 5))
