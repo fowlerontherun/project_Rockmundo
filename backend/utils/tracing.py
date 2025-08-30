@@ -7,14 +7,48 @@ whether the optional dependency is installed.
 
 from __future__ import annotations
 
+import os
+
 try:  # pragma: no cover - exercised indirectly
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export import (
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
+        SimpleSpanProcessor,
+    )
 
-    def setup_tracing() -> None:
+    def setup_tracing(exporter: str = "console") -> None:
         provider = TracerProvider()
-        provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+
+        chosen = exporter.lower()
+        processor: SimpleSpanProcessor | BatchSpanProcessor
+
+        if chosen == "otlp":  # pragma: no cover - optional dependency
+            try:
+                from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+                    OTLPSpanExporter,
+                )
+
+                processor = BatchSpanProcessor(OTLPSpanExporter())
+            except Exception:  # pragma: no cover - fallback
+                processor = SimpleSpanProcessor(ConsoleSpanExporter())
+        elif chosen == "jaeger":  # pragma: no cover - optional dependency
+            try:
+                from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+
+                jaeger_host = os.getenv("JAEGER_HOST", "localhost")
+                jaeger_port = int(os.getenv("JAEGER_PORT", "6831"))
+                exporter = JaegerExporter(
+                    agent_host_name=jaeger_host, agent_port=jaeger_port
+                )
+                processor = BatchSpanProcessor(exporter)
+            except Exception:  # pragma: no cover - fallback
+                processor = SimpleSpanProcessor(ConsoleSpanExporter())
+        else:
+            processor = SimpleSpanProcessor(ConsoleSpanExporter())
+
+        provider.add_span_processor(processor)
         trace.set_tracer_provider(provider)
 
     def get_tracer(name: str):
@@ -31,7 +65,7 @@ except Exception:  # pragma: no cover - fallback for missing package
         def start_as_current_span(self, name: str) -> _Span:
             return _Span()
 
-    def setup_tracing() -> None:  # pragma: no cover - trivial
+    def setup_tracing(exporter: str = "console") -> None:  # pragma: no cover - trivial
         pass
 
     def get_tracer(name: str) -> _Tracer:  # pragma: no cover - trivial
