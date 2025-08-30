@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from backend.models.merch import CartItem, ProductIn, SKUIn
 from services.economy_service import EconomyError, EconomyService
 from services.payment_service import PaymentError, PaymentService
+from services.legacy_service import LegacyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -18,11 +19,14 @@ class MerchService:
         db_path: Optional[str] = None,
         economy: EconomyService | None = None,
         payments: PaymentService | None = None,
+        legacy: LegacyService | None = None,
     ):
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
         self.payments = payments
+        self.legacy = legacy or LegacyService(db_path=self.db_path)
         self.economy.ensure_schema()
+        self.legacy.ensure_schema()
 
     # -------- schema --------
     def ensure_schema(self) -> None:
@@ -286,6 +290,16 @@ class MerchService:
             try:
                 self.economy.deposit(band_id, amt, currency)
             except EconomyError:
+                pass
+            try:
+                # Award legacy points equal to dollars earned
+                self.legacy.log_milestone(
+                    band_id,
+                    "merch_revenue",
+                    f"Merch revenue {amt} cents",
+                    int(amt // 100),
+                )
+            except Exception:
                 pass
         return order_id
     def refund_order(self, order_id: int, reason: str = "") -> Dict[str, Any]:

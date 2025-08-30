@@ -1,9 +1,12 @@
 import sqlite3
 from datetime import datetime, timedelta
 from backend.database import DB_PATH
-from backend.services.achievement_service import AchievementService
+from services.achievement_service import AchievementService
+from services.legacy_service import LegacyService
 
 achievement_service = AchievementService(DB_PATH)
+legacy_service = LegacyService(DB_PATH)
+legacy_service.ensure_schema()
 
 
 def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str = None) -> dict:
@@ -60,6 +63,15 @@ def calculate_weekly_chart(chart_type: str = 'Global Top 100', start_date: str =
         if position == 1:
             try:
                 achievement_service.grant(band_id, "chart_topper")
+            except Exception:
+                pass
+            try:
+                legacy_service.log_milestone(
+                    band_id,
+                    "chart_peak",
+                    f"{chart_type} #1",
+                    100,
+                )
             except Exception:
                 pass
 

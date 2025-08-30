@@ -12,7 +12,8 @@ from backend.models.festival_builder import (
     TicketTier,
 )
 from backend.models.ticketing_models import Ticket
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
+from services.legacy_service import LegacyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -28,10 +29,17 @@ class BookingConflictError(FestivalError):
 class FestivalBuilderService:
     """Service handling festival creation and basic finance tracking."""
 
-    def __init__(self, db_path: Optional[str] = None, economy: EconomyService | None = None):
+    def __init__(
+        self,
+        db_path: Optional[str] = None,
+        economy: EconomyService | None = None,
+        legacy: LegacyService | None = None,
+    ):
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(db_path=self.db_path)
+        self.legacy = legacy or LegacyService(db_path=self.db_path)
         self.economy.ensure_schema()
+        self.legacy.ensure_schema()
         self._festivals: Dict[int, FestivalBuilder] = {}
         self._id_seq = 1
 
@@ -120,6 +128,15 @@ class FestivalBuilderService:
         revenue = tier.price_cents * qty
         fest.finances["revenue"] += revenue
         self.economy.deposit(fest.owner_id, revenue)
+        try:
+            self.legacy.log_milestone(
+                fest.owner_id,
+                "festival_revenue",
+                f"Festival {festival_id} sold {qty} tickets",
+                int(revenue // 100),
+            )
+        except Exception:
+            pass
         for _ in range(qty):
             fest.tickets.append(
                 Ticket(
