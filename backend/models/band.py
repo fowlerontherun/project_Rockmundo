@@ -14,7 +14,7 @@ class Band(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     founder_id = Column(Integer, ForeignKey("characters.id"))
-    genre = Column(String)
+    genre_id = Column(Integer, ForeignKey("genres.id"))
     formed_at = Column(DateTime(timezone=True), server_default=func.now())
     # aggregate skill metric and upcoming performance quality modifier
     skill = Column(Integer, default=0)

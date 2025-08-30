@@ -73,3 +73,11 @@ class EngagementTrends(BaseModel):
     likes: List[MetricPoint]
     comments: List[MetricPoint]
     shares: List[MetricPoint]
+
+
+class GenreAggregate(BaseModel):
+    """Aggregated counts for genres and subgenres."""
+
+    genre_id: int
+    subgenre_id: int | None = None
+    count: int
