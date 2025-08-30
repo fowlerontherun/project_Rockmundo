@@ -1,6 +1,9 @@
-import sqlite3
 import random
+import sqlite3
 from datetime import datetime
+
+from seeds.skill_seed import SKILL_NAME_TO_ID
+
 from backend.database import DB_PATH
 from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
@@ -28,7 +31,8 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
     revenue_earned = crowd_size * 5
     skill_gain = len(setlist) * 0.3
     skill_gain += gear_service.get_band_bonus(band_id, "performance")
-    applied_skill = 0 if is_skill_blocked(band_id, "performance") else skill_gain
+    performance_id = SKILL_NAME_TO_ID["performance"]
+    applied_skill = 0 if is_skill_blocked(band_id, performance_id) else skill_gain
     merch_sold = int(crowd_size * 0.15 * city_service.get_market_demand(city))
 
     # Record performance
