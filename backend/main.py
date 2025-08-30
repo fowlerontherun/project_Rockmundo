@@ -2,6 +2,7 @@ from auth.routes import admin_mfa_router
 from database import init_db
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
+from middleware.observability import ObservabilityMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
@@ -21,6 +22,7 @@ from backend.utils.tracing import setup_tracing
 from fastapi import FastAPI, Response
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
+app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(AdminMFAMiddleware)
