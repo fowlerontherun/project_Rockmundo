@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from backend.models.banking import ExchangeRate, InterestAccount, Loan
+
 from backend.models.economy_config import get_config
 from backend.utils.logging import get_logger
 
@@ -78,6 +80,42 @@ class EconomyService:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS loans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    principal_cents INTEGER NOT NULL,
+                    balance_cents INTEGER NOT NULL,
+                    interest_rate REAL NOT NULL,
+                    term_days INTEGER NOT NULL,
+                    created_at TEXT DEFAULT (datetime('now'))
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS interest_accounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    balance_cents INTEGER NOT NULL,
+                    interest_rate REAL NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'USD',
+                    created_at TEXT DEFAULT (datetime('now'))
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exchange_rates (
+                    base_currency TEXT NOT NULL,
+                    target_currency TEXT NOT NULL,
+                    rate REAL NOT NULL,
+                    updated_at TEXT DEFAULT (datetime('now')),
+                    PRIMARY KEY (base_currency, target_currency)
+                )
+                """
+            )
             conn.commit()
 
     # Minimal operations required by tests
@@ -140,7 +178,7 @@ class EconomyService:
                 (amount_cents, user_id, currency),
             )
             cur.execute(
-                "INSERT INTO transactions(type, amount_cents, currency, src_account_id) VALUES ('withdraw', ?, ?, ?)",
+                "INSERT INTO transactions(type, amount_cents, currency, src_account_id) VALUES ('withdrawal', ?, ?, ?)",
                 (amount_cents, currency, user_id),
             )
             tx_id = cur.lastrowid
@@ -201,16 +239,150 @@ class EconomyService:
             )
             conn.commit()
 
-    def list_recent_transactions(self, limit: int = 50) -> list[TransactionRecord]:
+    def list_transactions(self, user_id: int, limit: int = 50) -> list[TransactionRecord]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, type, amount_cents, currency, src_account_id, dest_account_id, created_at FROM transactions ORDER BY id DESC LIMIT ?",
-                (limit,),
+                "SELECT id, type, amount_cents, currency, src_account_id, dest_account_id, created_at FROM transactions WHERE src_account_id = ? OR dest_account_id = ? ORDER BY id DESC LIMIT ?",
+                (user_id, user_id, limit),
             )
             rows = cur.fetchall()
             return [TransactionRecord(**dict(row)) for row in rows]
+
+    # --------------- banking extras ---------------
+
+    def open_interest_account(
+        self, user_id: int, balance_cents: int, interest_rate: float, currency: str = "USD"
+    ) -> int:
+        if balance_cents < 0:
+            raise EconomyError("balance must be non-negative")
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO interest_accounts(user_id, balance_cents, interest_rate, currency)
+                VALUES (?,?,?,?)
+                """,
+                (user_id, balance_cents, interest_rate, currency),
+            )
+            account_id = int(cur.lastrowid or 0)
+            conn.commit()
+            return account_id
+
+    def create_loan(self, user_id: int, amount_cents: int, interest_rate: float, term_days: int) -> int:
+        if amount_cents <= 0 or interest_rate <= 0 or term_days <= 0:
+            raise EconomyError("invalid loan parameters")
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO loans(user_id, principal_cents, balance_cents, interest_rate, term_days)
+                VALUES (?,?,?,?,?)
+                """,
+                (user_id, amount_cents, amount_cents, interest_rate, term_days),
+            )
+            loan_id = int(cur.lastrowid or 0)
+            # deposit loan amount without tax
+            cur.execute(
+                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
+                (user_id, "USD"),
+            )
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ?",
+                (amount_cents, user_id),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('loan', ?, 'USD', ?)",
+                (amount_cents, user_id),
+            )
+            tx_id = cur.lastrowid
+            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
+            balance = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (user_id, tx_id, amount_cents, balance),
+            )
+            conn.commit()
+            return loan_id
+
+    def list_loans(self, user_id: int) -> list[Loan]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM loans WHERE user_id = ?", (user_id,))
+            rows = cur.fetchall()
+            return [Loan(**dict(r)) for r in rows]
+
+    def calculate_daily_interest(self, account_id: int) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT user_id, balance_cents, interest_rate, currency FROM interest_accounts WHERE id = ?",
+                (account_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise EconomyError("Interest account not found")
+            user_id, balance, rate, currency = row
+            interest = int(balance * rate)
+            if interest <= 0:
+                return 0
+            cur.execute(
+                "UPDATE interest_accounts SET balance_cents = balance_cents + ? WHERE id = ?",
+                (interest, account_id),
+            )
+            cur.execute(
+                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
+                (user_id, currency),
+            )
+            cur.execute(
+                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ? AND currency = ?",
+                (interest, user_id, currency),
+            )
+            cur.execute(
+                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('interest', ?, ?, ?)",
+                (interest, currency, user_id),
+            )
+            tx_id = cur.lastrowid
+            cur.execute(
+                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
+                (user_id, currency),
+            )
+            balance_after = cur.fetchone()[0]
+            cur.execute(
+                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
+                (user_id, tx_id, interest, balance_after),
+            )
+            conn.commit()
+            return interest
+
+    def set_exchange_rate(self, base: str, target: str, rate: float) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT OR REPLACE INTO exchange_rates(base_currency, target_currency, rate, updated_at)
+                VALUES (?,?,?, datetime('now'))
+                """,
+                (base, target, rate),
+            )
+            conn.commit()
+
+    def convert_currency(self, amount_cents: int, from_currency: str, to_currency: str) -> int:
+        if from_currency == to_currency:
+            return amount_cents
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT rate FROM exchange_rates WHERE base_currency = ? AND target_currency = ?",
+                (from_currency, to_currency),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise EconomyError("Exchange rate not found")
+            rate = float(row[0])
+            return int(amount_cents * rate)
 
     def credit_purchase(self, user_id: int, amount_cents: int, premium_currency) -> int:
         """Credit premium currency to a user's ledger after a purchase.

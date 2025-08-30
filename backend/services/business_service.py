@@ -137,3 +137,13 @@ class BusinessService:
 
     def get_business(self, business_id: int) -> Optional[Dict[str, Any]]:
         return self._fetch(business_id)
+
+    # investment features
+    def invest(self, owner_id: int, amount_cents: int, interest_rate: float) -> int:
+        if amount_cents <= 0:
+            raise ValueError("amount_cents must be positive")
+        self.economy.withdraw(owner_id, amount_cents)
+        return self.economy.open_interest_account(owner_id, amount_cents, interest_rate)
+
+    def collect_investment_returns(self, account_id: int) -> int:
+        return self.economy.calculate_daily_interest(account_id)
