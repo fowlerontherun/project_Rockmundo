@@ -1,7 +1,11 @@
-
-from models.random_event import RandomEvent
-from datetime import datetime
 import random
+
+from seeds.skill_seed import SKILL_NAME_TO_ID
+
+from backend.models.random_event import RandomEvent
+from backend.models.skill import Skill
+from backend.services.skill_service import skill_service
+
 
 class RandomEventService:
     def __init__(self, db):
@@ -35,3 +39,22 @@ class RandomEventService:
         elif "fatigue" in impact_str:
             value = int(impact_str.split("+")[1])
             self.db.increase_band_fatigue(band_id, value)
+        elif "skill" in impact_str:
+            # Format: "skill:guitar +5" or "skill:drums -3"
+            try:
+                skill_part, value_part = impact_str.split()
+                skill_name = skill_part.split(":", 1)[1]
+                amount = int(value_part)
+            except Exception:
+                return
+            skill_id = SKILL_NAME_TO_ID.get(skill_name)
+            if skill_id is None:
+                return
+            if amount >= 0:
+                skill_service.train(
+                    band_id,
+                    Skill(id=skill_id, name=skill_name, category="event"),
+                    amount,
+                )
+            else:
+                skill_service.apply_decay(band_id, skill_id, -amount)

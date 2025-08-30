@@ -1,13 +1,16 @@
-import sqlite3
 import json
+import sqlite3
 from datetime import datetime, timedelta
+
 from backend.database import DB_PATH
-from backend.services import fan_service, chart_service
+from backend.services import chart_service, fan_service
+from backend.services.skill_service import skill_service
 
 # Map event_type to handler functions
 EVENT_HANDLERS = {
     "fan_decay": fan_service.decay_fan_loyalty,
     "weekly_charts": chart_service.calculate_weekly_chart,
+    "skill_decay": skill_service.decay_all,
     # Add more event handlers here as needed
 }
 
