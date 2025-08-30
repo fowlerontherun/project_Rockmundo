@@ -1,120 +1,263 @@
-import sqlite3
-from backend.database import DB_PATH
+"""Band service using SQLAlchemy sessions.
+
+This module replaces the previous raw ``sqlite3`` implementation with a
+session based approach.  All public functions delegate to an internal
+``BandService`` class which manages database interactions through SQLAlchemy
+and ensures that operations that modify membership or compute revenue splits
+are executed atomically.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Callable, Iterable, Optional
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine, func
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 
-def create_band(user_id: int, band_name: str, genre: str) -> dict:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
+# ---------------------------------------------------------------------------
+# Database setup
+# ---------------------------------------------------------------------------
 
-    cur.execute("""
-        INSERT INTO bands (name, genre, founder_user_id, fame)
-        VALUES (?, ?, ?, 0)
-    """, (band_name, genre, user_id))
-    band_id = cur.lastrowid
+DB_PATH = Path(__file__).resolve().parents[1] / "database" / "rockmundo.db"
+DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-    # Add founder as first member
-    cur.execute("""
-        INSERT INTO band_members (band_id, user_id, role)
-        VALUES (?, ?, ?)
-    """, (band_id, user_id, "founder"))
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
-    conn.commit()
-    conn.close()
-    return {"status": "ok", "band_id": band_id}
+Base = declarative_base()
+
+
+class Band(Base):
+    """Simple band model used by the service layer."""
+
+    __tablename__ = "bands"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True)
+    genre = Column(String)
+    founder_id = Column(Integer, index=True)
+    fame = Column(Integer, default=0)
+    formed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class BandMember(Base):
+    __tablename__ = "band_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    band_id = Column(Integer, ForeignKey("bands.id"))
+    user_id = Column(Integer, index=True)
+    role = Column(String)
+
+
+class BandCollaboration(Base):
+    __tablename__ = "band_collaborations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    band_1_id = Column(Integer, index=True)
+    band_2_id = Column(Integer, index=True)
+    project_type = Column(String)
+    title = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Create tables for the default engine.  Tests can create their own engine and
+# call ``Base.metadata.create_all`` on it when using a custom session factory.
+Base.metadata.create_all(bind=engine)
+
+
+# ---------------------------------------------------------------------------
+# Service implementation
+# ---------------------------------------------------------------------------
+
+
+class BandService:
+    """Service layer providing band management helpers."""
+
+    def __init__(self, session_factory: Callable[[], Session] | sessionmaker = SessionLocal):
+        self.session_factory = session_factory
+
+    # ------------------------------------------------------------------
+    def create_band(self, user_id: int, band_name: str, genre: str) -> Band:
+        """Create a new band and add the founder as the first member."""
+
+        with self.session_factory() as session:
+            with session.begin():
+                band = Band(name=band_name, genre=genre, founder_id=user_id, fame=0)
+                session.add(band)
+                session.flush()  # populate ``band.id``
+                session.add(BandMember(band_id=band.id, user_id=user_id, role="founder"))
+            session.refresh(band)
+            return band
+
+    # ------------------------------------------------------------------
+    def add_member(self, band_id: int, user_id: int, role: str = "member") -> None:
+        """Add a member to the band if not already present."""
+
+        with self.session_factory() as session:
+            with session.begin():
+                exists = (
+                    session.query(BandMember)
+                    .filter_by(band_id=band_id, user_id=user_id)
+                    .first()
+                )
+                if not exists:
+                    session.add(BandMember(band_id=band_id, user_id=user_id, role=role))
+
+    # ------------------------------------------------------------------
+    def remove_member(self, band_id: int, user_id: int) -> None:
+        """Remove a member from the band."""
+
+        with self.session_factory() as session:
+            with session.begin():
+                session.query(BandMember).filter_by(band_id=band_id, user_id=user_id).delete()
+
+    # ------------------------------------------------------------------
+    def get_band_info(self, band_id: int) -> Optional[dict]:
+        """Retrieve band information and membership list."""
+
+        with self.session_factory() as session:
+            band = session.get(Band, band_id)
+            if not band:
+                return None
+
+            members = (
+                session.query(BandMember.user_id, BandMember.role)
+                .filter_by(band_id=band_id)
+                .all()
+            )
+            return {
+                "id": band.id,
+                "name": band.name,
+                "genre": band.genre,
+                "fame": band.fame,
+                "founder_id": band.founder_id,
+                "formed_at": band.formed_at,
+                "members": [
+                    {"user_id": uid, "role": role} for uid, role in members
+                ],
+            }
+
+    # ------------------------------------------------------------------
+    def split_earnings(
+        self, band_id: int, amount: int, collaboration_band_id: int | None = None
+    ) -> dict:
+        """Compute revenue splits.
+
+        If ``collaboration_band_id`` is provided, the amount is split 50/50
+        between the two bands.  Otherwise the earnings are divided equally among
+        current members of the band.  Reads are wrapped in a transaction to
+        provide a consistent snapshot.
+        """
+
+        if collaboration_band_id:
+            return {
+                "band_1_share": amount // 2,
+                "band_2_share": amount - (amount // 2),
+            }
+
+        with self.session_factory() as session:
+            with session.begin():
+                members = [
+                    uid
+                    for (uid,) in session.query(BandMember.user_id).filter_by(band_id=band_id)
+                ]
+
+        num_members = len(members)
+        share = amount // num_members if num_members else 0
+        payouts = {uid: share for uid in members}
+        return {"total": amount, "per_member": share, "payouts": payouts}
+
+    # ------------------------------------------------------------------
+    def create_collaboration(
+        self, band_1_id: int, band_2_id: int, project_type: str, title: str
+    ) -> BandCollaboration:
+        """Record a collaboration between two bands."""
+
+        with self.session_factory() as session:
+            with session.begin():
+                collab = BandCollaboration(
+                    band_1_id=band_1_id,
+                    band_2_id=band_2_id,
+                    project_type=project_type,
+                    title=title,
+                )
+                session.add(collab)
+            session.refresh(collab)
+            return collab
+
+    # ------------------------------------------------------------------
+    def list_collaborations(self, band_id: int) -> list[BandCollaboration]:
+        with self.session_factory() as session:
+            return (
+                session.query(BandCollaboration)
+                .filter(
+                    (BandCollaboration.band_1_id == band_id)
+                    | (BandCollaboration.band_2_id == band_id)
+                )
+                .all()
+            )
+
+    # ------------------------------------------------------------------
+    def get_band_collaborations(self, band_id: int) -> list[dict]:
+        """Compatibility wrapper returning collaborations as dictionaries."""
+
+        collabs = self.list_collaborations(band_id)
+        return [
+            {
+                "album_id": c.id,
+                "title": c.title,
+                "release_date": c.created_at,
+                "collab_band_id": c.band_2_id if c.band_1_id == band_id else c.band_1_id,
+            }
+            for c in collabs
+        ]
+
+
+# Default service instance -------------------------------------------------
+_service = BandService()
+
+
+# Module level functions kept for backwards compatibility ------------------
+
+
+def create_band(user_id: int, band_name: str, genre: str) -> Band:
+    return _service.create_band(user_id, band_name, genre)
 
 
 def add_member(band_id: int, user_id: int, role: str = "member") -> dict:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT OR IGNORE INTO band_members (band_id, user_id, role)
-        VALUES (?, ?, ?)
-    """, (band_id, user_id, role))
-
-    conn.commit()
-    conn.close()
+    _service.add_member(band_id, user_id, role)
     return {"status": "ok", "message": "Member added"}
 
 
 def remove_member(band_id: int, user_id: int) -> dict:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM band_members WHERE band_id = ? AND user_id = ?
-    """, (band_id, user_id))
-
-    conn.commit()
-    conn.close()
+    _service.remove_member(band_id, user_id)
     return {"status": "ok", "message": "Member removed"}
 
 
-def get_band_info(band_id: int) -> dict:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT name, genre, fame FROM bands WHERE id = ?
-    """, (band_id,))
-    band = cur.fetchone()
-
-    cur.execute("""
-        SELECT user_id, role FROM band_members WHERE band_id = ?
-    """, (band_id,))
-    members = cur.fetchall()
-
-    conn.close()
-    return {
-        "name": band[0],
-        "genre": band[1],
-        "fame": band[2],
-        "members": [dict(zip(["user_id", "role"], m)) for m in members]
-    }
+def get_band_info(band_id: int) -> Optional[dict]:
+    return _service.get_band_info(band_id)
 
 
-def split_earnings(band_id: int, amount: int, collaboration_band_id: int = None) -> dict:
-    if collaboration_band_id:
-        # 50/50 revenue split
-        return {
-            "band_1_share": amount // 2,
-            "band_2_share": amount - (amount // 2)
-        }
-
-    # Normal case: split among members equally
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT user_id FROM band_members WHERE band_id = ?
-    """, (band_id,))
-    members = [r[0] for r in cur.fetchall()]
-    num_members = len(members)
-    share = amount // num_members if num_members else 0
-
-    payouts = {uid: share for uid in members}
-    conn.close()
-
-    return {
-        "total": amount,
-        "per_member": share,
-        "payouts": payouts
-    }
+def split_earnings(band_id: int, amount: int, collaboration_band_id: int | None = None) -> dict:
+    return _service.split_earnings(band_id, amount, collaboration_band_id)
 
 
-def get_band_collaborations(band_id: int) -> list:
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
+def get_band_collaborations(band_id: int) -> list[dict]:
+    return _service.get_band_collaborations(band_id)
 
-    cur.execute("""
-        SELECT id, title, release_date, shared_with_band_id
-        FROM albums
-        WHERE band_id = ? AND shared_with_band_id IS NOT NULL
-    """, (band_id,))
-    collabs = cur.fetchall()
-    conn.close()
 
-    return [
-        dict(zip(["album_id", "title", "release_date", "collab_band_id"], row))
-        for row in collabs
-    ]
+__all__ = [
+    "BandService",
+    "Band",
+    "BandMember",
+    "BandCollaboration",
+    "create_band",
+    "add_member",
+    "remove_member",
+    "get_band_info",
+    "split_earnings",
+    "get_band_collaborations",
+]
+
