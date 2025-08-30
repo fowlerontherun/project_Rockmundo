@@ -42,6 +42,7 @@ class AnalyticsService:
 
             res = {
                 "streams": {"plays": 0},
+                "radio": {"plays": 0},
                 "digital": {"revenue_cents": 0, "count": 0},
                 "vinyl": {"revenue_cents": 0, "units": 0},
                 "tickets": {"revenue_cents": 0, "orders": 0},
@@ -55,6 +56,18 @@ class AnalyticsService:
                     WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?)
                 """, (f"{period_start} 00:00:00", f"{period_end} 23:59:59"))
                 res["streams"]["plays"] = int(cur.fetchone()[0])
+
+            # Radio listeners
+            if self._table_exists(cur, "radio_listeners"):
+                cur.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM radio_listeners
+                    WHERE datetime(listened_at) >= datetime(?) AND datetime(listened_at) <= datetime(?)
+                    """,
+                    (f"{period_start} 00:00:00", f"{period_end} 23:59:59"),
+                )
+                res["radio"]["plays"] = int(cur.fetchone()[0])
 
             # Digital sales
             if self._table_exists(cur, "digital_sales"):
