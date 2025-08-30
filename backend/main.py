@@ -2,6 +2,7 @@ from auth.routes import admin_mfa_router
 from database import init_db
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
+from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
     event_routes,
@@ -11,8 +12,8 @@ from routes import (
     sponsorship,
     video_routes,
 )
-from utils.i18n import _
 from utils.db import init_pool
+from utils.i18n import _
 
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
@@ -20,6 +21,7 @@ from backend.utils.tracing import setup_tracing
 from fastapi import FastAPI, Response
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(AdminMFAMiddleware)
 
