@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from backend.services.event_service import is_skill_blocked
+from backend.services.gear_service import gear_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -103,6 +104,7 @@ class RehearsalService:
 
             attendee_list: List[int] = list(attendees)
             bonus = float(len(attendee_list)) * 0.5
+            bonus += gear_service.get_band_bonus(band_id, "rehearsal")
             c.execute(
                 """
                 INSERT INTO rehearsals(band_id, start, end, attendees, bonus)
