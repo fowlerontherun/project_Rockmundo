@@ -1,5 +1,6 @@
 msgid ""
 msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
 "Language: es\n"
 
 msgid "Welcome to RockMundo API"
@@ -67,3 +68,16 @@ msgstr "Trabajo semanal no disponible"
 
 msgid "No sponsorship set for this venue"
 msgstr "No hay patrocinio establecido para este lugar"
+
+msgid "%(num)d file"
+msgid_plural "%(num)d files"
+msgstr[0] "%(num)d archivo"
+msgstr[1] "%(num)d archivos"
+
+msgctxt "action"
+msgid "Open"
+msgstr "Abrir"
+
+msgctxt "status"
+msgid "Open"
+msgstr "Abierto"
