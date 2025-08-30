@@ -1,4 +1,5 @@
-codex/expand-character-skills-and-music-genres
+
+
 """Seed data for music genres with demographic preferences."""
 
 from backend.models.genre import Genre
@@ -59,7 +60,7 @@ def get_seed_genres() -> list[Genre]:
 
 
 __all__ = ["get_seed_genres", "SEED_GENRES", "GENRE_NAME_TO_ID"]
-=======
+
 """Seed data for music genres and subgenres."""
 
 from typing import List, Dict, Optional
@@ -84,3 +85,4 @@ def get_seed_genres() -> List[Dict[str, Optional[int]]]:
         {"id": 14, "name": "House", "parent_id": 5},
         {"id": 15, "name": "Techno", "parent_id": 5},
     ]
+

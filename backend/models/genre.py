@@ -1,4 +1,4 @@
-codex/expand-character-skills-and-music-genres
+
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -14,7 +14,7 @@ class Genre:
 
 
 __all__ = ["Genre"]
-=======
+
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base

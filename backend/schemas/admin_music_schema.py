@@ -16,5 +16,13 @@ class GenreSchema(BaseModel):
     subgenres: List[str] = []
     popularity: Dict[str, Dict[str, float]] = {}
 
+class StageEquipmentSchema(BaseModel):
+    id: int
+    name: str
+    category: str
+    brand: str
+    rating: int
+    genre_affinity: Dict[str, float] = {}
 
-__all__ = ["SkillSchema", "GenreSchema"]
+
+__all__ = ["SkillSchema", "GenreSchema", "StageEquipmentSchema"]
