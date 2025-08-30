@@ -1,19 +1,23 @@
-from auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id
+from backend.services.chart_service import ChartService
+from fastapi import APIRouter, Depends, HTTPException, Request
 
-from flask import Blueprint, request, jsonify
-from services.chart_service import ChartService
-
-chart_routes = Blueprint('chart_routes', __name__)
+router = APIRouter(prefix="/charts", tags=["Charts"])
 chart_service = ChartService(db=None)
 
-@chart_routes.route('/charts/global/<week_start>', methods=['GET'])
-def get_global_chart(week_start):
-    return jsonify(chart_service.get_chart("Global Top 100", week_start))
 
-@chart_routes.route('/charts/recalculate', methods=['POST'])
-def recalculate_charts():
+@router.get("/global/{week_start}")
+def get_global_chart(
+    week_start: str, _req: Request, user_id: int = Depends(get_current_user_id)
+):
+    return chart_service.get_chart("Global Top 100", week_start)
+
+
+@router.post("/recalculate", status_code=204)
+def recalculate_charts(
+    _req: Request, user_id: int = Depends(get_current_user_id)
+):
     try:
         chart_service.calculate_weekly_charts()
-        return '', 204
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception as e:  # pragma: no cover - example stub
+        raise HTTPException(status_code=500, detail=str(e))
