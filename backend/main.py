@@ -15,6 +15,7 @@ from routes import (
     legacy_routes,
     lifestyle_routes,
     locale_routes,
+    onboarding_routes,
     social_routes,
     sponsorship,
     video_routes,
@@ -70,6 +71,11 @@ app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
 app.include_router(video_routes.router, tags=["Videos"])
 app.include_router(legacy_routes.router, prefix="/api", tags=["Legacy"])
 app.include_router(locale_routes.router, prefix="/api", tags=["Locale"])
+app.include_router(
+    onboarding_routes.router,
+    prefix="/api/onboarding",
+    tags=["Onboarding"],
+)
 
 
 @app.get("/metrics")
