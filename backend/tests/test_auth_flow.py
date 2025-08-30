@@ -37,6 +37,12 @@ def setup_db():
           user_agent TEXT,
           ip TEXT
         );
+        CREATE TABLE IF NOT EXISTS access_tokens (
+          jti TEXT PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          expires_at TEXT NOT NULL,
+          revoked_at TEXT
+        );
         CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT NOT NULL, meta JSON, created_at TEXT DEFAULT (datetime('now')));
         INSERT OR IGNORE INTO roles (id, name) VALUES (1,'admin'),(2,'moderator'),(3,'band_member'),(4,'user');
         """)
@@ -61,6 +67,7 @@ def test_register_login_refresh_me_logout():
     # Token should decode with expected claims
     payload = decode(at, secret=settings.JWT_SECRET, expected_iss=settings.JWT_ISS, expected_aud=settings.JWT_AUD)
     assert payload["sub"] == str(uid)
+    assert payload.get("jti")
 
     # Me
     headers = {"Authorization": f"Bearer {at}"}
@@ -69,6 +76,17 @@ def test_register_login_refresh_me_logout():
     me = r.json()
     assert me["email"] == "test@example.com"
     assert "user" in me["roles"]
+
+    # Grant admin role and revoke token via management route
+    with get_conn() as conn:
+        conn.execute("INSERT INTO user_roles (user_id, role_id) VALUES (?,1)", (uid,))
+    jti = payload["jti"]
+    r = c.post("/auth/tokens/revoke", json={"jti": jti}, headers=headers)
+    assert r.status_code == 200
+
+    # Using revoked token should fail
+    r = c.get("/auth/me", headers=headers)
+    assert r.status_code == 401
 
     # Refresh
     r = c.post("/auth/refresh", json={"refresh_token": rt})

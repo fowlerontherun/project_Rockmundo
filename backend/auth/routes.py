@@ -30,6 +30,10 @@ class RefreshIn(BaseModel):
 class LogoutIn(BaseModel):
     refresh_token: str = Field(..., min_length=20)
 
+
+class RevokeTokenIn(BaseModel):
+    jti: str
+
 @router.post("/register")
 def register(payload: RegisterIn):
     try:
@@ -70,6 +74,13 @@ def refresh(req: Request, payload: RefreshIn):
 @router.post("/logout")
 def logout(payload: LogoutIn):
     return svc.logout(refresh_token=payload.refresh_token)
+
+
+@router.post("/tokens/revoke", dependencies=[Depends(require_role(["admin"]))])
+def revoke_token(payload: RevokeTokenIn):
+    if not svc.revoke_access_token(payload.jti):
+        raise HTTPException(status_code=404, detail={"code": "TOKEN_NOT_FOUND", "message": "Token not found"})
+    return {"ok": True}
 
 @router.get("/me")
 def me(user_id: int = Depends(get_current_user_id)):

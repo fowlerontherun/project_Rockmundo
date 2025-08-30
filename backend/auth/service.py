@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
-import hashlib, secrets
+import hashlib, secrets, uuid
 
 from utils.db import get_conn
 from core.security import hash_password, verify_password
@@ -41,10 +41,32 @@ class AuthService:
 
     # --- tokens ---
     def _make_access_token(self, user_id: int) -> str:
+        """Create an access JWT for a user and persist its identifier.
+
+        A unique ``jti`` (JWT ID) is added to the payload and stored in the
+        ``access_tokens`` table so that the token can later be revoked.
+        """
+
         now = jwt_helper.now_ts()
         exp = now + settings.ACCESS_TOKEN_TTL_MIN * 60
-        payload = {"iss": settings.JWT_ISS, "aud": settings.JWT_AUD, "iat": now, "nbf": now, "exp": exp, "sub": str(user_id)}
-        return jwt_helper.encode(payload, secret=settings.JWT_SECRET)
+        jti = uuid.uuid4().hex
+        payload = {
+            "iss": settings.JWT_ISS,
+            "aud": settings.JWT_AUD,
+            "iat": now,
+            "nbf": now,
+            "exp": exp,
+            "sub": str(user_id),
+            "jti": jti,
+        }
+        token = jwt_helper.encode(payload, secret=settings.JWT_SECRET)
+        expires_at = datetime.fromtimestamp(exp, UTC).isoformat()
+        with get_conn(self.db_path) as conn:
+            conn.execute(
+                "INSERT INTO access_tokens (jti, user_id, expires_at) VALUES (?, ?, ?)",
+                (jti, user_id, expires_at),
+            )
+        return token
 
     def _hash_refresh(self, token: str) -> str:
         return hashlib.sha256(token.encode('utf-8')).hexdigest()
@@ -98,3 +120,13 @@ class AuthService:
         with get_conn(self.db_path) as conn:
             conn.execute("UPDATE refresh_tokens SET revoked_at=datetime('now') WHERE token_hash=?", (token_hash,))
         return {"ok": True}
+
+    # --- access token management ---
+    def revoke_access_token(self, jti: str) -> bool:
+        """Revoke an access token by its JWT ID."""
+        with get_conn(self.db_path) as conn:
+            cur = conn.execute(
+                "UPDATE access_tokens SET revoked_at=datetime('now') WHERE jti=? AND revoked_at IS NULL",
+                (jti,),
+            )
+            return cur.rowcount > 0

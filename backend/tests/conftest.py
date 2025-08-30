@@ -41,6 +41,12 @@ def db_path(tmp_path_factory, monkeypatch):
               user_agent TEXT,
               ip TEXT
             );
+            CREATE TABLE IF NOT EXISTS access_tokens (
+              jti TEXT PRIMARY KEY,
+              user_id INTEGER NOT NULL,
+              expires_at TEXT NOT NULL,
+              revoked_at TEXT
+            );
             CREATE TABLE IF NOT EXISTS audit_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT NOT NULL, meta JSON, created_at TEXT DEFAULT (datetime('now')));
             INSERT OR IGNORE INTO roles (id, name) VALUES (1,'admin'),(2,'moderator'),(3,'band_member'),(4,'user');
             """
