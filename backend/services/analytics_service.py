@@ -218,9 +218,31 @@ class AnalyticsService:
             for r in digital:
                 r["title"] = titles.get(int(r["album_id"])) 
             for r in vinyl:
-                r["title"] = titles.get(int(r["album_id"])) 
+                r["title"] = titles.get(int(r["album_id"]))
 
             return {"digital": digital, "vinyl": vinyl}
+
+    def genre_breakdown(self) -> List[Dict[str, int]]:
+        """Aggregate song counts by genre and subgenre IDs."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            if not self._table_exists(cur, "songs"):
+                return []
+
+            cur.execute(
+                """
+                SELECT COALESCE(g.parent_id, s.genre_id) AS genre_id,
+                       s.genre_id AS subgenre_id,
+                       COUNT(*) AS count
+                FROM songs s
+                LEFT JOIN genres g ON g.id = s.genre_id
+                GROUP BY genre_id, subgenre_id
+                ORDER BY count DESC
+                """
+            )
+            return self._fetchall(cur)
 
     # ---------- Royalty views ----------
     def recent_royalty_runs(self, limit: int = 20) -> List[Dict[str, Any]]:

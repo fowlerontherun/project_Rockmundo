@@ -7,7 +7,7 @@ class WorldPulseService:
         self.db = db
 
     def generate_world_pulse(self):
-        genres = self.db.get_trending_genres()
+        genres = self.db.get_trending_genres_by_id()
         karma = self.db.get_average_karma()
         events = self.db.get_current_events()
         top_players = self.db.get_top_players()
