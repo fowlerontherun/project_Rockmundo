@@ -11,6 +11,22 @@ import os
 from pathlib import Path
 from typing import Any, get_args, get_origin
 
+# Minimal stand-ins for types expected by FastAPI
+AnyUrl = str
+BaseConfig = object
+
+def field_validator(*_args, **_kwargs):  # pragma: no cover - simple no-op
+    def decorator(func):
+        return func
+
+    return decorator
+
+ConfigDict = dict
+
+
+class ValidationError(Exception):
+    pass
+
 
 class FieldInfo:
     """Store metadata about a model field."""
