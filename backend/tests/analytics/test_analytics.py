@@ -2,9 +2,8 @@ import asyncio
 
 import pytest
 import utils.db as db_utils
-from auth.jwt import encode, now_ts
-from core.config import settings
 from utils.db import get_conn
+from auth.service import AuthService
 
 from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.analytics_service import AnalyticsService
@@ -17,10 +16,16 @@ CREATE TABLE user_roles(user_id INTEGER, role_id INTEGER, PRIMARY KEY(user_id, r
 CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, amount_cents INTEGER, created_at TEXT);
 CREATE TABLE active_events(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, event_id INTEGER, start_date TEXT, duration_days INTEGER);
 CREATE TABLE skill_progress(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, skill TEXT, amount INTEGER, created_at TEXT);
+CREATE TABLE access_tokens(
+  jti TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT
+);
 """
 
 
-def setup_db(path: str) -> None:
+def setup_db(path: str) -> AuthService:
     with get_conn(path) as conn:
         conn.executescript(DDL)
         conn.executemany("INSERT INTO roles(id,name) VALUES (?,?)", [(1, "admin"), (2, "user")])
@@ -42,21 +47,16 @@ def setup_db(path: str) -> None:
                 (2, "vocals", 10, "2024-01-02"),
             ],
         )
+    return AuthService(path)
 
 
-def token(user_id: int) -> str:
-    payload = {
-        "sub": str(user_id),
-        "iss": settings.JWT_ISS,
-        "aud": settings.JWT_AUD,
-        "exp": now_ts() + 3600,
-    }
-    return encode(payload, settings.JWT_SECRET)
+def token(user_id: int, svc: AuthService) -> str:
+    return svc._make_access_token(user_id)
 
 
 def test_metrics_and_permissions(tmp_path):
     db = str(tmp_path / "analytics.db")
-    setup_db(db)
+    auth_svc = setup_db(db)
     db_utils.DEFAULT_DB = db
     svc = AnalyticsService(db_path=db)
 
@@ -82,13 +82,13 @@ def test_metrics_and_permissions(tmp_path):
     assert exc.value.status_code == 401
 
     # permission: non-admin -> 403
-    user_req = Request(headers={"Authorization": f"Bearer {token(2)}"})
+    user_req = Request(headers={"Authorization": f"Bearer {token(2, auth_svc)}"})
     uid = asyncio.run(get_current_user_id(user_req))
     with pytest.raises(HTTPException) as exc:
         asyncio.run(require_role(["admin"], user_id=uid))
     assert exc.value.status_code == 403
 
     # permission: admin succeeds
-    admin_req = Request(headers={"Authorization": f"Bearer {token(1)}"})
+    admin_req = Request(headers={"Authorization": f"Bearer {token(1, auth_svc)}"})
     uid = asyncio.run(get_current_user_id(admin_req))
     assert asyncio.run(require_role(["admin"], user_id=uid))

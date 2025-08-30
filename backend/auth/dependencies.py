@@ -25,8 +25,23 @@ async def get_current_user_id(req: Request) -> int:
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'code':'AUTH_INVALID','message':str(e)})
     user_id = int(payload.get('sub', 0))
-    if user_id <= 0:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail={'code':'AUTH_INVALID','message':'Invalid subject'})
+    jti = payload.get('jti')
+    if user_id <= 0 or not jti:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'code':'AUTH_INVALID','message':'Invalid token'},
+        )
+
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT revoked_at FROM access_tokens WHERE jti=?",
+            (jti,),
+        ).fetchone()
+    if not row or row['revoked_at'] is not None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={'code':'AUTH_REVOKED','message':'Token revoked'},
+        )
     return user_id
 
 async def require_role(roles: List[str], user_id: int = Depends(get_current_user_id)) -> bool:
