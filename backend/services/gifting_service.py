@@ -1,9 +1,11 @@
 # File: backend/services/gifting_service.py
-import sqlite3
 import json
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from services.xp_reward_service import xp_reward_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -129,6 +131,8 @@ class GiftingService:
                 self._notify(cur, data.recipient_user_id, "You've received a gift!", f"A {work_type} was gifted to you.", None)
 
                 conn.commit()
+                # Secretly reward new players with a bit of XP
+                xp_reward_service.grant_hidden_xp(data.recipient_user_id, reason="gift")
                 return gift_id
             except Exception:
                 conn.rollback()
@@ -193,6 +197,7 @@ class GiftingService:
                 self._notify(cur, data.recipient_user_id, "You've received tickets!", f"Gifted tickets for event {data.event_id}.", None)
 
                 conn.commit()
+                xp_reward_service.grant_hidden_xp(data.recipient_user_id, reason="gift")
                 return gift_id
             except Exception:
                 conn.rollback()
