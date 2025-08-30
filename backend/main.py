@@ -12,6 +12,7 @@ from routes import (
     video_routes,
 )
 from utils.i18n import _
+from utils.db import init_pool
 
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
@@ -28,6 +29,7 @@ def startup() -> None:
     setup_logging()
     setup_tracing()
     init_db()
+    init_pool()
 
 
 # Existing routers
