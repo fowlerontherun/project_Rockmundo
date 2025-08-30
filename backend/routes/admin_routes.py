@@ -9,6 +9,7 @@ from .admin_economy_routes import router as economy_router
 from .admin_job_routes import router as jobs_router
 from .admin_media_moderation_routes import router as media_router
 from .admin_monitoring_routes import router as monitoring_router
+from .admin_music_routes import router as music_router
 from .admin_npc_routes import router as npc_router
 from .admin_quest_routes import router as quest_router
 from .admin_schema_routes import router as schema_router
@@ -27,4 +28,5 @@ router.include_router(npc_router)
 router.include_router(quest_router)
 router.include_router(schema_router)
 router.include_router(venue_router)
+router.include_router(music_router)
 

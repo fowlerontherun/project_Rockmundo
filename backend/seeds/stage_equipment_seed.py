@@ -1,0 +1,95 @@
+from backend.models.stage_equipment import StageEquipment
+
+# Parody stage equipment with genre affinities and 11-star rating system
+SEED_STAGE_EQUIPMENT = [
+    StageEquipment(
+        id=1,
+        name="Narshall Full Stack",
+        category="Amplifier",
+        brand="Narshall",
+        rating=10,
+        genre_affinity={"rock": 1.3, "metal": 1.2},
+    ),
+    StageEquipment(
+        id=2,
+        name="Yellowy Boutique Amp",
+        category="Amplifier",
+        brand="Yellowy",
+        rating=8,
+        genre_affinity={"indie": 1.3, "alternative": 1.2},
+    ),
+    StageEquipment(
+        id=3,
+        name="Surefire SM57",
+        category="Microphone",
+        brand="Surefire",
+        rating=9,
+        genre_affinity={"rock": 1.1, "country": 1.1},
+    ),
+    StageEquipment(
+        id=4,
+        name="Sennhyser ProVocal",
+        category="Microphone",
+        brand="Sennhyser",
+        rating=10,
+        genre_affinity={"pop": 1.2, "electronic": 1.1},
+    ),
+    StageEquipment(
+        id=5,
+        name="Fenda Stratoblaster",
+        category="Guitar",
+        brand="Fenda",
+        rating=9,
+        genre_affinity={"rock": 1.2, "blues": 1.1},
+    ),
+    StageEquipment(
+        id=6,
+        name="Gibsun Les Rawl",
+        category="Guitar",
+        brand="Gibsun",
+        rating=10,
+        genre_affinity={"rock": 1.3, "metal": 1.2},
+    ),
+    StageEquipment(
+        id=7,
+        name="Pearl JamKit",
+        category="Drum Kit",
+        brand="Pearl",
+        rating=9,
+        genre_affinity={"rock": 1.2, "grunge": 1.3},
+    ),
+    StageEquipment(
+        id=8,
+        name="Rolund MegaKit",
+        category="Electronic Drums",
+        brand="Rolund",
+        rating=8,
+        genre_affinity={"electronic": 1.3, "pop": 1.1},
+    ),
+    StageEquipment(
+        id=9,
+        name="Pionear CDJ-3000z",
+        category="DJ Deck",
+        brand="Pionear",
+        rating=11,
+        genre_affinity={"electronic": 1.5, "hip hop": 1.2},
+    ),
+    StageEquipment(
+        id=10,
+        name="Technoturn SL-1300",
+        category="Turntable",
+        brand="Technoturn",
+        rating=9,
+        genre_affinity={"hip hop": 1.3, "electronic": 1.2},
+    ),
+    StageEquipment(
+        id=11,
+        name="BlinderBeam LED Rig",
+        category="Lighting",
+        brand="BlinderBeam",
+        rating=7,
+        genre_affinity={"pop": 1.1, "rock": 1.1},
+    ),
+]
+
+STAGE_EQUIPMENT_NAME_TO_ID = {e.name: e.id for e in SEED_STAGE_EQUIPMENT}
