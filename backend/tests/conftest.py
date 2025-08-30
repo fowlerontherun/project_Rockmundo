@@ -4,17 +4,29 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-from httpx import AsyncClient
+
+try:  # pragma: no cover - fastapi is optional for some test suites
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from httpx import AsyncClient
+except Exception:  # pragma: no cover
+    FastAPI = None  # type: ignore
+    TestClient = None  # type: ignore
+    AsyncClient = None  # type: ignore
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from utils.db import get_conn
 from auth.service import AuthService
-from routes import payment_routes
-from services.economy_service import EconomyService
-from services.payment_service import PaymentService
+
+try:  # pragma: no cover - optional in minimal test runs
+    from routes import payment_routes
+    from services.economy_service import EconomyService
+    from services.payment_service import PaymentService
+except Exception:  # pragma: no cover
+    payment_routes = None  # type: ignore
+    EconomyService = None  # type: ignore
+    PaymentService = None  # type: ignore
 
 @pytest.fixture(scope="session")
 def db_path(tmp_path_factory, monkeypatch):
@@ -59,14 +71,17 @@ def db_path(tmp_path_factory, monkeypatch):
     # patch services to use this db
     from auth import routes as auth_routes
     auth_routes.svc = AuthService(str(db_file))
-    economy = EconomyService(str(db_file))
-    economy.ensure_schema()
-    payment_routes._economy = economy
-    payment_routes.svc = PaymentService(payment_routes._gateway, economy)
+    if EconomyService and PaymentService and payment_routes:
+        economy = EconomyService(str(db_file))
+        economy.ensure_schema()
+        payment_routes._economy = economy
+        payment_routes.svc = PaymentService(payment_routes._gateway, economy)
     return str(db_file)
 
 @pytest.fixture
 def client(db_path):
+    if FastAPI is None or TestClient is None:
+        pytest.skip("FastAPI not installed")
     from auth.routes import router as auth_router
     from routes import event_routes, payment_routes
 
@@ -79,6 +94,9 @@ def client(db_path):
 
 @pytest.fixture
 def client_factory():
+    if FastAPI is None or TestClient is None:
+        pytest.skip("FastAPI not installed")
+
     def _client(app: FastAPI, overrides: dict | None = None) -> TestClient:
         overrides = overrides or {}
         for dep, override in overrides.items():
@@ -90,6 +108,9 @@ def client_factory():
 
 @pytest.fixture
 def async_client_factory():
+    if FastAPI is None or AsyncClient is None:
+        pytest.skip("FastAPI not installed")
+
     @asynccontextmanager
     async def _client(app: FastAPI, overrides: dict | None = None):
         overrides = overrides or {}
