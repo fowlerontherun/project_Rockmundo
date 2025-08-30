@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
 from auth.dependencies import get_current_user_id, require_role
 
@@ -47,6 +47,13 @@ class XPEventSchema(BaseModel):
     skill_target: str | None = None
 
 
+class XPItemSchema(BaseModel):
+    name: str
+    effect_type: Literal["flat", "boost"]
+    amount: float
+    duration: int
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -83,3 +90,9 @@ async def xp_schema(req: Request) -> Dict[str, Any]:
 async def xp_event_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return XPEventSchema.model_json_schema()
+
+
+@router.get("/xp_item")
+async def xp_item_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return XPItemSchema.model_json_schema()

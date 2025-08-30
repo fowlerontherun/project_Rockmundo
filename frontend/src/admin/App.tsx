@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import { AuditTable } from './audit';
 import { MonitoringWidget } from './monitoring';
 import XPEventForm from './components/XPEventForm';
+import XPItemForm from './components/XPItemForm';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -20,6 +21,8 @@ const App: React.FC = () => {
     content = <AuditTable />;
   } else if (path.includes('/admin/xp-events')) {
     content = <XPEventForm />;
+  } else if (path.includes('/admin/xp-items')) {
+    content = <XPItemForm />;
   }
 
   return (

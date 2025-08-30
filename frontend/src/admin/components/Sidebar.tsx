@@ -11,6 +11,7 @@ const navItems: NavItem[] = [
   { label: 'Economy', href: '/admin/economy' },
   { label: 'XP', href: '/admin/xp' },
   { label: 'XP Events', href: '/admin/xp-events' },
+  { label: 'XP Items', href: '/admin/xp-items' },
   { label: 'Venues', href: '/admin/venues' },
   { label: 'Audit Logs', href: '/admin/audit' },
 ];
