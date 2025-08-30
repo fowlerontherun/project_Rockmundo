@@ -6,6 +6,7 @@ from .admin_analytics_routes import router as analytics_router
 from .admin_audit_routes import router as audit_router
 from .admin_business_routes import router as business_router
 from .admin_economy_routes import router as economy_router
+from .admin_xp_routes import router as xp_router
 from .admin_job_routes import router as jobs_router
 from .admin_media_moderation_routes import router as media_router
 from .admin_monitoring_routes import router as monitoring_router
@@ -21,6 +22,7 @@ router.include_router(analytics_router)
 router.include_router(audit_router)
 router.include_router(business_router)
 router.include_router(economy_router)
+router.include_router(xp_router)
 router.include_router(jobs_router)
 router.include_router(media_router)
 router.include_router(monitoring_router)
