@@ -1,4 +1,5 @@
 from auth.routes import admin_mfa_router
+from core.config import settings
 from database import init_db
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
@@ -9,10 +10,10 @@ from routes import (
     event_routes,
     legacy_routes,
     lifestyle_routes,
+    locale_routes,
     social_routes,
     sponsorship,
     video_routes,
-    locale_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -21,8 +22,15 @@ from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
 from backend.utils.tracing import setup_tracing
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
