@@ -11,6 +11,16 @@ from backend.models.banking import Loan
 from backend.models.economy_config import get_config
 from backend.utils.logging import get_logger
 
+from sqlalchemy import create_engine, select, or_
+from sqlalchemy.orm import Session, sessionmaker
+
+from backend.economy.models import (
+    Base,
+    Account,
+    Transaction as TransactionModel,
+    LedgerEntry,
+)
+
 logger = get_logger(__name__)
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
@@ -36,51 +46,18 @@ class EconomyService:
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = str(db_path or DB_PATH)
+        # SQLAlchemy engine/session for ORM-backed tables
+        self.engine = create_engine(f"sqlite:///{self.db_path}")
+        self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
 
     # ---------------- schema ----------------
     def ensure_schema(self) -> None:
+        # Create ORM tables
+        Base.metadata.create_all(self.engine)
+
+        # Remaining tables managed via raw SQL for simplicity
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS accounts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL UNIQUE,
-                    balance_cents INTEGER NOT NULL DEFAULT 0,
-                    currency TEXT NOT NULL DEFAULT 'USD',
-                    created_at TEXT DEFAULT (datetime('now'))
-                )
-                """
-            )
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS transactions (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    type TEXT NOT NULL,
-                    amount_cents INTEGER NOT NULL,
-                    currency TEXT NOT NULL,
-                    src_account_id INTEGER,
-                    dest_account_id INTEGER,
-                    created_at TEXT DEFAULT (datetime('now')),
-                    FOREIGN KEY(src_account_id) REFERENCES accounts(id),
-                    FOREIGN KEY(dest_account_id) REFERENCES accounts(id)
-                )
-                """
-            )
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS ledger_entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    account_id INTEGER NOT NULL,
-                    transaction_id INTEGER NOT NULL,
-                    delta_cents INTEGER NOT NULL,
-                    balance_after INTEGER NOT NULL,
-                    created_at TEXT DEFAULT (datetime('now')),
-                    FOREIGN KEY(account_id) REFERENCES accounts(id),
-                    FOREIGN KEY(transaction_id) REFERENCES transactions(id)
-                )
-                """
-            )
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS loans (
@@ -121,39 +98,44 @@ class EconomyService:
 
     # Minimal operations required by tests
     def get_balance(self, user_id: int) -> int:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
-            row = cur.fetchone()
-            return int(row[0]) if row else 0
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account.balance_cents).where(Account.user_id == user_id))
+                .scalar_one_or_none()
+            )
+            return int(account) if account is not None else 0
 
     def deposit(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
         """Deposit funds into a user's account applying configured tax."""
         cfg = get_config()
         tax = int(amount_cents * cfg.tax_rate)
         net = amount_cents - tax
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
-                (user_id, currency),
+        with self.SessionLocal() as session:  # type: Session
+            account = (
+                session.execute(select(Account).where(Account.user_id == user_id))
+                .scalar_one_or_none()
             )
-            cur.execute(
-                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ?",
-                (net, user_id),
+            if not account:
+                account = Account(user_id=user_id, currency=currency, balance_cents=0)
+                session.add(account)
+                session.flush()
+            account.balance_cents += net
+            tx = TransactionModel(
+                type="deposit",
+                amount_cents=net,
+                currency=currency,
+                dest_account_id=account.id,
             )
-            cur.execute(
-                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('deposit', ?, ?, ?)",
-                (net, currency, user_id),
+            session.add(tx)
+            session.flush()
+            entry = LedgerEntry(
+                account_id=account.id,
+                transaction_id=tx.id,
+                delta_cents=net,
+                balance_after=account.balance_cents,
             )
-            tx_id = cur.lastrowid
-            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
-            balance = cur.fetchone()[0]
-            cur.execute(
-                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
-                (user_id, tx_id, net, balance),
-            )
-            conn.commit()
+            session.add(entry)
+            session.commit()
             return net
 
     def withdraw(self, user_id: int, amount_cents: int, currency: str = "USD") -> int:
@@ -164,36 +146,31 @@ class EconomyService:
         EconomyError
             If the user has insufficient funds or no account.
         """
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
-                (user_id, currency),
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account).where(Account.user_id == user_id))
+                .scalar_one_or_none()
             )
-            row = cur.fetchone()
-            balance = int(row[0]) if row else 0
-            if balance < amount_cents:
+            if not account or account.balance_cents < amount_cents:
                 raise EconomyError("Insufficient funds")
-            cur.execute(
-                "UPDATE accounts SET balance_cents = balance_cents - ? WHERE user_id = ? AND currency = ?",
-                (amount_cents, user_id, currency),
+            account.balance_cents -= amount_cents
+            tx = TransactionModel(
+                type="withdrawal",
+                amount_cents=amount_cents,
+                currency=currency,
+                src_account_id=account.id,
             )
-            cur.execute(
-                "INSERT INTO transactions(type, amount_cents, currency, src_account_id) VALUES ('withdrawal', ?, ?, ?)",
-                (amount_cents, currency, user_id),
+            session.add(tx)
+            session.flush()
+            entry = LedgerEntry(
+                account_id=account.id,
+                transaction_id=tx.id,
+                delta_cents=-amount_cents,
+                balance_after=account.balance_cents,
             )
-            tx_id = cur.lastrowid
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
-                (user_id, currency),
-            )
-            balance_after = cur.fetchone()[0]
-            cur.execute(
-                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
-                (user_id, tx_id, -amount_cents, balance_after),
-            )
-            conn.commit()
-            return balance_after
+            session.add(entry)
+            session.commit()
+            return account.balance_cents
 
     def transfer(
         self,
@@ -203,54 +180,83 @@ class EconomyService:
         currency: str = "USD",
     ) -> None:
         """Transfer funds between two user accounts."""
-        self.withdraw(from_user_id, amount_cents, currency)
-        # deposit without applying tax; use direct update
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
-                (to_user_id, currency),
+        with self.SessionLocal() as session:
+            from_acct = (
+                session.execute(select(Account).where(Account.user_id == from_user_id))
+                .scalar_one_or_none()
             )
-            cur.execute(
-                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ? AND currency = ?",
-                (amount_cents, to_user_id, currency),
+            to_acct = (
+                session.execute(select(Account).where(Account.user_id == to_user_id))
+                .scalar_one_or_none()
             )
-            cur.execute(
-                "INSERT INTO transactions(type, amount_cents, currency, src_account_id, dest_account_id) VALUES ('transfer', ?, ?, ?, ?)",
-                (amount_cents, currency, from_user_id, to_user_id),
+            if not from_acct or from_acct.balance_cents < amount_cents:
+                raise EconomyError("Insufficient funds")
+            if not to_acct:
+                to_acct = Account(user_id=to_user_id, currency=currency, balance_cents=0)
+                session.add(to_acct)
+                session.flush()
+            from_acct.balance_cents -= amount_cents
+            to_acct.balance_cents += amount_cents
+            tx = TransactionModel(
+                type="transfer",
+                amount_cents=amount_cents,
+                currency=currency,
+                src_account_id=from_acct.id,
+                dest_account_id=to_acct.id,
             )
-            tx_id = cur.lastrowid
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
-                (from_user_id, currency),
+            session.add(tx)
+            session.flush()
+            session.add(
+                LedgerEntry(
+                    account_id=from_acct.id,
+                    transaction_id=tx.id,
+                    delta_cents=-amount_cents,
+                    balance_after=from_acct.balance_cents,
+                )
             )
-            from_balance = cur.fetchone()[0]
-            cur.execute(
-                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
-                (from_user_id, tx_id, -amount_cents, from_balance),
+            session.add(
+                LedgerEntry(
+                    account_id=to_acct.id,
+                    transaction_id=tx.id,
+                    delta_cents=amount_cents,
+                    balance_after=to_acct.balance_cents,
+                )
             )
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE user_id = ? AND currency = ?",
-                (to_user_id, currency),
-            )
-            to_balance = cur.fetchone()[0]
-            cur.execute(
-                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
-                (to_user_id, tx_id, amount_cents, to_balance),
-            )
-            conn.commit()
+            session.commit()
             xp_reward_service.grant_hidden_xp(to_user_id, reason="transfer")
 
     def list_transactions(self, user_id: int, limit: int = 50) -> list[TransactionRecord]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT id, type, amount_cents, currency, src_account_id, dest_account_id, created_at FROM transactions WHERE src_account_id = ? OR dest_account_id = ? ORDER BY id DESC LIMIT ?",
-                (user_id, user_id, limit),
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account.id).where(Account.user_id == user_id))
+                .scalar_one_or_none()
             )
-            rows = cur.fetchall()
-            return [TransactionRecord(**dict(row)) for row in rows]
+            if account is None:
+                return []
+            q = (
+                session.query(TransactionModel)
+                .filter(
+                    or_(
+                        TransactionModel.src_account_id == account,
+                        TransactionModel.dest_account_id == account,
+                    )
+                )
+                .order_by(TransactionModel.id.desc())
+                .limit(limit)
+            )
+            rows = q.all()
+            return [
+                TransactionRecord(
+                    id=r.id,
+                    type=r.type,
+                    amount_cents=r.amount_cents,
+                    currency=r.currency,
+                    src_account_id=r.src_account_id,
+                    dest_account_id=r.dest_account_id,
+                    created_at=r.created_at.isoformat() if r.created_at else "",
+                )
+                for r in rows
+            ]
 
     # --------------- banking extras ---------------
 
@@ -414,31 +420,31 @@ class EconomyService:
         units = amount_cents * int(rate) // 100
         code = getattr(premium_currency, "code", str(premium_currency))
 
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            # Ensure the user account exists.  We store premium currency in the
-            # same accounts table keyed by ``user_id``.  ``INSERT OR IGNORE``
-            # allows re-use of an existing account without raising.
-            cur.execute(
-                "INSERT OR IGNORE INTO accounts(user_id, currency, balance_cents) VALUES (?,?,0)",
-                (user_id, code),
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account).where(Account.user_id == user_id))
+                .scalar_one_or_none()
             )
-            # Update the balance and record the purchase transaction.
-            cur.execute(
-                "UPDATE accounts SET balance_cents = balance_cents + ? WHERE user_id = ?",
-                (units, user_id),
+            if not account:
+                account = Account(user_id=user_id, currency=code, balance_cents=0)
+                session.add(account)
+                session.flush()
+            account.balance_cents += units
+            tx = TransactionModel(
+                type="purchase",
+                amount_cents=units,
+                currency=code,
+                dest_account_id=account.id,
             )
-            cur.execute(
-                "INSERT INTO transactions(type, amount_cents, currency, dest_account_id) VALUES ('purchase', ?, ?, ?)",
-                (units, code, user_id),
+            session.add(tx)
+            session.flush()
+            session.add(
+                LedgerEntry(
+                    account_id=account.id,
+                    transaction_id=tx.id,
+                    delta_cents=units,
+                    balance_after=account.balance_cents,
+                )
             )
-            tx_id = cur.lastrowid
-            # Write a ledger entry reflecting the new balance.
-            cur.execute("SELECT balance_cents FROM accounts WHERE user_id = ?", (user_id,))
-            balance = cur.fetchone()[0]
-            cur.execute(
-                "INSERT INTO ledger_entries(account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, ?, ?)",
-                (user_id, tx_id, units, balance),
-            )
-            conn.commit()
+            session.commit()
             return units
