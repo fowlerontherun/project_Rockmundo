@@ -1,3 +1,5 @@
+import os
+
 from auth.routes import admin_mfa_router
 from core.config import settings
 from database import init_db
@@ -41,8 +43,17 @@ app.add_middleware(AdminMFAMiddleware)
 
 @app.on_event("startup")
 def startup() -> None:
+    """Initialize logging, tracing and database connections.
+
+    The tracing exporter can be selected with the ``TRACING_EXPORTER``
+    environment variable. Supported values are ``console`` (default),
+    ``otlp`` and ``jaeger``. Additional variables such as ``JAEGER_HOST``
+    and ``JAEGER_PORT`` configure exporter specifics.
+    """
+
     setup_logging()
-    setup_tracing()
+    exporter = os.getenv("TRACING_EXPORTER", "console")
+    setup_tracing(exporter)
     init_db()
     init_pool()
 
