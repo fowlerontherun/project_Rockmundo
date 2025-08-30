@@ -3,10 +3,9 @@ from typing import List, Optional
 
 from auth import jwt as jwt_helper
 from core.config import settings
-from services.rbac_service import get_roles_for_user
-from utils.db import get_conn
-
 from fastapi import Depends, HTTPException, Request, status
+from services.rbac_service import get_roles_for_user
+from utils.db import aget_conn
 
 
 def _extract_bearer_token(req: Request) -> Optional[str]:
@@ -36,12 +35,13 @@ async def get_current_user_id(req: Request) -> int:
             detail={'code':'AUTH_INVALID','message':'Invalid token'},
         )
 
-    with get_conn() as conn:
-        row = conn.execute(
+    async with aget_conn() as conn:
+        cur = await conn.execute(
             "SELECT revoked_at FROM access_tokens WHERE jti=?",
             (jti,),
-        ).fetchone()
-    if not row or row['revoked_at'] is not None:
+        )
+        row = await cur.fetchone()
+    if not row or row["revoked_at"] is not None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={'code':'AUTH_REVOKED','message':'Token revoked'},

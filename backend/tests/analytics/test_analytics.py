@@ -2,12 +2,12 @@ import asyncio
 
 import pytest
 import utils.db as db_utils
-from utils.db import get_conn
 from auth.service import AuthService
+from fastapi import HTTPException, Request
+from utils.db import get_conn
 
 from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.analytics_service import AnalyticsService
-from fastapi import HTTPException, Request
 
 DDL = """
 CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT);
@@ -51,7 +51,7 @@ def setup_db(path: str) -> AuthService:
 
 
 def token(user_id: int, svc: AuthService) -> str:
-    return svc._make_access_token(user_id)
+    return asyncio.run(svc._make_access_token(user_id))
 
 
 def test_metrics_and_permissions(tmp_path):
