@@ -75,9 +75,12 @@ class PropertyService:
         location: str,
         price_cents: int,
         base_rent: int,
+        mortgage_rate: float | None = None,
     ) -> int:
         if price_cents <= 0:
             raise PropertyError("Price must be positive")
+        if mortgage_rate is not None:
+            self.economy.create_loan(owner_id, price_cents, mortgage_rate, term_days=365)
         try:
             self.economy.withdraw(owner_id, price_cents)
         except EconomyError as e:
