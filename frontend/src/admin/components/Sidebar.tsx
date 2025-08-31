@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { label: 'XP Items', href: '/admin/xp-items' },
   { label: 'Venues', href: '/admin/venues' },
   { label: 'Audit Logs', href: '/admin/audit' },
+  { label: 'Modding', href: '/admin/modding' },
 ];
 
 const Sidebar: React.FC = () => (

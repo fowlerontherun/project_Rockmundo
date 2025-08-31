@@ -3,6 +3,7 @@ import React from 'react';
 import Sidebar from './components/Sidebar';
 import { AuditTable } from './audit';
 import { MonitoringWidget } from './monitoring';
+import { PluginManager } from './modding';
 import XPEventForm from './components/XPEventForm';
 import XPItemForm from './components/XPItemForm';
 
@@ -23,6 +24,8 @@ const App: React.FC = () => {
     content = <XPEventForm />;
   } else if (path.includes('/admin/xp-items')) {
     content = <XPItemForm />;
+  } else if (path.includes('/admin/modding')) {
+    content = <PluginManager />;
   }
 
   return (

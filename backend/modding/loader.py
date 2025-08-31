@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass
 from types import ModuleType
 from typing import Dict, Iterable
 
-from .interfaces import ModPlugin
+from .interfaces import ModPlugin, PluginMeta
+
+
+@dataclass
+class PluginEntry:
+    """Record stored in the loader's registry."""
+
+    plugin: ModPlugin
+    enabled: bool = False
 
 
 class PluginLoader:
@@ -17,15 +26,58 @@ class PluginLoader:
     """
 
     def __init__(self) -> None:
-        self.plugins: Dict[str, ModPlugin] = {}
+        # registry keyed by plugin name
+        self.registry: Dict[str, PluginEntry] = {}
+
+    # -----------------------------------------------------
+    @property
+    def plugins(self) -> Dict[str, ModPlugin]:
+        """Compatibility mapping of names to plugin instances."""
+
+        return {name: entry.plugin for name, entry in self.registry.items()}
 
     # -----------------------------------------------------
     def register(self, plugin: ModPlugin) -> None:
-        """Register a plugin instance and invoke its activate hook."""
+        """Register a plugin instance without activating it."""
 
-        self.plugins[plugin.meta.name] = plugin
-        # allow plugin to perform any setup
-        plugin.activate()
+        self.registry[plugin.meta.name] = PluginEntry(plugin=plugin, enabled=False)
+
+    # -----------------------------------------------------
+    def enable(self, name: str) -> None:
+        """Activate a previously registered plugin."""
+
+        entry = self.registry[name]
+        if not entry.enabled:
+            entry.plugin.activate()
+            entry.enabled = True
+
+    # -----------------------------------------------------
+    def disable(self, name: str) -> None:
+        """Deactivate a plugin if it provides a ``deactivate`` hook."""
+
+        entry = self.registry[name]
+        if entry.enabled:
+            deactivate = getattr(entry.plugin, "deactivate", None)
+            if callable(deactivate):
+                deactivate()
+            entry.enabled = False
+
+    # -----------------------------------------------------
+    def list_plugins(self) -> list[dict[str, str | bool | None]]:
+        """Return metadata and state for all registered plugins."""
+
+        plugins: list[dict[str, str | bool | None]] = []
+        for entry in self.registry.values():
+            meta: PluginMeta = entry.plugin.meta
+            plugins.append(
+                {
+                    "name": meta.name,
+                    "version": meta.version,
+                    "author": meta.author,
+                    "enabled": entry.enabled,
+                }
+            )
+        return plugins
 
     # -----------------------------------------------------
     def load_from_module(self, module: ModuleType) -> None:
