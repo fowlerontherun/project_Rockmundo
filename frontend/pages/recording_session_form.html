@@ -1,0 +1,17 @@
+<h2>Book Recording Session</h2>
+<form id="bookingForm">
+  <input type="text" name="studio" placeholder="Studio" required />
+  <input type="datetime-local" name="start" required />
+  <input type="datetime-local" name="end" required />
+  <input type="number" name="cost_cents" placeholder="Cost (cents)" required />
+  <input type="text" name="tracks" placeholder="Track IDs comma separated" />
+  <button type="submit">Schedule Session</button>
+</form>
+
+<h2>Track Progress</h2>
+<form id="progressForm">
+  <input type="number" name="session_id" placeholder="Session ID" required />
+  <input type="number" name="track_id" placeholder="Track ID" required />
+  <input type="text" name="status" placeholder="Status" required />
+  <button type="submit">Update Status</button>
+</form>
