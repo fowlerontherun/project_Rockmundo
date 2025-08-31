@@ -1,0 +1,21 @@
+<h2>Plan Arrangement</h2>
+<form id="arrangementForm">
+  <input type="number" name="song_id" placeholder="Song ID" required />
+  <input type="text" name="track_type" placeholder="Instrument" required />
+  <input type="text" name="performer" placeholder="Performer" />
+  <textarea name="notes" placeholder="Notes"></textarea>
+  <button type="submit">Add Track</button>
+</form>
+
+<div id="trackList"></div>
+<script>
+  document.getElementById('arrangementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const div = document.getElementById('trackList');
+    const item = document.createElement('div');
+    item.textContent = `${data.get('track_type')} - ${data.get('performer')}`;
+    div.appendChild(item);
+    e.target.reset();
+  });
+</script>
