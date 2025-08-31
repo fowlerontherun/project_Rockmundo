@@ -22,6 +22,8 @@ class Song:
         royalties_split: Optional[dict] = None,
         plagiarism_warning: Optional[str] = None,
         arrangement: Optional[List[ArrangementTrack]] = None,
+        license_fee: int = 0,
+        royalty_rate: float = 0.0,
     ) -> None:
         self.id = id
         self.title = title
@@ -37,6 +39,8 @@ class Song:
         self.royalties_split = royalties_split or {owner_band_id: 100}
         self.plagiarism_warning = plagiarism_warning
         self.arrangement = arrangement or []
+        self.license_fee = license_fee
+        self.royalty_rate = royalty_rate
 
     def to_dict(self):
         data = self.__dict__.copy()
