@@ -3,4 +3,6 @@ fastapi
 httpx
 redis
 alembic
+statsmodels
+pandas
 

@@ -13,6 +13,8 @@
 </div>
 
 <ul id="popularityHistory"></ul>
+<h3>Forecast</h3>
+<ul id="forecast"></ul>
 
 <script>
 async function loadPopularity() {
@@ -28,6 +30,15 @@ async function loadPopularity() {
     const li = document.createElement('li');
     li.innerText = `${point.updated_at}: ${point.popularity_score}`;
     list.appendChild(li);
+  });
+  const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
+  const fData = await fRes.json();
+  const fList = document.getElementById('forecast');
+  fList.innerHTML = '';
+  fData.forecast.forEach(f => {
+    const li = document.createElement('li');
+    li.innerText = `${f.forecast_date}: ${f.predicted_score.toFixed(2)} (${f.confidence_interval[0].toFixed(2)} - ${f.confidence_interval[1].toFixed(2)})`;
+    fList.appendChild(li);
   });
   // Hook for custom chart rendering if available
   if (window.renderPopularityChart) {

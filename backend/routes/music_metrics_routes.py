@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
 from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
 from backend.services import song_popularity_service
+from backend.services.song_popularity_forecast import forecast_service
 from backend.services.music_metrics import MusicMetricsService
 
 router = APIRouter(prefix="/music/metrics", tags=["Music Metrics"])
@@ -37,3 +38,11 @@ def get_song_popularity(
         ),
         "breakdown": song_popularity_service.get_breakdown(song_id),
     }
+
+
+@router.get("/songs/{song_id}/forecast")
+def get_song_forecast(song_id: int):
+    data = forecast_service.get_forecast(song_id)
+    if not data:
+        data = forecast_service.forecast_song(song_id)
+    return {"song_id": song_id, "forecast": data}
