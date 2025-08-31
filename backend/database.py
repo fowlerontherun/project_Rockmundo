@@ -228,6 +228,19 @@ def init_db():
         )
         """)
 
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS song_popularity_forecasts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song_id INTEGER NOT NULL,
+            forecast_date TEXT NOT NULL,
+            predicted_score REAL NOT NULL,
+            lower REAL,
+            upper REAL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(song_id) REFERENCES songs(id)
+        )
+        """)
+
         # Quest definition tables
         cur.execute("""
         CREATE TABLE IF NOT EXISTS quests (

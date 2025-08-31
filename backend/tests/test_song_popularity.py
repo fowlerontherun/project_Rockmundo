@@ -15,6 +15,7 @@ def _reset_db():
         cur = conn.cursor()
         cur.execute("DROP TABLE IF EXISTS song_popularity")
         cur.execute("DROP TABLE IF EXISTS song_popularity_events")
+        cur.execute("DROP TABLE IF EXISTS song_popularity_forecasts")
         conn.commit()
 
 
@@ -58,3 +59,14 @@ def test_regional_breakdown():
     }
     assert data["breakdown"]["US"]["spotify"] == 5
     assert data["breakdown"]["EU"]["apple"] == 2
+
+
+def test_forecast_generation():
+    _reset_db()
+    add_event(4, 10, "stream")
+    add_event(4, 5, "sale")
+    from backend.services.song_popularity_forecast import forecast_service
+
+    forecasts = forecast_service.forecast_song(4, days=3)
+    assert len(forecasts) == 3
+    assert "predicted_score" in forecasts[0]
