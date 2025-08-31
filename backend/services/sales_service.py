@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
+from backend.services.song_popularity_service import add_event
+
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
 @dataclass
@@ -101,6 +103,11 @@ class SalesService:
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (buyer_user_id, work_type, work_id, price_cents, currency, source))
             conn.commit()
+
+            # Boost popularity for song sales
+            if work_type == "song":
+                add_event(work_id, price_cents / 100.0, "sale")
+
             return cur.lastrowid
 
     def list_digital_sales_for_work(self, work_type: str, work_id: int) -> List[Dict[str, Any]]:
