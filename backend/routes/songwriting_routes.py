@@ -4,27 +4,44 @@ from __future__ import annotations
 from typing import Dict, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from backend.auth.dependencies import get_current_user_id
+from backend.models.theme import THEMES
 from backend.services.songwriting_service import songwriting_service
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 
 
 class PromptPayload(BaseModel):
-    prompt: str
-    style: str
+    title: str
+    genre: str
+    themes: list[str]
+
+    @validator("themes")
+    def validate_themes(cls, v: list[str]) -> list[str]:
+        if len(v) != 3:
+            raise ValueError("exactly_three_themes_required")
+        for t in v:
+            if t not in THEMES:
+                raise ValueError("unknown_theme")
+        return v
 
 
 class DraftUpdate(BaseModel):
     lyrics: str | None = None
-    chords: str | None = None
+    chord_progression: str | None = None
+    album_art_url: str | None = None
 
 
 @router.post("/prompt")
 async def submit_prompt(payload: PromptPayload, user_id: int = Depends(get_current_user_id)):
-    draft = await songwriting_service.generate_draft(user_id, payload.prompt, payload.style)
+    draft = await songwriting_service.generate_draft(
+        creator_id=user_id,
+        title=payload.title,
+        genre=payload.genre,
+        themes=payload.themes,
+    )
     return draft
 
 
@@ -38,8 +55,19 @@ def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
 
 @router.put("/drafts/{draft_id}")
 def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_current_user_id)):
-    draft = songwriting_service.update_draft(draft_id, user_id, lyrics=updates.lyrics, chords=updates.chords)
+    draft = songwriting_service.update_draft(
+        draft_id,
+        user_id,
+        lyrics=updates.lyrics,
+        chord_progression=updates.chord_progression,
+        album_art_url=updates.album_art_url,
+    )
     return draft
+
+
+@router.get("/themes")
+def list_themes():
+    return THEMES
 
 
 # --- WebSocket for collaborative editing --------------------------------------
