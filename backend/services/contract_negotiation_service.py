@@ -1,94 +1,145 @@
-"""Service handling contract negotiation flows."""
+"""Service handling contract negotiation flows with persistence."""
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
-from backend.models.label_management_models import (
-    ContractNegotiation,
-    NegotiationStage,
-)
+from sqlalchemy import Column, Enum as SqlEnum, Integer, JSON, create_engine
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+
+from backend.models.label_management_models import NegotiationStage
+from backend.models.record_contract import RecordContract, RoyaltyTier
 from backend.services.economy_service import EconomyService
+
+Base = declarative_base()
+
+
+class NegotiationModel(Base):
+    __tablename__ = "contract_negotiations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label_id = Column(Integer, nullable=False)
+    band_id = Column(Integer, nullable=False)
+    terms = Column(JSON, nullable=False)
+    stage = Column(SqlEnum(NegotiationStage), nullable=False, default=NegotiationStage.OFFER)
+    recoupable_cents = Column(Integer, default=0)
+    recouped_cents = Column(Integer, default=0)
+
+
+@dataclass
+class NegotiationRecord:
+    id: int
+    label_id: int
+    band_id: int
+    terms: RecordContract
+    stage: NegotiationStage
+    recoupable_cents: int = 0
+    recouped_cents: int = 0
 
 
 class ContractNegotiationService:
-    """In-memory negotiation tracking with economy integration."""
+    """Persisted negotiation tracking with economy integration."""
 
-    def __init__(self, economy: Optional[EconomyService] = None):
-        self.economy = economy or EconomyService()
-        self.negotiations: Dict[int, ContractNegotiation] = {}
-        self._next_id = 1
+    def __init__(self, economy: Optional[EconomyService] = None, db_path: Optional[str] = None):
+        self.economy = economy or EconomyService(db_path=db_path)
+        path = db_path or self.economy.db_path
+        self.engine = create_engine(f"sqlite:///{path}")
+        self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
+        Base.metadata.create_all(self.engine)
 
-    def create_offer(self, label_id: int, band_id: int, terms: Dict[str, Any]) -> ContractNegotiation:
-        negotiation = ContractNegotiation(
-            id=self._next_id,
-            label_id=label_id,
-            band_id=band_id,
-            terms=dict(terms),
-            stage=NegotiationStage.OFFER,
-        )
-        self.negotiations[self._next_id] = negotiation
-        self._next_id += 1
-        return negotiation
+    # ------------------------------------------------------------------
+    def create_offer(self, label_id: int, band_id: int, terms: Dict[str, Any]) -> NegotiationRecord:
+        recoup = int(terms.get("advance_cents", 0)) + int(terms.get("recoupable_budgets_cents", 0))
+        with self.SessionLocal() as session:
+            model = NegotiationModel(
+                label_id=label_id,
+                band_id=band_id,
+                terms=dict(terms),
+                stage=NegotiationStage.OFFER,
+                recoupable_cents=recoup,
+            )
+            session.add(model)
+            session.commit()
+            session.refresh(model)
+            return self._to_record(model)
 
-    def counter_offer(self, negotiation_id: int, terms: Dict[str, Any]) -> ContractNegotiation:
-        negotiation = self._get(negotiation_id)
-        if negotiation.stage == NegotiationStage.ACCEPTED:
-            raise ValueError("Negotiation already accepted")
-        negotiation.terms = dict(terms)
-        negotiation.stage = NegotiationStage.COUNTER
-        return negotiation
+    def counter_offer(self, negotiation_id: int, terms: Dict[str, Any]) -> NegotiationRecord:
+        with self.SessionLocal() as session:
+            model = self._get_model(session, negotiation_id)
+            if model.stage == NegotiationStage.ACCEPTED:
+                raise ValueError("Negotiation already accepted")
+            model.terms = dict(terms)
+            model.stage = NegotiationStage.COUNTER
+            model.recoupable_cents = int(terms.get("advance_cents", 0)) + int(terms.get("recoupable_budgets_cents", 0))
+            session.commit()
+            session.refresh(model)
+            return self._to_record(model)
 
-    def accept_offer(self, negotiation_id: int) -> ContractNegotiation:
-        negotiation = self._get(negotiation_id)
-        if negotiation.stage == NegotiationStage.ACCEPTED:
-            raise ValueError("Negotiation already accepted")
-        advance = int(negotiation.terms.get("advance_cents", 0))
-        royalty = float(negotiation.terms.get("royalty_rate", 0))
-        # move advance funds
-        if advance:
-            self.economy.transfer(negotiation.label_id, negotiation.band_id, advance)
-        # record royalty agreement as zero-amount transaction
-        self._record_royalty_agreement(negotiation.label_id, negotiation.band_id, royalty)
-        negotiation.stage = NegotiationStage.ACCEPTED
-        return negotiation
+    def accept_offer(self, negotiation_id: int) -> NegotiationRecord:
+        with self.SessionLocal() as session:
+            model = self._get_model(session, negotiation_id)
+            if model.stage == NegotiationStage.ACCEPTED:
+                raise ValueError("Negotiation already accepted")
+            contract = self._parse_contract(model.terms)
+            advance = contract.advance_cents
+            if advance:
+                self.economy.transfer(model.label_id, model.band_id, advance)
+            model.stage = NegotiationStage.ACCEPTED
+            session.commit()
+            session.refresh(model)
+            return self._to_record(model)
 
-    # internal helpers -------------------------------------------------
-    def _get(self, negotiation_id: int) -> ContractNegotiation:
-        negotiation = self.negotiations.get(negotiation_id)
-        if not negotiation:
+    def apply_royalty_payment(self, negotiation_id: int, amount_cents: int) -> NegotiationRecord:
+        """Apply a royalty payment, automatically recouping advances."""
+        with self.SessionLocal() as session:
+            model = self._get_model(session, negotiation_id)
+            if model.stage != NegotiationStage.ACCEPTED:
+                raise ValueError("Negotiation not accepted")
+            recoup_remaining = model.recoupable_cents - model.recouped_cents
+            recoup_amount = min(amount_cents, recoup_remaining)
+            if recoup_amount:
+                # band pays label back
+                self.economy.transfer(model.band_id, model.label_id, recoup_amount)
+                model.recouped_cents += recoup_amount
+            payout = amount_cents - recoup_amount
+            if payout:
+                self.economy.transfer(model.label_id, model.band_id, payout)
+            session.commit()
+            session.refresh(model)
+            return self._to_record(model)
+
+    # ------------------------------------------------------------------
+    def _get_model(self, session: Session, negotiation_id: int) -> NegotiationModel:
+        model = session.get(NegotiationModel, negotiation_id)
+        if not model:
             raise ValueError("Negotiation not found")
-        return negotiation
+        return model
 
-    def _record_royalty_agreement(self, label_id: int, band_id: int, rate: float) -> None:
-        import sqlite3
+    def _to_record(self, model: NegotiationModel) -> NegotiationRecord:
+        contract = self._parse_contract(model.terms)
+        return NegotiationRecord(
+            id=model.id,
+            label_id=model.label_id,
+            band_id=model.band_id,
+            terms=contract,
+            stage=model.stage,
+            recoupable_cents=model.recoupable_cents,
+            recouped_cents=model.recouped_cents,
+        )
 
-        with sqlite3.connect(self.economy.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("BEGIN IMMEDIATE")
-            src_id = self.economy._require_account(cur, label_id, "USD")
-            dest_id = self.economy._require_account(cur, band_id, "USD")
-            cur.execute(
-                "INSERT INTO transactions (type, amount_cents, currency, src_account_id, dest_account_id) VALUES ('royalty', 0, 'USD', ?, ?)",
-                (src_id, dest_id),
-            )
-            tid = cur.lastrowid
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE id = ?",
-                (src_id,),
-            )
-            src_balance = int(cur.fetchone()[0])
-            cur.execute(
-                "INSERT INTO ledger_entries (account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, 0, ?)",
-                (src_id, tid, src_balance),
-            )
-            cur.execute(
-                "SELECT balance_cents FROM accounts WHERE id = ?",
-                (dest_id,),
-            )
-            dest_balance = int(cur.fetchone()[0])
-            cur.execute(
-                "INSERT INTO ledger_entries (account_id, transaction_id, delta_cents, balance_after) VALUES (?, ?, 0, ?)",
-                (dest_id, tid, dest_balance),
-            )
-            conn.commit()
+    def _parse_contract(self, data: Dict[str, Any]) -> RecordContract:
+        tiers = [RoyaltyTier(**t) for t in data.get("royalty_tiers", [])]
+        return RecordContract(
+            advance_cents=int(data.get("advance_cents", 0)),
+            royalty_tiers=tiers,
+            term_months=int(data.get("term_months", 0)),
+            territory=data.get("territory", "worldwide"),
+            recoupable_budgets_cents=int(data.get("recoupable_budgets_cents", 0)),
+            options=list(data.get("options", [])),
+            obligations=list(data.get("obligations", [])),
+        )
+
+    def _record_royalty_agreement(self, label_id: int, band_id: int, contract: RecordContract) -> None:
+        """Placeholder hook for recording royalty agreements."""
+        return None

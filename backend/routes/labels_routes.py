@@ -1,22 +1,55 @@
-from auth.dependencies import get_current_user_id, require_role
-from fastapi import APIRouter
-from services.labels_service import *
-from schemas.labels_schemas import LabelCreateSchema, ContractOfferSchema
+from fastapi import APIRouter, Depends
+
+from auth.dependencies import require_role
+from backend.schemas.labels_schemas import (
+    LabelCreateSchema,
+    OfferRequestSchema,
+    CounterOfferSchema,
+    NegotiationSchema,
+)
+from backend.services.contract_negotiation_service import ContractNegotiationService
+from backend.services.labels_service import (
+    create_label as create_label_service,
+    list_labels as list_labels_service,
+    list_label_bands as list_label_bands_service,
+)
 
 router = APIRouter()
+negotiation_service = ContractNegotiationService()
+
 
 @router.post("/labels/create", dependencies=[Depends(require_role(["admin", "moderator"]))])
 def create_label(payload: LabelCreateSchema):
-    return create_music_label(payload.dict())
+    return create_label_service(payload.name, payload.owner_id or 0)
 
-@router.post("/labels/offer_contract")
-def offer_contract(payload: ContractOfferSchema):
-    return offer_label_contract(payload.dict())
+
+@router.post("/labels/negotiations/offer", response_model=NegotiationSchema)
+def offer_contract(payload: OfferRequestSchema):
+    negotiation = negotiation_service.create_offer(
+        payload.label_id, payload.band_id, payload.terms.dict()
+    )
+    return negotiation
+
+
+@router.post("/labels/negotiations/{negotiation_id}/counter", response_model=NegotiationSchema)
+def counter_offer(negotiation_id: int, payload: CounterOfferSchema):
+    negotiation = negotiation_service.counter_offer(
+        negotiation_id, payload.terms.dict()
+    )
+    return negotiation
+
+
+@router.post("/labels/negotiations/{negotiation_id}/accept", response_model=NegotiationSchema)
+def accept_offer(negotiation_id: int):
+    negotiation = negotiation_service.accept_offer(negotiation_id)
+    return negotiation
+
 
 @router.get("/labels/list")
 def list_labels():
-    return get_all_labels()
+    return list_labels_service()
 
-@router.get("/labels/contracts/{band_id}")
-def view_band_contracts(band_id: int):
-    return get_contracts_for_band(band_id)
+
+@router.get("/labels/contracts/{label_id}")
+def view_label_contracts(label_id: int):
+    return list_label_bands_service(label_id)
