@@ -54,6 +54,10 @@ class ClauseTemplate:
 DEFAULT_CLAUSES = [
     ClauseTemplate("advance_cents", "Upfront payment to the band", 0),
     ClauseTemplate("royalty_rate", "Revenue percentage for the band", 0.0),
+    ClauseTemplate("marketing_budget_cents", "Label-funded marketing spend", 0),
+    ClauseTemplate("distribution_fee_rate", "Percentage fee for distribution services", 0.0),
+    ClauseTemplate("rights_reversion_months", "Months until rights revert to the band", 0),
+    ClauseTemplate("release_commitment", "Minimum releases label commits to", 0),
 ]
 
 
