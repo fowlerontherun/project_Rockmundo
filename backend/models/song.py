@@ -18,6 +18,7 @@ class Song:
         release_date: Optional[str] = None,
         format: str = "digital",
         royalties_split: Optional[dict] = None,
+        plagiarism_warning: Optional[str] = None,
     ) -> None:
         self.id = id
         self.title = title
@@ -31,6 +32,7 @@ class Song:
         self.release_date = release_date or datetime.utcnow().isoformat()
         self.format = format
         self.royalties_split = royalties_split or {owner_band_id: 100}
+        self.plagiarism_warning = plagiarism_warning
 
     def to_dict(self):
         return self.__dict__

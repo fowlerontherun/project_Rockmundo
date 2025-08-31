@@ -2,6 +2,7 @@ import asyncio
 import pytest
 
 from backend.services.songwriting_service import SongwritingService
+from backend.services.originality_service import OriginalityService
 
 
 class FakeLLM:
@@ -37,7 +38,7 @@ async def _generate(svc: SongwritingService):
 
 def test_theme_validation():
     async def run():
-        svc = SongwritingService(llm_client=FakeLLM())
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
         with pytest.raises(ValueError):
             await svc.generate_draft(1, "t", "rock", ["only", "two"])
 
@@ -46,7 +47,9 @@ def test_theme_validation():
 
 def test_generate_draft_with_art_and_chords():
     async def run():
-        svc = SongwritingService(llm_client=FakeLLM(), art_service=FakeArt())
+        svc = SongwritingService(
+            llm_client=FakeLLM(), art_service=FakeArt(), originality=OriginalityService()
+        )
         draft = await _generate(svc)
         assert draft.lyrics == "la la la"
         assert draft.chord_progression == "C G Am F"
@@ -57,10 +60,72 @@ def test_generate_draft_with_art_and_chords():
 
 def test_art_fallback_and_chord_default():
     async def run():
-        svc = SongwritingService(llm_client=FakeLLM(chord_resp=""), art_service=FailingArt())
+        svc = SongwritingService(
+            llm_client=FakeLLM(chord_resp=""),
+            art_service=FailingArt(),
+            originality=OriginalityService(),
+        )
         draft = await _generate(svc)
         assert draft.chord_progression == "C G Am F"
         assert draft.album_art_url is None
+
+    asyncio.run(run())
+
+
+def test_duplicate_detection_triggers_warning_and_dispute():
+    class FakeLegal:
+        def __init__(self):
+            self.cases = []
+
+        def create_case(self, plaintiff_id, defendant_id, description):
+            self.cases.append((plaintiff_id, defendant_id, description))
+
+        def register_copyright(self, song_id, lyrics):
+            pass
+
+    async def run():
+        legal = FakeLegal()
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            art_service=FakeArt(),
+            legal=legal,
+            originality=OriginalityService(),
+        )
+        await _generate(svc)  # first draft stores hash
+        dup = await _generate(svc)  # second draft should warn
+        assert dup.plagiarism_warning == "possible_plagiarism"
+        assert legal.cases  # dispute logged
+
+    asyncio.run(run())
+
+
+def test_registration_calls_legal_service():
+    class RecordingLegal:
+        def __init__(self):
+            self.registered = []
+
+        def create_case(self, *a, **k):
+            pass
+
+        def register_copyright(self, song_id, lyrics):
+            self.registered.append((song_id, lyrics))
+
+    async def run():
+        legal = RecordingLegal()
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            art_service=FakeArt(),
+            legal=legal,
+            originality=OriginalityService(),
+        )
+        draft = await svc.generate_draft(
+            creator_id=1,
+            title="Test",
+            genre="rock",
+            themes=["love", "hope", "loss"],
+            register_copyright=True,
+        )
+        assert legal.registered and legal.registered[0][0] == draft.id
 
     asyncio.run(run())
 

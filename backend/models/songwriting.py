@@ -26,5 +26,6 @@ class LyricDraft:
     lyrics: str
     chord_progression: str
     album_art_url: Optional[str] = None
+    plagiarism_warning: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     metadata: GenerationMetadata = field(default_factory=GenerationMetadata)
