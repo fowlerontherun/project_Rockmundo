@@ -1,0 +1,21 @@
+<h2>Indie Release Purchase</h2>
+<form id="indieReleaseForm">
+  <input type="number" name="band_id" placeholder="Band ID" required />
+  <select name="distribution">
+    <option value="digital">Digital Distribution</option>
+    <option value="worldwide">Worldwide Distribution</option>
+  </select>
+  <select name="promotion">
+    <option value="none">No Promotion</option>
+    <option value="standard">Standard Promotion</option>
+    <option value="plus">Plus Promotion</option>
+  </select>
+  <select name="physical">
+    <option value="none">Digital Only</option>
+    <option value="cd">CD Production</option>
+    <option value="vinyl">Vinyl Production</option>
+  </select>
+  <input type="text" name="vendor_name" placeholder="PR Vendor (optional)" />
+  <input type="number" name="vendor_fee_cents" placeholder="Vendor Fee (cents)" />
+  <button type="submit">Purchase Release</button>
+</form>
