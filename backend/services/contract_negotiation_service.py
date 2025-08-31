@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-from sqlalchemy import Column, Enum as SqlEnum, Integer, JSON, create_engine
+from sqlalchemy import JSON, Column, Integer, create_engine
+from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from backend.models.label_management_models import NegotiationStage
@@ -50,7 +51,12 @@ class ContractNegotiationService:
 
     # ------------------------------------------------------------------
     def create_offer(self, label_id: int, band_id: int, terms: Dict[str, Any]) -> NegotiationRecord:
-        recoup = int(terms.get("advance_cents", 0)) + int(terms.get("recoupable_budgets_cents", 0))
+        terms = self._validate_terms(terms)
+        recoup = (
+            int(terms.get("advance_cents", 0))
+            + int(terms.get("recoupable_budgets_cents", 0))
+            + int(terms.get("marketing_budget_cents", 0))
+        )
         with self.SessionLocal() as session:
             model = NegotiationModel(
                 label_id=label_id,
@@ -65,13 +71,18 @@ class ContractNegotiationService:
             return self._to_record(model)
 
     def counter_offer(self, negotiation_id: int, terms: Dict[str, Any]) -> NegotiationRecord:
+        terms = self._validate_terms(terms)
         with self.SessionLocal() as session:
             model = self._get_model(session, negotiation_id)
             if model.stage == NegotiationStage.ACCEPTED:
                 raise ValueError("Negotiation already accepted")
             model.terms = dict(terms)
             model.stage = NegotiationStage.COUNTER
-            model.recoupable_cents = int(terms.get("advance_cents", 0)) + int(terms.get("recoupable_budgets_cents", 0))
+            model.recoupable_cents = (
+                int(terms.get("advance_cents", 0))
+                + int(terms.get("recoupable_budgets_cents", 0))
+                + int(terms.get("marketing_budget_cents", 0))
+            )
             session.commit()
             session.refresh(model)
             return self._to_record(model)
@@ -138,7 +149,42 @@ class ContractNegotiationService:
             recoupable_budgets_cents=int(data.get("recoupable_budgets_cents", 0)),
             options=list(data.get("options", [])),
             obligations=list(data.get("obligations", [])),
+            marketing_budget_cents=int(data.get("marketing_budget_cents", 0)),
+            distribution_fee_rate=float(data.get("distribution_fee_rate", 0.0)),
+            rights_reversion_months=int(data.get("rights_reversion_months", 0)),
+            release_commitment=int(data.get("release_commitment", 0)),
         )
+
+    def _validate_terms(self, terms: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and fill defaults for supported contract clauses."""
+        validated = dict(terms)
+
+        def _int(name: str, default: int = 0) -> None:
+            try:
+                value = int(validated.get(name, default))
+                if value < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                value = default
+            validated[name] = value
+
+        def _float(name: str, default: float = 0.0) -> None:
+            try:
+                value = float(validated.get(name, default))
+                if value < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                value = default
+            validated[name] = value
+
+        _int("advance_cents", 0)
+        _int("recoupable_budgets_cents", 0)
+        _int("marketing_budget_cents", 0)
+        _float("distribution_fee_rate", 0.0)
+        _int("rights_reversion_months", 0)
+        _int("release_commitment", 0)
+
+        return validated
 
     def _record_royalty_agreement(self, label_id: int, band_id: int, contract: RecordContract) -> None:
         """Placeholder hook for recording royalty agreements."""
