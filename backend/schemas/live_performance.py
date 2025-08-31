@@ -1,11 +1,23 @@
+from enum import Enum
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
 
+
+class PerformanceActionType(str, Enum):
+    song = "song"
+    activity = "activity"
+    encore = "encore"
+
+
 class PerformanceActionSchema(BaseModel):
-    type: str
+    type: PerformanceActionType
     reference: Optional[str]
     description: Optional[str]
+    duration: Optional[int] = None
+    position: Optional[int] = None
+    encore: Optional[bool] = False
+
 
 class LivePerformanceCreate(BaseModel):
     band_id: int
@@ -13,7 +25,9 @@ class LivePerformanceCreate(BaseModel):
     performance_type: str
     date: date
     setlist: List[PerformanceActionSchema]
+    encore: Optional[List[PerformanceActionSchema]] = None
     is_solo: bool
+
 
 class LivePerformanceResponse(LivePerformanceCreate):
     id: int
@@ -22,3 +36,4 @@ class LivePerformanceResponse(LivePerformanceCreate):
     fame_gain: float
     skill_gain: float
     revenue: float
+

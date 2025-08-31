@@ -1,5 +1,6 @@
 import random
 import sqlite3
+import json
 from datetime import datetime
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
@@ -10,7 +11,7 @@ from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 
 
-def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
+def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
@@ -27,9 +28,34 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
     crowd_size = min(random.randint(base_crowd, base_crowd + 300), 2000)
     crowd_size = int(crowd_size * city_service.get_event_modifier(city))
 
-    fame_earned = crowd_size // 10
+    fame_bonus = 0
+    skill_gain = 0.0
+
+    main_actions: list = []
+    encore_actions: list = []
+    if isinstance(setlist, dict):
+        main_actions = setlist.get("main") or setlist.get("setlist", [])
+        encore_actions = setlist.get("encore", [])
+    else:
+        for action in setlist:
+            if action.get("encore") or action.get("type") == "encore":
+                encore_actions.append(action)
+            else:
+                main_actions.append(action)
+
+    for action in main_actions + encore_actions:
+        a_type = action.get("type")
+        if a_type == "song" or a_type == "encore":
+            skill_gain += 0.3
+            fame_bonus += 2
+        elif a_type == "activity":
+            skill_gain += 0.1
+            fame_bonus += 1
+        if action.get("encore") or a_type == "encore":
+            fame_bonus += 3
+
+    fame_earned = crowd_size // 10 + fame_bonus
     revenue_earned = crowd_size * 5
-    skill_gain = len(setlist) * 0.3
     skill_gain += gear_service.get_band_bonus(band_id, "performance")
     performance_id = SKILL_NAME_TO_ID["performance"]
     applied_skill = 0 if is_skill_blocked(band_id, performance_id) else skill_gain
@@ -49,7 +75,7 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist: list) -> dict:
             city,
             venue,
             datetime.utcnow().isoformat(),
-            ",".join(setlist),
+            json.dumps({"setlist": main_actions, "encore": encore_actions}),
             crowd_size,
             fame_earned,
             revenue_earned,

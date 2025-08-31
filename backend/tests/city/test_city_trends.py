@@ -49,7 +49,7 @@ def test_city_trends_affect_merch_sales(monkeypatch):
     monkeypatch.setattr(event_service, "DB_PATH", ":memory:")
     monkeypatch.setattr(event_service.sqlite3, "connect", lambda _: conn)
 
-    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", ["song"])
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", [{"type": "song", "reference": "song"}])
     assert result["crowd_size"] == 300  # 200 base * 1.5 modifier
     assert result["merch_sold"] == 90   # 300 * 0.15 * 2.0
 
