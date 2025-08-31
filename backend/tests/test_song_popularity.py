@@ -4,13 +4,19 @@ from fastapi.testclient import TestClient
 
 from backend.database import DB_PATH
 from backend.routes.music_metrics_routes import router as metrics_router
-from backend.services.song_popularity_service import add_event, apply_decay, get_history
+from backend.services.song_popularity_service import (
+    add_event,
+    apply_decay,
+    get_history,
+    HALF_LIFE_DAYS,
+)
 
 
 def _reset_db():
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute("DROP TABLE IF EXISTS song_popularity")
+        cur.execute("DROP TABLE IF EXISTS song_popularity_events")
         conn.commit()
 
 
@@ -36,4 +42,7 @@ def test_popularity_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert data["song_id"] == 2
+    assert data["current_popularity"] == 3
+    assert data["half_life_days"] == HALF_LIFE_DAYS
+    assert data["last_boost_source"] == "stream"
     assert len(data["history"]) == 1

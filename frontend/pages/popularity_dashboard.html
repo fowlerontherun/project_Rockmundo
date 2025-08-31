@@ -1,0 +1,38 @@
+<h2>Song Popularity Dashboard</h2>
+
+<div>
+  <label for="songId">Song ID:</label>
+  <input type="text" id="songId" />
+  <button onclick="loadPopularity()">Load</button>
+</div>
+
+<div>
+  Current Popularity: <span id="currentPopularity">-</span><br />
+  Half-life (days): <span id="halfLife">-</span><br />
+  Last Boost Source: <span id="lastBoost">-</span>
+</div>
+
+<ul id="popularityHistory"></ul>
+
+<script>
+async function loadPopularity() {
+  const id = document.getElementById('songId').value;
+  const res = await fetch(`/music/metrics/songs/${id}/popularity`);
+  const data = await res.json();
+  document.getElementById('currentPopularity').innerText = data.current_popularity;
+  document.getElementById('halfLife').innerText = data.half_life_days.toFixed(2);
+  document.getElementById('lastBoost').innerText = data.last_boost_source || '-';
+  const list = document.getElementById('popularityHistory');
+  list.innerHTML = '';
+  data.history.forEach(point => {
+    const li = document.createElement('li');
+    li.innerText = `${point.updated_at}: ${point.popularity_score}`;
+    list.appendChild(li);
+  });
+  // Hook for custom chart rendering if available
+  if (window.renderPopularityChart) {
+    window.renderPopularityChart(data.history);
+  }
+}
+</script>
+
