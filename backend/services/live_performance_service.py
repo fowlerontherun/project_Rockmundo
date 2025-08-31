@@ -9,11 +9,19 @@ from backend.database import DB_PATH
 from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
+from backend.services.setlist_service import get_approved_setlist
 
 
 def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+
+    if isinstance(setlist, int):
+        approved = get_approved_setlist(setlist)
+        if not approved:
+            conn.close()
+            return {"error": "Setlist revision must be approved"}
+        setlist = approved
 
     # Get band fame
     cur.execute("SELECT fame FROM bands WHERE id = ?", (band_id,))

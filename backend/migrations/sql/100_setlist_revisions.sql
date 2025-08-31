@@ -1,0 +1,8 @@
+CREATE TABLE setlist_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setlist_id INTEGER NOT NULL,
+    setlist TEXT NOT NULL,
+    author TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    approved INTEGER DEFAULT 0
+);

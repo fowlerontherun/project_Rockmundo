@@ -10,11 +10,12 @@ live_service = LivePerformanceService(db=None)
 def simulate_gig():
     data = request.json
     try:
+        setlist_source = data.get('revision_id', data.get('setlist'))
         gig = live_service.simulate_gig(
             band_id=data['band_id'],
             city=data['city'],
             venue=data['venue'],
-            setlist=data['setlist']
+            setlist=setlist_source
         )
         return jsonify(gig), 201
     except Exception as e:

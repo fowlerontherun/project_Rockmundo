@@ -19,6 +19,7 @@ from routes import (
     social_routes,
     sponsorship,
     video_routes,
+    setlist_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -76,6 +77,7 @@ app.include_router(
     prefix="/api/onboarding",
     tags=["Onboarding"],
 )
+app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
 
 
 @app.get("/metrics")
