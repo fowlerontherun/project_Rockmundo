@@ -1,6 +1,4 @@
 import sqlite3
-from datetime import datetime
-
 import sqlite3
 from datetime import datetime
 
@@ -34,20 +32,23 @@ def test_city_adjusts_event_attendance(monkeypatch):
     assert attendance == 120
 
 
-def test_city_trends_affect_merch_sales(monkeypatch):
+def test_city_trends_affect_merch_sales(monkeypatch, tmp_path):
     city_service.add_city(City(name="Metro", population=1_000_000, style_preferences={}, event_modifier=1.5, market_index=2.0))
 
-    conn = sqlite3.connect(":memory:")
+    db_file = tmp_path / "gig.db"
+    conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     cur.execute("CREATE TABLE bands (id INTEGER PRIMARY KEY, fame INTEGER, skill REAL, revenue INTEGER)")
-    cur.execute("CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)")
+    cur.execute(
+        "CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)"
+    )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
+    conn.commit()
+    conn.close()
 
-    monkeypatch.setattr(live_performance_service, "DB_PATH", ":memory:")
-    monkeypatch.setattr(live_performance_service.sqlite3, "connect", lambda _: conn)
+    monkeypatch.setattr(live_performance_service, "DB_PATH", db_file)
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
-    monkeypatch.setattr(event_service, "DB_PATH", ":memory:")
-    monkeypatch.setattr(event_service.sqlite3, "connect", lambda _: conn)
+    monkeypatch.setattr(event_service, "DB_PATH", db_file)
 
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", [{"type": "song", "reference": "song"}])
     assert result["crowd_size"] == 300  # 200 base * 1.5 modifier

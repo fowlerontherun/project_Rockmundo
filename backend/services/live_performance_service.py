@@ -47,7 +47,25 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
         a_type = action.get("type")
         if a_type == "song" or a_type == "encore":
             skill_gain += 0.3
-            fame_bonus += 2
+
+            song_bonus = 2
+            ref = action.get("reference")
+            if ref is not None:
+                ref_str = str(ref)
+                if ref_str.isdigit():
+                    song_id = int(ref_str)
+                    cur.execute("SELECT band_id FROM songs WHERE id = ?", (song_id,))
+                    row = cur.fetchone()
+                    if row:
+                        owner_band = row[0]
+                        if owner_band != band_id:
+                            song_bonus = 1
+                        cur.execute(
+                            "UPDATE songs SET play_count = play_count + ? WHERE id = ?",
+                            (2 if owner_band == band_id else 1, song_id),
+                        )
+
+            fame_bonus += song_bonus
         elif a_type == "activity":
             skill_gain += 0.1
             fame_bonus += 1
