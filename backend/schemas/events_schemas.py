@@ -42,6 +42,20 @@ class EndEventSchema(BaseModel):
     event_id: str
 
 
+class ScheduleEventSchema(BaseModel):
+    """Payload for scheduling a seasonal event."""
+
+    event_id: str
+    name: str
+    theme: str
+    description: str
+    start_time: str
+    end_time: str
+    modifiers: Dict[str, Any]
+    start_callback: Optional[str] = None
+    end_callback: Optional[str] = None
+
+
 class EventResponse(BaseModel):
     """Standard response after starting or ending an event."""
 
@@ -59,6 +73,12 @@ class EventHistoryResponse(BaseModel):
     """Response model containing the history of past events."""
 
     history: List[Event]
+
+
+class UpcomingEventsResponse(BaseModel):
+    """Response model for upcoming scheduled events."""
+
+    upcoming: List[Event]
 
 
 class EventRollRequest(BaseModel):

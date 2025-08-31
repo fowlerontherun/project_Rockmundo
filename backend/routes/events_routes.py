@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends
 
 from auth.dependencies import require_role
 from services.events_service import (
+    cancel_scheduled_event,
     create_seasonal_event,
     end_seasonal_event,
     get_active_event,
     get_past_events,
+    get_upcoming_events,
+    schedule_event,
 )
 
 from backend.schemas.events_schemas import (
@@ -16,6 +19,8 @@ from backend.schemas.events_schemas import (
     EndEventSchema,
     EventHistoryResponse,
     EventResponse,
+    ScheduleEventSchema,
+    UpcomingEventsResponse,
 )
 
 
@@ -33,11 +38,33 @@ def create_event(payload: CreateEventSchema) -> EventResponse:
     return create_seasonal_event(payload.model_dump())
 
 
+@router.post(
+    "/events/schedule",
+    response_model=EventResponse,
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def schedule_event_route(payload: ScheduleEventSchema) -> EventResponse:
+    """Schedule a seasonal event for future execution."""
+
+    return schedule_event(payload.model_dump())
+
+
 @router.post("/events/end", response_model=EventResponse)
 def end_event(payload: EndEventSchema) -> EventResponse:
     """End an existing seasonal event."""
 
     return end_seasonal_event(payload.event_id)
+
+
+@router.post(
+    "/events/cancel",
+    response_model=EventResponse,
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def cancel_event(payload: EndEventSchema) -> EventResponse:
+    """Cancel a scheduled seasonal event."""
+
+    return cancel_scheduled_event(payload.event_id)
 
 
 @router.get("/events/current", response_model=ActiveEventResponse)
@@ -52,4 +79,15 @@ def get_event_history() -> EventHistoryResponse:
     """Return a list of past seasonal events."""
 
     return get_past_events()
+
+
+@router.get(
+    "/events/upcoming",
+    response_model=UpcomingEventsResponse,
+    dependencies=[Depends(require_role(["admin"]))],
+)
+def get_upcoming() -> UpcomingEventsResponse:
+    """Preview upcoming scheduled events."""
+
+    return get_upcoming_events()
 
