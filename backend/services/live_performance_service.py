@@ -11,8 +11,8 @@ from backend.database import DB_PATH
 from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
+from backend.services.setlist_service import get_approved_setlist
 from backend.services import live_performance_analysis
-
 
 def crowd_reaction_stream() -> Generator[float, None, None]:
     """Endless stream of crowd reaction scores between 0 and 1."""
@@ -30,6 +30,13 @@ def simulate_gig(
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
+
+    if isinstance(setlist, int):
+        approved = get_approved_setlist(setlist)
+        if not approved:
+            conn.close()
+            return {"error": "Setlist revision must be approved"}
+        setlist = approved
     # ensure performance_events table exists
     cur.execute(
         """

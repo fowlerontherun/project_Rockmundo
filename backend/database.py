@@ -250,4 +250,16 @@ def init_db():
         )
         """)
 
+        # Setlist revisions for collaborative editing
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS setlist_revisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setlist_id INTEGER NOT NULL,
+            setlist TEXT NOT NULL,
+            author TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            approved INTEGER DEFAULT 0
+        )
+        """)
+
         conn.commit()
