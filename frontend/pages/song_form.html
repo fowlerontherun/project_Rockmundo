@@ -1,5 +1,10 @@
 
 <h2>Create Song</h2>
+<div id="skillInfo">
+  Songwriting Level: <span id="skillLevel">1</span>
+  <progress id="skillXP" value="0" max="100"></progress>
+  <small>Higher levels unlock richer AI drafts.</small>
+</div>
 <form id="songForm">
   <input type="text" name="title" placeholder="Song Title" required />
   <input type="number" name="duration_sec" placeholder="Duration (sec)" required />
@@ -32,6 +37,17 @@
 </form>
 
 <script>
+  function loadSkill() {
+    fetch('/songwriting/skill')
+      .then(r => r.json())
+      .then(s => {
+        document.getElementById('skillLevel').textContent = s.level;
+        document.getElementById('skillXP').value = s.xp % 100;
+      });
+  }
+
+  loadSkill();
+
   fetch('/songwriting/themes')
     .then(r => r.json())
     .then(list => {
@@ -49,5 +65,10 @@
     if (selected.length > 3) {
       selected[0].selected = false;
     }
+  });
+
+  document.getElementById('generateDraft').addEventListener('click', function() {
+    // Draft generation happens elsewhere; refresh skill progress afterwards
+    loadSkill();
   });
 </script>

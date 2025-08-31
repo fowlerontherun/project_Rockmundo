@@ -2,6 +2,8 @@
 from datetime import datetime
 from typing import List, Optional
 
+from backend.models.arrangement import ArrangementTrack
+
 
 class Song:
     def __init__(
@@ -19,6 +21,7 @@ class Song:
         format: str = "digital",
         royalties_split: Optional[dict] = None,
         plagiarism_warning: Optional[str] = None,
+        arrangement: Optional[List[ArrangementTrack]] = None,
     ) -> None:
         self.id = id
         self.title = title
@@ -33,6 +36,10 @@ class Song:
         self.format = format
         self.royalties_split = royalties_split or {owner_band_id: 100}
         self.plagiarism_warning = plagiarism_warning
+        self.arrangement = arrangement or []
 
     def to_dict(self):
-        return self.__dict__
+        data = self.__dict__.copy()
+        if self.arrangement:
+            data["arrangement"] = [a.__dict__ for a in self.arrangement]
+        return data
