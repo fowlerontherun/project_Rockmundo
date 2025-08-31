@@ -1,10 +1,8 @@
-from auth.dependencies import get_current_user_id, require_role
-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 from services.album_service import AlbumService
 
-album_routes = Blueprint('album_routes', __name__)
-album_service = AlbumService(db=None)
+album_routes = Blueprint("album_routes", __name__)
+album_service = AlbumService()
 
 @album_routes.route('/albums', methods=['POST'])
 def create_release():
@@ -18,13 +16,15 @@ def create_release():
 def get_band_releases(band_id):
     return jsonify(album_service.list_releases_by_band(band_id))
 
-@album_routes.route('/albums/<int:release_id>', methods=['PUT'])
+@album_routes.route("/albums/<int:release_id>", methods=["PUT"])
 def update_release(release_id):
     updates = request.json
-    album_service.update_release(release_id, updates)
-    return '', 204
+    result = album_service.update_release(release_id, updates)
+    status = 404 if "error" in result else 200
+    return jsonify(result), status
 
-@album_routes.route('/albums/<int:release_id>/publish', methods=['POST'])
+@album_routes.route("/albums/<int:release_id>/publish", methods=["POST"])
 def publish_release(release_id):
-    album_service.publish_release(release_id)
-    return '', 200
+    result = album_service.publish_release(release_id)
+    status = 404 if "error" in result else 200
+    return jsonify(result), status
