@@ -11,6 +11,16 @@ from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.models.songwriting import LyricDraft
 from backend.models.song_draft_version import SongDraftVersion
 from backend.services.ai_art_service import AIArtService, ai_art_service
+
+from backend.services.originality_service import (
+    OriginalityService,
+    originality_service,
+)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - type checking only
+    from backend.services.legal_service import LegalService
+
 from backend.services.skill_service import SkillService, skill_service as skill_service_instance
 
 
@@ -40,6 +50,13 @@ class SongwritingService:
         self,
         llm_client: Optional[LLMProvider] = None,
         art_service: Optional[AIArtService] = None,
+        originality: Optional[OriginalityService] = None,
+        legal: Optional[LegalService] = None,
+    ) -> None:
+        self.llm = llm_client or EchoLLM()
+        self.art_service = art_service or ai_art_service
+        self.originality = originality or originality_service
+        self.legal = legal
         skill_service: SkillService | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
@@ -52,7 +69,13 @@ class SongwritingService:
         self._counter = 1
 
     async def generate_draft(
-        self, creator_id: int, title: str, genre: str, themes: List[str]
+        self,
+        creator_id: int,
+        title: str,
+        genre: str,
+        themes: List[str],
+        *,
+        register_copyright: bool = False,
     ) -> LyricDraft:
         """Generate lyrics, chords and album art for a song idea."""
 
@@ -80,6 +103,12 @@ class SongwritingService:
         except Exception:
             art_url = None
 
+        record, duplicate = self.originality.register_lyrics(lyrics, self._counter)
+        warning = "possible_plagiarism" if duplicate else None
+        if duplicate and self.legal:
+            # log dispute for record keeping
+            self.legal.create_case(0, creator_id, f"duplicate_lyrics:{record.hash}")
+
         draft = LyricDraft(
             id=self._counter,
             creator_id=creator_id,
@@ -89,6 +118,7 @@ class SongwritingService:
             lyrics=lyrics,
             chord_progression=chord_progression,
             album_art_url=art_url,
+            plagiarism_warning=warning,
             metadata=GenerationMetadata(quality_modifier=quality_mod),
         )
         self._drafts[draft.id] = draft
@@ -104,8 +134,13 @@ class SongwritingService:
             chord_progression=chord_progression,
             album_art_url=art_url,
             owner_band_id=creator_id,
+            plagiarism_warning=warning,
         )
         self._songs[draft.id] = song
+        if register_copyright and self.legal:
+            self.legal.register_copyright(song.id, lyrics)
+
+
         # record initial version
         self.save_version(draft.id, creator_id, lyrics, chords)
         self._counter += 1
