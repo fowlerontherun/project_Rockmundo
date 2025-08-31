@@ -9,6 +9,7 @@ from pydantic import BaseModel, validator
 from backend.auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
 from backend.services.songwriting_service import songwriting_service
+from backend.services.skill_service import skill_service
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 
@@ -68,6 +69,12 @@ def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_c
 @router.get("/themes")
 def list_themes():
     return THEMES
+
+
+@router.get("/skill")
+def get_skill(user_id: int = Depends(get_current_user_id)):
+    skill = skill_service.get_songwriting_skill(user_id)
+    return {"xp": skill.xp, "level": skill.level}
 
 
 # --- WebSocket for collaborative editing --------------------------------------

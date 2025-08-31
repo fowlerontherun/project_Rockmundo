@@ -2,6 +2,7 @@ import asyncio
 import pytest
 
 from backend.services.songwriting_service import SongwritingService
+from backend.services.skill_service import SkillService, SONGWRITING_SKILL
 
 
 class FakeLLM:
@@ -61,6 +62,22 @@ def test_art_fallback_and_chord_default():
         draft = await _generate(svc)
         assert draft.chord_progression == "C G Am F"
         assert draft.album_art_url is None
+
+    asyncio.run(run())
+
+
+def test_xp_gain_and_quality_modifier():
+    async def run():
+        skills = SkillService()
+        skills.train(1, SONGWRITING_SKILL, 400)
+        svc = SongwritingService(
+            llm_client=FakeLLM(), art_service=FakeArt(), skill_service=skills
+        )
+        draft = await _generate(svc)
+        assert draft.metadata.quality_modifier == pytest.approx(1.4)
+        assert skills.get_songwriting_skill(1).xp == 410
+        svc.update_draft(draft.id, 1, lyrics="new lyrics")
+        assert skills.get_songwriting_skill(1).xp == 415
 
     asyncio.run(run())
 
