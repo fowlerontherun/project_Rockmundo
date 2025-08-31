@@ -1,14 +1,14 @@
 
-<h2>Create Album</h2>
+<h2>Create Release</h2>
 <form id="albumForm">
-  <input type="text" name="title" placeholder="Album Title" required />
-  <select name="album_type">
-    <option value="EP">EP (max 4 songs)</option>
-    <option value="LP">LP</option>
-    <option value="Single">Single</option>
+  <input type="text" name="title" placeholder="Title" required />
+  <select name="format">
+    <option value="single">Single</option>
+    <option value="ep">EP (max 4 tracks)</option>
+    <option value="lp">LP</option>
   </select>
   <input type="text" name="genre" placeholder="Genre" required />
-  <label>Select Songs:</label>
+  <label>Select Tracks:</label>
   <div id="songSelector"></div>
   <select name="distribution_channels" multiple>
     <option value="digital">Digital</option>
@@ -16,5 +16,5 @@
     <option value="streaming">Streaming</option>
   </select>
   <input type="file" name="cover_art" />
-  <button type="submit">Create Album</button>
+  <button type="submit">Create Release</button>
 </form>
