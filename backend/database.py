@@ -203,6 +203,25 @@ def init_db():
         CREATE INDEX IF NOT EXISTS ix_ad_events_sponsorship_time ON sponsorship_ad_events(sponsorship_id, occurred_at);
         """)
 
+        # Song popularity tracking
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS song_popularity (
+            song_id INTEGER PRIMARY KEY,
+            score INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(song_id) REFERENCES songs(id)
+        )
+        """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS song_popularity_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song_id INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            boost INTEGER NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(song_id) REFERENCES songs(id)
+        )
+        """)
+
         # Quest definition tables
         cur.execute("""
         CREATE TABLE IF NOT EXISTS quests (
