@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 
 @dataclass
@@ -15,23 +15,16 @@ class GenerationMetadata:
 
 
 @dataclass
-class StylePrompt:
-    """Describes the desired musical style for generation."""
-
-    genre: str
-    mood: Optional[str] = None
-    tempo: Optional[str] = None
-
-
-@dataclass
 class LyricDraft:
-    """A single AI generated lyric draft with optional chords."""
+    """A single AI generated songwriting draft."""
 
     id: int
     creator_id: int
-    prompt: str
-    style: str
+    title: str
+    genre: str
+    themes: List[str]
     lyrics: str
-    chords: Optional[str] = None
+    chord_progression: str
+    album_art_url: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     metadata: GenerationMetadata = field(default_factory=GenerationMetadata)

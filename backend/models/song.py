@@ -1,14 +1,32 @@
 
 from datetime import datetime
+from typing import List, Optional
+
 
 class Song:
-    def __init__(self, id, title, duration_sec, genre_id, lyrics, owner_band_id,
-                 release_date=None, format='digital', royalties_split=None):
+    def __init__(
+        self,
+        id: int,
+        title: str,
+        duration_sec: int,
+        genre_id: Optional[int],
+        lyrics: str,
+        owner_band_id: int,
+        themes: Optional[List[str]] = None,
+        chord_progression: str = "",
+        album_art_url: Optional[str] = None,
+        release_date: Optional[str] = None,
+        format: str = "digital",
+        royalties_split: Optional[dict] = None,
+    ) -> None:
         self.id = id
         self.title = title
         self.duration_sec = duration_sec
         self.genre_id = genre_id
         self.lyrics = lyrics
+        self.themes = themes or []
+        self.chord_progression = chord_progression
+        self.album_art_url = album_art_url
         self.owner_band_id = owner_band_id
         self.release_date = release_date or datetime.utcnow().isoformat()
         self.format = format

@@ -4,7 +4,25 @@
   <input type="text" name="title" placeholder="Song Title" required />
   <input type="number" name="duration_sec" placeholder="Duration (sec)" required />
   <input type="text" name="genre" placeholder="Genre" required />
-  <textarea name="lyrics" placeholder="Lyrics"></textarea>
+
+  <label for="themes">Themes (choose up to 3)</label>
+  <select id="themes" name="themes" multiple></select>
+
+  <button type="button" id="generateDraft">Generate Draft</button>
+
+  <label for="lyrics">Lyrics</label>
+  <textarea id="lyrics" name="lyrics" placeholder="Lyrics"></textarea>
+
+  <label for="chords">Chord Progression</label>
+  <input type="text" id="chords" name="chord_progression" placeholder="C G Am F" />
+
+  <div id="artSection">
+    <label for="albumArt">Album Art</label>
+    <input type="file" id="albumArt" name="album_art" accept="image/*" />
+    <button type="button" id="generateArt">Generate AI Art</button>
+    <img id="artPreview" alt="Album art preview" />
+  </div>
+
   <select name="distribution_channels" multiple>
     <option value="digital">Digital</option>
     <option value="vinyl">Vinyl</option>
@@ -12,3 +30,24 @@
   </select>
   <button type="submit">Create Song</button>
 </form>
+
+<script>
+  fetch('/songwriting/themes')
+    .then(r => r.json())
+    .then(list => {
+      const sel = document.getElementById('themes');
+      list.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+    });
+
+  document.getElementById('themes').addEventListener('change', function() {
+    const selected = Array.from(this.selectedOptions);
+    if (selected.length > 3) {
+      selected[0].selected = false;
+    }
+  });
+</script>
