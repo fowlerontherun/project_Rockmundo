@@ -1,7 +1,7 @@
 """Routes for AI-assisted songwriting features."""
 from __future__ import annotations
 
-from typing import Dict, Set
+from typing import Dict, Set, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
@@ -20,6 +20,7 @@ class PromptPayload(BaseModel):
 class DraftUpdate(BaseModel):
     lyrics: str | None = None
     chords: str | None = None
+    themes: List[str] | None = None
 
 
 @router.post("/prompt")
@@ -38,8 +39,24 @@ def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
 
 @router.put("/drafts/{draft_id}")
 def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_current_user_id)):
-    draft = songwriting_service.update_draft(draft_id, user_id, lyrics=updates.lyrics, chords=updates.chords)
+    draft = songwriting_service.update_draft(
+        draft_id,
+        user_id,
+        lyrics=updates.lyrics,
+        chords=updates.chords,
+        themes=updates.themes,
+    )
     return draft
+
+
+@router.get("/drafts/{draft_id}/versions")
+def list_versions(draft_id: int, user_id: int = Depends(get_current_user_id)):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return songwriting_service.list_versions(draft_id)
 
 
 # --- WebSocket for collaborative editing --------------------------------------
