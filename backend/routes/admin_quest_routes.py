@@ -20,11 +20,14 @@ async def _require_admin(req: Request) -> int:
 async def create_quest(data: dict, req: Request):
     await _require_admin(req)
     try:
-        quest = svc.create_quest(
-            name=data.get("name", "Unnamed"),
-            stages=data.get("stages", []),
-            initial_stage=data.get("initial_stage", ""),
-        )
+        if "nodes" in data and "edges" in data:
+            quest = svc.create_from_graph(data)
+        else:
+            quest = svc.create_quest(
+                name=data.get("name", "Unnamed"),
+                stages=data.get("stages", []),
+                initial_stage=data.get("initial_stage", ""),
+            )
         return quest
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -68,7 +71,17 @@ async def delete_quest(quest_id: int, req: Request):
 async def preview_quest(data: dict, req: Request):
     await _require_admin(req)
     try:
-        svc._validate_branches(data.get("stages", []))
+        preview = svc.preview_graph(data)
+        return preview
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/validate")
+async def validate_quest(data: dict, req: Request):
+    await _require_admin(req)
+    try:
+        svc.validate_graph(data)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"valid": True}

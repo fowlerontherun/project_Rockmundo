@@ -71,6 +71,58 @@ class QuestAdminService:
                     raise ValueError(f"Invalid branch destination: {dest}")
 
     # ------------------------------------------------------------------
+    def _from_graph(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize builder graph payload into quest stages."""
+        nodes = data.get("nodes", [])
+        edges = data.get("edges", [])
+        stages: List[Dict[str, Any]] = []
+        for node in nodes:
+            node_id = node.get("id")
+            ndata = node.get("data", {})
+            branches: Dict[str, str] = {}
+            for edge in edges:
+                if edge.get("source") == node_id:
+                    label = edge.get("label") or edge.get("id") or ""
+                    branches[label] = edge.get("target")
+            stages.append(
+                {
+                    "id": node_id,
+                    "description": ndata.get("description", ""),
+                    "reward": ndata.get("reward"),
+                    "branches": branches,
+                }
+            )
+        return {
+            "name": data.get("name", "Unnamed"),
+            "initial_stage": data.get("initial_stage") or (nodes[0]["id"] if nodes else ""),
+            "stages": stages,
+        }
+
+    # ------------------------------------------------------------------
+    def create_from_graph(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = self._from_graph(data)
+        return self.create_quest(
+            name=payload["name"],
+            stages=payload["stages"],
+            initial_stage=payload["initial_stage"],
+        )
+
+    # ------------------------------------------------------------------
+    def preview_graph(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = self._from_graph(data)
+        self._validate_branches(payload["stages"])
+        return {
+            "name": payload["name"],
+            "initial_stage": payload["initial_stage"],
+            "stages": {s["id"]: s for s in payload["stages"]},
+        }
+
+    # ------------------------------------------------------------------
+    def validate_graph(self, data: Dict[str, Any]) -> None:
+        payload = self._from_graph(data)
+        self._validate_branches(payload["stages"])
+
+    # ------------------------------------------------------------------
     def create_quest(self, name: str, stages: List[Dict[str, Any]], initial_stage: str) -> Dict[str, Any]:
         self._validate_branches(stages)
         with sqlite3.connect(self.db_path) as conn:
