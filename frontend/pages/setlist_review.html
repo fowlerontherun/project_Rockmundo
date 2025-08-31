@@ -1,0 +1,40 @@
+<h2>Setlist Review</h2>
+
+<input type="number" id="performanceId" placeholder="Performance ID" />
+<button id="loadBtn">Load Summary</button>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>Action</th>
+      <th>Crowd Reaction</th>
+      <th>Fame Modifier</th>
+    </tr>
+  </thead>
+  <tbody id="summaryBody"></tbody>
+</table>
+
+<div id="suggestion"></div>
+
+<script>
+document.getElementById('loadBtn').onclick = async () => {
+  const id = document.getElementById('performanceId').value;
+  if (!id) return;
+  const res = await fetch(`/analysis/setlist/${id}`);
+  const data = await res.json();
+  const body = document.getElementById('summaryBody');
+  body.innerHTML = '';
+  data.actions.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${a.action}</td><td>${a.crowd_reaction.toFixed(2)}</td><td>${a.fame_modifier}</td>`;
+    body.appendChild(tr);
+  });
+  const suggestion = document.getElementById('suggestion');
+  if (data.average_reaction < 0.5) {
+    suggestion.textContent = 'Consider adding more engaging songs earlier in the set.';
+  } else {
+    suggestion.textContent = 'Crowd engagement was strong. Keep up the good work!';
+  }
+};
+</script>
+

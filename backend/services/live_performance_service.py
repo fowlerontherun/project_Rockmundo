@@ -3,6 +3,8 @@ import sqlite3
 import json
 from datetime import datetime
 
+from typing import Generator, Iterable, Optional
+
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
@@ -10,11 +12,24 @@ from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
+from backend.services import live_performance_analysis
+
+def crowd_reaction_stream() -> Generator[float, None, None]:
+    """Endless stream of crowd reaction scores between 0 and 1."""
+    while True:
+        yield random.uniform(0.0, 1.0)
 
 
-def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
+def simulate_gig(
+    band_id: int,
+    city: str,
+    venue: str,
+    setlist,
+    reaction_stream: Optional[Iterable[float]] = None,
+) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
+
 
     if isinstance(setlist, int):
         approved = get_approved_setlist(setlist)
@@ -22,6 +37,19 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
             conn.close()
             return {"error": "Setlist revision must be approved"}
         setlist = approved
+    # ensure performance_events table exists
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS performance_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            action TEXT,
+            crowd_reaction REAL,
+            fame_modifier INTEGER,
+            created_at TEXT
+        )
+        """
+    )
 
     # Get band fame
     cur.execute("SELECT fame FROM bands WHERE id = ?", (band_id,))
@@ -38,6 +66,10 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
 
     fame_bonus = 0
     skill_gain = 0.0
+    event_log = []
+    recent_reactions: list[float] = []
+
+    stream = iter(reaction_stream) if reaction_stream is not None else crowd_reaction_stream()
 
     main_actions: list = []
     encore_actions: list = []
@@ -53,6 +85,8 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
 
     for action in main_actions + encore_actions:
         a_type = action.get("type")
+        action_bonus = 0
+        fame_modifier = 0
         if a_type == "song" or a_type == "encore":
             skill_gain += 0.3
 
@@ -73,12 +107,31 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
                             (2 if owner_band == band_id else 1, song_id),
                         )
 
-            fame_bonus += song_bonus
+            action_bonus += song_bonus
         elif a_type == "activity":
             skill_gain += 0.1
-            fame_bonus += 1
+            action_bonus += 1
         if action.get("encore") or a_type == "encore":
-            fame_bonus += 3
+            action_bonus += 3
+
+        if recent_reactions:
+            avg_recent = sum(recent_reactions[-3:]) / len(recent_reactions[-3:])
+            if avg_recent > 0.7:
+                fame_modifier = 1
+            elif avg_recent < 0.3:
+                fame_modifier = -1
+
+        fame_bonus += action_bonus + fame_modifier
+
+        reaction = next(stream)
+        recent_reactions.append(reaction)
+        event_log.append(
+            {
+                "action": a_type,
+                "crowd_reaction": reaction,
+                "fame_modifier": fame_modifier,
+            }
+        )
 
     fame_earned = crowd_size // 10 + fame_bonus
     revenue_earned = crowd_size * 5
@@ -109,6 +162,34 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
             merch_sold,
         ),
     )
+    performance_record_id = cur.lastrowid
+
+    for event in event_log:
+        cur.execute(
+            """
+            INSERT INTO performance_events (
+                performance_id, action, crowd_reaction, fame_modifier, created_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                performance_record_id,
+                event["action"],
+                event["crowd_reaction"],
+                event["fame_modifier"],
+                datetime.utcnow().isoformat(),
+            ),
+        )
+
+    conn.commit()
+
+    summary = {
+        "performance_id": performance_record_id,
+        "actions": event_log,
+        "average_reaction": sum(r["crowd_reaction"] for r in event_log) / len(event_log)
+        if event_log
+        else 0,
+    }
+    live_performance_analysis.store_setlist_summary(summary)
 
     # Update band stats
     cur.execute("UPDATE bands SET fame = fame + ? WHERE id = ?", (fame_earned, band_id))
@@ -127,7 +208,7 @@ def simulate_gig(band_id: int, city: str, venue: str, setlist) -> dict:
         "fame_earned": fame_earned,
         "revenue_earned": revenue_earned,
         "skill_gain": applied_skill,
-        "merch_sold": merch_sold
+        "merch_sold": merch_sold,
     }
 
 
