@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
 from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
 from backend.services import song_popularity_service
+from backend.services.song_popularity_forecast import forecast_service
 from backend.services.music_metrics import MusicMetricsService
 from backend.services.social_sentiment_service import social_sentiment_service
 
@@ -39,10 +40,15 @@ def get_song_popularity(
         "breakdown": song_popularity_service.get_breakdown(song_id),
     }
 
-
 @router.get("/songs/{song_id}/sentiment")
 def get_song_sentiment(song_id: int):
     """Return sentiment analytics for a song."""
     history = social_sentiment_service.history(song_id)
     current = history[-1]["sentiment"] if history else 0.0
     return {"song_id": song_id, "current_sentiment": current, "history": history}
+@router.get("/songs/{song_id}/forecast")
+def get_song_forecast(song_id: int):
+    data = forecast_service.get_forecast(song_id)
+    if not data:
+        data = forecast_service.forecast_song(song_id)
+    return {"song_id": song_id, "forecast": data}

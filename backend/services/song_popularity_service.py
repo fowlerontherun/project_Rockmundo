@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from backend.database import DB_PATH
+from backend.services.song_popularity_forecast import forecast_service
 
 # Popularity decays by this factor every day
 DECAY_FACTOR = 0.95
@@ -87,6 +88,11 @@ class SongPopularityService:
                 (song_id, region_code, platform, new_score, now),
             )
             conn.commit()
+            # Recompute forecasts whenever a popularity event occurs
+            try:
+                forecast_service.forecast_song(song_id)
+            except Exception:
+                pass
             return {
                 "song_id": song_id,
                 "region_code": region_code,
@@ -180,6 +186,10 @@ def add_event(
             (song_id, region_code, platform, source, amount, now),
         )
         conn.commit()
+        try:
+            forecast_service.forecast_song(song_id)
+        except Exception:
+            pass
         return new_score
 
 
