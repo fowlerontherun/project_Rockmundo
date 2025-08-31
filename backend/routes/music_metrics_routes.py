@@ -17,8 +17,11 @@ def get_totals(album_id: Optional[int] = None, song_id: Optional[int] = None):
 
 @router.get("/songs/{song_id}/popularity")
 def get_song_popularity(song_id: int):
-    """Return popularity history for a song."""
+    """Return popularity analytics for a song."""
     return {
         "song_id": song_id,
+        "current_popularity": song_popularity_service.get_current_popularity(song_id),
+        "half_life_days": song_popularity_service.HALF_LIFE_DAYS,
+        "last_boost_source": song_popularity_service.get_last_boost_source(song_id),
         "history": song_popularity_service.get_history(song_id),
     }
