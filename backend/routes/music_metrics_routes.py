@@ -3,6 +3,7 @@ from typing import Optional
 
 from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
 from backend.services.music_metrics import MusicMetricsService
+from backend.services import song_popularity_service
 from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
 router = APIRouter(prefix="/music/metrics", tags=["Music Metrics"])
@@ -12,3 +13,12 @@ svc = MusicMetricsService()
 @router.get("/totals")
 def get_totals(album_id: Optional[int] = None, song_id: Optional[int] = None):
     return svc.totals(album_id=album_id, song_id=song_id)
+
+
+@router.get("/songs/{song_id}/popularity")
+def get_song_popularity(song_id: int):
+    """Return popularity history for a song."""
+    return {
+        "song_id": song_id,
+        "history": song_popularity_service.get_history(song_id),
+    }

@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 from backend.database import DB_PATH
+from backend.services.song_popularity_service import add_event
 
 
 def stream_song(user_id: int, song_id: int) -> dict:
@@ -37,6 +38,9 @@ def stream_song(user_id: int, song_id: int) -> dict:
 
     conn.commit()
     conn.close()
+
+    # Boost popularity for the streamed song
+    add_event(song_id, 1.0, "stream")
 
     return {"status": "ok", "revenue": round(revenue, 4)}
 

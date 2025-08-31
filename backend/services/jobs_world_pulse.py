@@ -329,6 +329,14 @@ class WorldPulseService:
         return None
 
     def run_all(self, date: str) -> Dict[str, Any]:
+        # Apply daily decay to song popularity scores before computing pulses
+        try:
+            from backend.services.song_popularity_service import apply_decay
+
+            apply_decay()
+        except Exception:
+            pass
+
         res = {"daily": self.run_daily(date)}
         wk = self.run_weekly_if_sunday(date)
         if wk: res["weekly"] = wk
