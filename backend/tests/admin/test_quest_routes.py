@@ -2,7 +2,13 @@ import asyncio
 import pytest
 from fastapi import HTTPException, Request
 
-from backend.routes.admin_quest_routes import create_quest, update_stage, svc
+from backend.routes.admin_quest_routes import (
+    create_quest,
+    update_stage,
+    preview_quest,
+    validate_quest,
+    svc,
+)
 
 
 def sample_payload():
@@ -60,3 +66,36 @@ def test_admin_quest_create_and_update(monkeypatch):
     assert updated["description"] == "New start"
     stored = svc.get_quest(quest_id)
     assert stored["stages"]["start"]["description"] == "New start"
+
+
+def graph_payload():
+    return {
+        "name": "Graph Quest",
+        "initial_stage": "start",
+        "nodes": [
+            {"id": "start", "data": {"description": "Start"}},
+            {"id": "fight", "data": {"description": "Fight"}},
+        ],
+        "edges": [{"source": "start", "target": "fight", "label": "go"}],
+    }
+
+
+def test_preview_and_validate_graph(monkeypatch):
+    async def fake_current_user(req):
+        return 1
+
+    async def fake_require_role(roles, user_id):
+        return True
+
+    monkeypatch.setattr(
+        "backend.routes.admin_quest_routes.get_current_user_id", fake_current_user
+    )
+    monkeypatch.setattr(
+        "backend.routes.admin_quest_routes.require_role", fake_require_role
+    )
+
+    req = Request({})
+    preview = asyncio.run(preview_quest(graph_payload(), req))
+    assert preview["stages"]["start"]["branches"]["go"] == "fight"
+    result = asyncio.run(validate_quest(graph_payload(), req))
+    assert result == {"valid": True}
