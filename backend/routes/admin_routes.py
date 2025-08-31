@@ -16,6 +16,7 @@ from .admin_npc_dialogue_routes import router as npc_dialogue_router
 from .admin_npc_routes import router as npc_router
 from .admin_quest_routes import router as quest_router
 from .admin_schema_routes import router as schema_router
+from .admin_song_popularity_routes import router as song_popularity_router
 from .admin_venue_routes import router as venue_router
 from .admin_xp_event_routes import router as xp_event_router
 from .admin_xp_routes import router as xp_router
@@ -36,6 +37,7 @@ router.include_router(npc_router)
 router.include_router(npc_dialogue_router)
 router.include_router(quest_router)
 router.include_router(schema_router)
+router.include_router(song_popularity_router)
 router.include_router(item_router)
 router.include_router(venue_router)
 router.include_router(music_router)
