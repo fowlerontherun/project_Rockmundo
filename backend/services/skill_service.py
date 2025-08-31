@@ -19,6 +19,9 @@ from backend.models.xp_config import get_config
 from backend.services.xp_event_service import XPEventService
 
 
+SONGWRITING_SKILL = Skill(id=4, name="songwriting", category="creative")
+
+
 class SkillService:
     """Track and mutate skill progression for users."""
 
@@ -115,8 +118,21 @@ class SkillService:
         for (uid, sid) in list(self._skills.keys()):
             self.apply_decay(uid, sid, amount)
 
+    # ------------------------------------------------------------------
+    # Songwriting helpers
+    def get_songwriting_skill(self, user_id: int) -> Skill:
+        """Return the songwriting skill instance for the user."""
+
+        return self._get_skill(user_id, SONGWRITING_SKILL)
+
+    def add_songwriting_xp(self, user_id: int, revised: bool = False) -> Skill:
+        """Award XP for songwriting actions."""
+
+        base = 5 if revised else 10
+        return self.train(user_id, SONGWRITING_SKILL, base)
+
 
 skill_service = SkillService()
 
-__all__ = ["SkillService", "skill_service"]
+__all__ = ["SkillService", "skill_service", "SONGWRITING_SKILL"]
 
