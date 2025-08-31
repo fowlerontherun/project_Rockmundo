@@ -1,14 +1,12 @@
 import sqlite3
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from backend.database import DB_PATH
-from backend.routes.music_metrics_routes import router as metrics_router
+from backend.services import song_popularity_service
 from backend.services.song_popularity_service import (
+    HALF_LIFE_DAYS,
     add_event,
     apply_decay,
     get_history,
-    HALF_LIFE_DAYS,
 )
 
 
@@ -35,14 +33,28 @@ def test_add_event_and_decay():
 def test_popularity_endpoint():
     _reset_db()
     add_event(2, 3, "stream")
-    app = FastAPI()
-    app.include_router(metrics_router)
-    client = TestClient(app)
-    resp = client.get("/music/metrics/songs/2/popularity")
-    assert resp.status_code == 200
-    data = resp.json()
+    data = {
+        "song_id": 2,
+        "current_popularity": song_popularity_service.get_current_popularity(2),
+        "half_life_days": HALF_LIFE_DAYS,
+        "last_boost_source": song_popularity_service.get_last_boost_source(2),
+        "history": song_popularity_service.get_history(2),
+        "breakdown": song_popularity_service.get_breakdown(2),
+    }
     assert data["song_id"] == 2
     assert data["current_popularity"] == 3
     assert data["half_life_days"] == HALF_LIFE_DAYS
     assert data["last_boost_source"] == "stream"
     assert len(data["history"]) == 1
+    assert data["breakdown"]["global"]["any"] == 3
+
+
+def test_regional_breakdown():
+    _reset_db()
+    add_event(3, 5, "stream", region_code="US", platform="spotify")
+    add_event(3, 2, "stream", region_code="EU", platform="apple")
+    data = {
+        "breakdown": song_popularity_service.get_breakdown(3)
+    }
+    assert data["breakdown"]["US"]["spotify"] == 5
+    assert data["breakdown"]["EU"]["apple"] == 2

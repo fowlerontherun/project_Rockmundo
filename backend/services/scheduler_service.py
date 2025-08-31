@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 from backend.database import DB_PATH
-from backend.services import chart_service, fan_service
+from backend.services import chart_service, fan_service, song_popularity_service
 from backend.services.skill_service import skill_service
 
 # Map event_type to handler functions
@@ -11,6 +11,7 @@ EVENT_HANDLERS = {
     "fan_decay": fan_service.decay_fan_loyalty,
     "weekly_charts": chart_service.calculate_weekly_chart,
     "skill_decay": skill_service.decay_all,
+    "aggregate_global_popularity": song_popularity_service.aggregate_global_popularity,
     # Add more event handlers here as needed
 }
 
