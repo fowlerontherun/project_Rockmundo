@@ -18,6 +18,11 @@ def create_song():
 def get_band_songs(band_id):
     return jsonify(song_service.list_songs_by_band(band_id))
 
+
+@song_routes.route('/songs/<int:song_id>/covers', methods=['GET'])
+def get_song_covers(song_id):
+    return jsonify(song_service.list_covers_of_song(song_id))
+
 @song_routes.route('/songs/<int:song_id>', methods=['PUT'])
 def update_song(song_id):
     updates = request.json
