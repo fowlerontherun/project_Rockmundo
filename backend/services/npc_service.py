@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import random
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from backend.models.npc import NPC
+from backend.models.npc_dialogue import DialogueTree
 
 
 class _InMemoryNPCDB:
@@ -85,6 +86,26 @@ class NPCService:
 
     def delete_npc(self, npc_id: int) -> bool:
         return self.db.delete(npc_id)
+
+    # ---- Dialogue --------------------------------------------------------
+    def edit_dialogue(self, npc_id: int, dialogue: Dict) -> Optional[Dict]:
+        """Replace the dialogue tree for ``npc_id`` with ``dialogue``."""
+
+        npc = self.db.get(npc_id)
+        if not npc:
+            return None
+        tree = DialogueTree(**dialogue)
+        npc.dialogue_hooks = tree.dict()
+        return npc.dialogue_hooks
+
+    def preview_dialogue(self, npc_id: int, choices: List[int]) -> Optional[List[str]]:
+        """Traverse the dialogue tree following ``choices`` and return lines."""
+
+        npc = self.db.get(npc_id)
+        if not npc or not npc.dialogue_hooks:
+            return None
+        tree = DialogueTree(**npc.dialogue_hooks)
+        return tree.traverse(choices)
 
     # ---- Simulation ------------------------------------------------------
     def preview_npc(

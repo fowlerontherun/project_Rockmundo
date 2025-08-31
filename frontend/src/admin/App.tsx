@@ -1,6 +1,8 @@
 import React from 'react';
 
 import Sidebar from './components/Sidebar';
+import NPCForm from './components/NPCForm';
+import DialogueEditor from './npcs/DialogueEditor';
 import { AuditTable } from './audit';
 import { MonitoringWidget } from './monitoring';
 import { PluginManager } from './modding';
@@ -18,7 +20,11 @@ const App: React.FC = () => {
     </>
   );
 
-  if (path.includes('/admin/audit')) {
+  if (path.includes('/admin/npcs/dialogue')) {
+    content = <DialogueEditor />;
+  } else if (path.includes('/admin/npcs')) {
+    content = <NPCForm />;
+  } else if (path.includes('/admin/audit')) {
     content = <AuditTable />;
   } else if (path.includes('/admin/xp-events')) {
     content = <XPEventForm />;
