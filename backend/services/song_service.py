@@ -32,6 +32,8 @@ class SongService:
         genre = data["genre"]
         royalties_split = data.get("royalties_split", {band_id: 100})
         original_song_id = data.get("original_song_id")
+        license_fee = data.get("license_fee", 0)
+        royalty_rate = data.get("royalty_rate", 0.0)
 
         if sum(royalties_split.values()) != 100:
             raise ValueError("Royalties must sum to 100%")
@@ -41,10 +43,10 @@ class SongService:
 
         cur.execute(
             """
-            INSERT INTO songs (band_id, title, duration_sec, genre, play_count, original_song_id)
-            VALUES (?, ?, ?, ?, 0, ?)
+            INSERT INTO songs (band_id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate)
+            VALUES (?, ?, ?, ?, 0, ?, ?, ?)
             """,
-            (band_id, title, duration_sec, genre, original_song_id),
+            (band_id, title, duration_sec, genre, original_song_id, license_fee, royalty_rate),
         )
         song_id = cur.lastrowid
 
@@ -63,7 +65,7 @@ class SongService:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, title, duration_sec, genre, play_count, original_song_id
+            SELECT id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate
             FROM songs
             WHERE band_id = ?
             ORDER BY id DESC
@@ -75,7 +77,7 @@ class SongService:
         return [
             dict(
                 zip(
-                    ["song_id", "title", "duration", "genre", "plays", "original_song_id"],
+                    ["song_id", "title", "duration", "genre", "plays", "original_song_id", "license_fee", "royalty_rate"],
                     row,
                 )
             )
@@ -115,3 +117,67 @@ class SongService:
         conn.commit()
         conn.close()
         return {"status": "ok", "message": "Song deleted"}
+
+    # ------------------------------------------------------------------
+    # Cover licensing and royalties
+    # ------------------------------------------------------------------
+    def has_active_license(self, song_id: int, band_id: int) -> bool:
+        """Check if a band has an active license for a song."""
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT 1 FROM cover_royalties
+            WHERE song_id = ? AND cover_band_id = ? AND license_proof_url IS NOT NULL
+            LIMIT 1
+            """,
+            (song_id, band_id),
+        )
+        row = cur.fetchone()
+        conn.close()
+        return row is not None
+
+    def purchase_cover_license(self, song_id: int, band_id: int, proof_url: str) -> Dict:
+        """Record payment of the cover license fee and store proof."""
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        cur.execute("SELECT license_fee FROM songs WHERE id = ?", (song_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            raise ValueError("Song not found")
+        fee = row[0]
+        cur.execute(
+            """
+            INSERT INTO cover_royalties (song_id, cover_band_id, amount_owed, amount_paid, license_proof_url)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (song_id, band_id, fee, fee, proof_url),
+        )
+        conn.commit()
+        conn.close()
+        return {"status": "ok", "license_fee": fee}
+
+    def record_cover_usage(self, song_id: int, band_id: int, revenue_cents: int = 0) -> Dict:
+        """Record a cover performance or recording and calculate royalties owed."""
+        if not self.has_active_license(song_id, band_id):
+            raise PermissionError("No active license for this cover")
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        cur.execute("SELECT royalty_rate FROM songs WHERE id = ?", (song_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            raise ValueError("Song not found")
+        rate = row[0]
+        owed = int(revenue_cents * rate)
+        cur.execute(
+            """
+            INSERT INTO cover_royalties (song_id, cover_band_id, amount_owed, amount_paid)
+            VALUES (?, ?, ?, 0)
+            """,
+            (song_id, band_id, owed),
+        )
+        conn.commit()
+        conn.close()
+        return {"status": "ok", "amount_owed": owed}
