@@ -8,6 +8,7 @@ import { MonitoringWidget } from './monitoring';
 import { PluginManager } from './modding';
 import XPEventForm from './components/XPEventForm';
 import XPItemForm from './components/XPItemForm';
+import { EventsCalendar } from './events';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -32,6 +33,8 @@ const App: React.FC = () => {
     content = <XPItemForm />;
   } else if (path.includes('/admin/modding')) {
     content = <PluginManager />;
+  } else if (path.includes('/admin/events')) {
+    content = <EventsCalendar />;
   }
 
   return (
