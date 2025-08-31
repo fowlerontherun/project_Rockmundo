@@ -206,8 +206,12 @@ def init_db():
         # Song popularity tracking
         cur.execute("""
         CREATE TABLE IF NOT EXISTS song_popularity (
-            song_id INTEGER PRIMARY KEY,
-            score INTEGER NOT NULL DEFAULT 0,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song_id INTEGER NOT NULL,
+            region_code TEXT NOT NULL DEFAULT 'global',
+            platform TEXT NOT NULL DEFAULT 'any',
+            popularity_score REAL NOT NULL,
+            updated_at TEXT NOT NULL,
             FOREIGN KEY(song_id) REFERENCES songs(id)
         )
         """)
@@ -215,6 +219,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS song_popularity_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             song_id INTEGER NOT NULL,
+            region_code TEXT NOT NULL DEFAULT 'global',
+            platform TEXT NOT NULL DEFAULT 'any',
             source TEXT NOT NULL,
             boost INTEGER NOT NULL,
             created_at TEXT DEFAULT (datetime('now')),
