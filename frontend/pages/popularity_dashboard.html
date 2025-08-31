@@ -9,10 +9,13 @@
 <div>
   Current Popularity: <span id="currentPopularity">-</span><br />
   Half-life (days): <span id="halfLife">-</span><br />
-  Last Boost Source: <span id="lastBoost">-</span>
+  Last Boost Source: <span id="lastBoost">-</span><br />
+  Current Sentiment: <span id="currentSentiment">-</span>
 </div>
 
 <ul id="popularityHistory"></ul>
+<h3>Sentiment History</h3>
+<ul id="sentimentHistory"></ul>
 <h3>Forecast</h3>
 <ul id="forecast"></ul>
 
@@ -31,6 +34,19 @@ async function loadPopularity() {
     li.innerText = `${point.updated_at}: ${point.popularity_score}`;
     list.appendChild(li);
   });
+
+  const sRes = await fetch(`/music/metrics/songs/${id}/sentiment`);
+  const sData = await sRes.json();
+  document.getElementById('currentSentiment').innerText = sData.current_sentiment.toFixed(2);
+  const sList = document.getElementById('sentimentHistory');
+  sList.innerHTML = '';
+  sData.history.forEach(point => {
+    const li = document.createElement('li');
+    li.innerText = `${point.captured_at}: ${point.sentiment}`;
+    sList.appendChild(li);
+  });
+  // Hooks for custom chart rendering if available
+=======
   const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
   const fData = await fRes.json();
   const fList = document.getElementById('forecast');
@@ -43,6 +59,9 @@ async function loadPopularity() {
   // Hook for custom chart rendering if available
   if (window.renderPopularityChart) {
     window.renderPopularityChart(data.history);
+  }
+  if (window.renderSentimentChart) {
+    window.renderSentimentChart(sData.history);
   }
 }
 </script>
