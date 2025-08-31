@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal
 
 from auth.dependencies import get_current_user_id, require_role
-
 from fastapi import APIRouter, Request
+
 from pydantic import BaseModel
 
 
@@ -54,6 +54,12 @@ class XPItemSchema(BaseModel):
     duration: int
 
 
+class ItemSchema(BaseModel):
+    name: str
+    category: str
+    stats: Dict[str, float] = {}
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -96,3 +102,9 @@ async def xp_event_schema(req: Request) -> Dict[str, Any]:
 async def xp_item_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return XPItemSchema.model_json_schema()
+
+
+@router.get("/item")
+async def item_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return ItemSchema.model_json_schema()
