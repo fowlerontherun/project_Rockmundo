@@ -1,17 +1,84 @@
-
 <h2>Live Gig Simulator</h2>
 
 <form id="gigForm">
   <input type="text" name="band_id" placeholder="Band ID" required />
   <input type="text" name="city" placeholder="City" required />
   <input type="text" name="venue" placeholder="Venue" required />
-  <input type="text" name="setlist" placeholder="Song IDs (comma-separated)" required />
+
+  <div id="setlistSection">
+    <h3>Setlist</h3>
+    <ul id="setlist"></ul>
+    <button type="button" id="addSong">Add Song</button>
+    <button type="button" id="addActivity">Add Activity</button>
+  </div>
+
   <button type="submit">Simulate Gig</button>
 </form>
 
 <pre id="resultBox"></pre>
 
 <script>
+const actions = [];
+
+function renderSetlist() {
+  const list = document.getElementById('setlist');
+  list.innerHTML = '';
+  actions.forEach((a, idx) => {
+    const li = document.createElement('li');
+    li.textContent = `${a.type}: ${a.reference || a.description || ''}`;
+    if (a.encore) li.textContent += ' (Encore)';
+
+    const up = document.createElement('button');
+    up.textContent = '↑';
+    up.type = 'button';
+    up.onclick = () => {
+      if (idx > 0) {
+        [actions[idx - 1], actions[idx]] = [actions[idx], actions[idx - 1]];
+        renderSetlist();
+      }
+    };
+
+    const down = document.createElement('button');
+    down.textContent = '↓';
+    down.type = 'button';
+    down.onclick = () => {
+      if (idx < actions.length - 1) {
+        [actions[idx + 1], actions[idx]] = [actions[idx], actions[idx + 1]];
+        renderSetlist();
+      }
+    };
+
+    const encore = document.createElement('input');
+    encore.type = 'checkbox';
+    encore.checked = a.encore;
+    encore.onchange = (e) => { a.encore = e.target.checked; };
+    const label = document.createElement('label');
+    label.appendChild(encore);
+    label.appendChild(document.createTextNode('Encore'));
+
+    li.appendChild(up);
+    li.appendChild(down);
+    li.appendChild(label);
+    list.appendChild(li);
+  });
+}
+
+document.getElementById('addSong').addEventListener('click', () => {
+  const ref = prompt('Song ID or name?');
+  if (ref) {
+    actions.push({ type: 'song', reference: ref, encore: false });
+    renderSetlist();
+  }
+});
+
+document.getElementById('addActivity').addEventListener('click', () => {
+  const desc = prompt('Activity description?');
+  if (desc) {
+    actions.push({ type: 'activity', description: desc, encore: false });
+    renderSetlist();
+  }
+});
+
 document.getElementById('gigForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
@@ -19,7 +86,7 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
     band_id: parseInt(formData.get('band_id')),
     city: formData.get('city'),
     venue: formData.get('venue'),
-    setlist: formData.get('setlist').split(',').map(s => parseInt(s.trim()))
+    setlist: actions.map((a, i) => ({ ...a, position: i + 1 }))
   };
 
   const res = await fetch('/gigs/simulate', {
@@ -31,4 +98,7 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
   const data = await res.json();
   document.getElementById('resultBox').innerText = JSON.stringify(data, null, 2);
 });
+
+renderSetlist();
 </script>
+
