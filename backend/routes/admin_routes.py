@@ -12,6 +12,7 @@ from .admin_media_moderation_routes import router as media_router
 from .admin_modding_routes import router as modding_router
 from .admin_monitoring_routes import router as monitoring_router
 from .admin_music_routes import router as music_router
+from .admin_name_routes import router as name_router
 from .admin_npc_dialogue_routes import router as npc_dialogue_router
 from .admin_npc_routes import router as npc_router
 from .admin_quest_routes import router as quest_router
@@ -41,4 +42,5 @@ router.include_router(song_popularity_router)
 router.include_router(item_router)
 router.include_router(venue_router)
 router.include_router(music_router)
+router.include_router(name_router)
 
