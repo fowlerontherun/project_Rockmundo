@@ -1,6 +1,7 @@
 """Service layer for managing jam sessions and economy hooks."""
 from __future__ import annotations
 
+import logging
 import sqlite3
 from pathlib import Path
 from typing import Dict, Optional, Set
@@ -13,6 +14,8 @@ PREMIUM_STREAM_CENTS = 25
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
+logger = logging.getLogger(__name__)
+
 
 class JamService:
     """Jam session management backed by SQLite for persistence."""
@@ -21,8 +24,9 @@ class JamService:
         self.economy = economy or EconomyService()
         try:
             self.economy.ensure_schema()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Failed to ensure economy schema")
+            raise RuntimeError("failed to ensure economy schema") from exc
         self.db_path = str(db_path or DB_PATH)
         self.ensure_schema()
         self.invites: Dict[str, Set[int]] = {}

@@ -57,7 +57,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jam", tags=["realtime"])
 
 # Shared service instance
-jam_service = JamService()
+try:
+    jam_service = JamService()
+except RuntimeError:
+    logger.exception("JamService initialization failed")
+    jam_service = None
 
 
 class _Subscriber:
@@ -103,6 +107,8 @@ hub = JamSessionHub()
 @router.websocket("/ws/{session_id}")
 async def jam_ws(ws: WebSocket, session_id: str, user_id: int = Depends(get_current_user_id_dep)) -> None:
     await ws.accept()
+    if jam_service is None:  # pragma: no cover - init failure
+        raise RuntimeError("JamService unavailable")
     sub = _Subscriber()
     await hub.subscribe(session_id, user_id, sub)
 
