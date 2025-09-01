@@ -14,20 +14,42 @@ onMounted(async () => {
   const data = await resp.json()
   const breakdown = data.breakdown || {}
   const labels: string[] = []
-  const values: number[] = []
-  for (const [region, platforms] of Object.entries(breakdown)) {
-    const total = Object.values(platforms as Record<string, number>)
-      .map(v => Number(v))
-      .reduce((a, b) => a + b, 0)
-    labels.push(region)
-    values.push(total)
+  const platformSet = new Set<string>()
+
+  // Collect all platforms across regions
+  for (const platformData of Object.values(breakdown) as Record<string, number>[]) {
+    for (const name of Object.keys(platformData || {})) {
+      platformSet.add(name)
+    }
   }
+  const platforms = Array.from(platformSet)
+  const datasetMap: Record<string, number[]> = {}
+  platforms.forEach(p => (datasetMap[p] = []))
+
+  // Populate data per region while handling missing platform values
+  for (const [region, regionPlatforms] of Object.entries(breakdown)) {
+    labels.push(region)
+    const rec = regionPlatforms as Record<string, number> | undefined
+    platforms.forEach(p => {
+      const value = Number(rec?.[p] ?? 0)
+      datasetMap[p].push(value)
+    })
+  }
+
+  const datasets = platforms.map(p => ({ label: p, data: datasetMap[p] }))
+
   if (canvas.value) {
     new Chart(canvas.value, {
       type: 'bar',
       data: {
         labels,
-        datasets: [{ label: 'Popularity', data: values }],
+        datasets,
+      },
+      options: {
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true },
+        },
       },
     })
   }
