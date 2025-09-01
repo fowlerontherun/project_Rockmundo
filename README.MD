@@ -91,6 +91,7 @@ This document outlines the current state of implemented features, the roadmap fo
 - Advanced NPC simulation with seasonal and random events.
 - Community-driven festivals and genre trends.
 - Player-submitted cosmetic moderation workflows.
+- Daily game loop with login streaks, rotating challenges, weekly item drops, and tiered rewards (see docs/daily_game_loop.md).
 
 ---
 
