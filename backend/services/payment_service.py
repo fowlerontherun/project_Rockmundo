@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Type
+from uuid import uuid4
 
 from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
-
 from backend.services.economy_service import EconomyService
 
 
@@ -28,9 +28,59 @@ class PaymentGateway:
         raise NotImplementedError
 
 
+@dataclass
+class StripeGateway(PaymentGateway):
+    """Mock Stripe integration used for testing payment flows."""
+
+    succeed: bool = True
+    counter: int = 0
+    payments: Dict[str, bool] = field(default_factory=dict)
+
+    def create_payment(self, amount_cents: int, currency: str) -> str:
+        self.counter += 1
+        payment_id = f"stripe_{uuid4().hex}_{self.counter}"
+        # store expected result for verification
+        self.payments[payment_id] = self.succeed
+        return payment_id
+
+    def verify_payment(self, payment_id: str) -> bool:
+        return self.payments.get(payment_id, False)
+
+
+@dataclass
+class PayPalGateway(PaymentGateway):
+    """Mock PayPal integration used for testing payment flows."""
+
+    succeed: bool = True
+    counter: int = 0
+    payments: Dict[str, bool] = field(default_factory=dict)
+
+    def create_payment(self, amount_cents: int, currency: str) -> str:
+        self.counter += 1
+        payment_id = f"paypal_{uuid4().hex}_{self.counter}"
+        self.payments[payment_id] = self.succeed
+        return payment_id
+
+    def verify_payment(self, payment_id: str) -> bool:
+        return self.payments.get(payment_id, False)
+
+
 class PaymentService:
-    def __init__(self, gateway: PaymentGateway, economy_service: EconomyService,
-                 premium_currency: Optional[PremiumCurrency] = None):
+    """Main entry point for handling payment operations."""
+
+    # registry of available gateways for simple configuration
+    gateway_registry: Dict[str, Type[PaymentGateway]] = {
+        "stripe": StripeGateway,
+        "paypal": PayPalGateway,
+    }
+
+    def __init__(self, gateway: Optional[PaymentGateway], economy_service: EconomyService,
+                 premium_currency: Optional[PremiumCurrency] = None, gateway_name: str = "stripe"):
+        if gateway is None:
+            gateway_cls = self.gateway_registry.get(gateway_name.lower())
+            if not gateway_cls:
+                raise ValueError(f"Unsupported gateway: {gateway_name}")
+            gateway = gateway_cls()
         self.gateway = gateway
         self.economy_service = economy_service
         self.premium_currency = premium_currency or PremiumCurrency(
