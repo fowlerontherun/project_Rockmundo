@@ -26,7 +26,7 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
         "CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)"
     )
     cur.execute(
-        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER)"
+        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
     )
     cur.execute(
         "CREATE TABLE performance_events (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, action TEXT, crowd_reaction REAL, fame_modifier INTEGER, created_at TEXT)"
@@ -38,7 +38,7 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
         "CREATE TABLE setlist_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, setlist_id INTEGER NOT NULL, setlist TEXT NOT NULL, author TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved INTEGER DEFAULT 0)"
     )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
-    cur.execute("INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id) VALUES (1, 1, 'Song A', 0, '', 0, NULL)")
+    cur.execute("INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id, legacy_state) VALUES (1, 1, 'Song A', 0, '', 0, NULL, 'new')")
     conn.commit()
     conn.close()
 
@@ -59,6 +59,14 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
 
     reaction = iter([0.9, 0.9])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("UPDATE bands SET fame = 100 WHERE id = 1")
+    cur.execute("DELETE FROM performance_events")
+    conn.commit()
+    conn.close()
+
     reaction = iter([
         {"cheers": 0.9, "energy": 0.9},
         {"cheers": 0.9, "energy": 0.9},
