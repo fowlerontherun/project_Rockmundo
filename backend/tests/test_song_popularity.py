@@ -1,5 +1,12 @@
 import sqlite3
 
+import pytest
+
+try:  # pragma: no cover - FastAPI optional in some test suites
+    from fastapi import FastAPI
+except Exception:  # pragma: no cover
+    FastAPI = None  # type: ignore
+
 from backend.database import DB_PATH
 from backend.services import song_popularity_service
 from backend.services.song_popularity_service import (
@@ -70,3 +77,43 @@ def test_forecast_generation():
     forecasts = forecast_service.forecast_song(4, days=3)
     assert len(forecasts) == 3
     assert "predicted_score" in forecasts[0]
+
+
+def test_add_event_invalid_inputs():
+    _reset_db()
+    with pytest.raises(ValueError):
+        add_event(1, 5, "stream", region_code="XX")
+    with pytest.raises(ValueError):
+        add_event(1, 5, "stream", platform="unknown")
+
+
+def test_get_song_popularity_validation(client_factory):
+    if FastAPI is None:
+        pytest.skip("FastAPI not installed")
+    _reset_db()
+    app = FastAPI()
+    from backend.routes import music_metrics_routes
+
+    app.include_router(music_metrics_routes.router)
+    client = client_factory(app)
+
+    # valid request
+    song_popularity_service.add_event(
+        1, "stream", 5, region_code="US", platform="spotify"
+    )
+    resp = client.get(
+        "/music/metrics/songs/1/popularity?region_code=US&platform=spotify"
+    )
+    assert resp.status_code == 200
+
+    # invalid region
+    resp = client.get(
+        "/music/metrics/songs/1/popularity?region_code=XX&platform=spotify"
+    )
+    assert resp.status_code == 400
+
+    # invalid platform
+    resp = client.get(
+        "/music/metrics/songs/1/popularity?region_code=US&platform=bad"
+    )
+    assert resp.status_code == 400

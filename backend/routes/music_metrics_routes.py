@@ -5,6 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
 from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
 from backend.services import song_popularity_service
+from backend.services.song_popularity_service import (
+    ALLOWED_REGION_CODES,
+    SUPPORTED_PLATFORMS,
+)
 from backend.services.song_popularity_forecast import forecast_service
 from backend.services.music_metrics import MusicMetricsService
 from backend.services.social_sentiment_service import social_sentiment_service
@@ -25,6 +29,10 @@ def get_song_popularity(
     platform: str = "any",
 ):
     """Return popularity analytics for a song."""
+    if region_code not in ALLOWED_REGION_CODES:
+        raise HTTPException(status_code=400, detail="Invalid region code")
+    if platform not in SUPPORTED_PLATFORMS:
+        raise HTTPException(status_code=400, detail="Invalid platform")
     return {
         "song_id": song_id,
         "current_popularity": song_popularity_service.get_current_popularity(

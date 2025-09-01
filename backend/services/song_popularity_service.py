@@ -6,6 +6,18 @@ from typing import Dict, List, Optional
 from backend.database import DB_PATH
 from backend.services.song_popularity_forecast import forecast_service
 
+# Supported region codes and platforms
+ALLOWED_REGION_CODES = {"global", "US", "EU"}
+SUPPORTED_PLATFORMS = {"any", "spotify", "apple"}
+
+
+def _validate_region_platform(region_code: str, platform: str) -> None:
+    """Ensure region code and platform are supported."""
+    if region_code not in ALLOWED_REGION_CODES:
+        raise ValueError(f"Invalid region_code: {region_code}")
+    if platform not in SUPPORTED_PLATFORMS:
+        raise ValueError(f"Invalid platform: {platform}")
+
 # Popularity decays by this factor every day
 DECAY_FACTOR = 0.95
 # Derived half-life in days for the current decay factor
@@ -82,6 +94,7 @@ class SongPopularityService:
         platform: str = "any",
     ) -> Dict[str, int]:
         """Apply a popularity boost and log the event."""
+        _validate_region_platform(region_code, platform)
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             _ensure_schema(cur)
@@ -180,6 +193,7 @@ def add_event(
     platform: str = "any",
 ) -> float:
     """Boost a song's popularity by a given amount from some source."""
+    _validate_region_platform(region_code, platform)
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         _ensure_schema(cur)
