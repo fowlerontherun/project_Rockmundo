@@ -6,37 +6,12 @@ import json
 import logging
 from typing import Any, Dict
 
-try:  # pragma: no cover - used in real app
-    from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Header
-except Exception:  # pragma: no cover - fallback for tests without FastAPI
-    class APIRouter:  # type: ignore
-        def __init__(self, *args, **kwargs):
-            pass
+try:  # pragma: no cover - explicit failure if FastAPI missing
+    from fastapi import APIRouter, Depends, Header, WebSocket, WebSocketDisconnect
+except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
+    raise ImportError("FastAPI must be installed to use backend.realtime.jam_gateway") from exc
 
-        def websocket(self, path: str):
-            def decorator(func):
-                return func
-
-            return decorator
-
-    def Depends(dep):  # type: ignore
-        return dep
-
-    class WebSocket:  # type: ignore
-        async def accept(self):
-            pass
-
-        async def send_text(self, text: str):
-            pass
-
-        async def receive_text(self) -> str:
-            return ""
-
-    class WebSocketDisconnect(Exception):
-        pass
-
-    def Header(default=None, alias=None):  # type: ignore
-        return default
+from backend.services.jam_service import JamService
 
 
 async def get_current_user_id_dep(  # pragma: no cover - simple fallback
@@ -50,8 +25,6 @@ async def get_current_user_id_dep(  # pragma: no cover - simple fallback
         if len(parts) == 2 and parts[0].lower() == "bearer":
             return int(parts[1])
     return 0
-
-from backend.services.jam_service import JamService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jam", tags=["realtime"])
