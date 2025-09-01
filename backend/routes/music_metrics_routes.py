@@ -27,6 +27,8 @@ def get_song_popularity(
     song_id: int,
     region_code: str = "global",
     platform: str = "any",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ):
     """Return popularity analytics for a song."""
     if region_code not in ALLOWED_REGION_CODES:
@@ -43,9 +45,11 @@ def get_song_popularity(
             song_id, region_code, platform
         ),
         "history": song_popularity_service.get_history(
-            song_id, region_code, platform
+            song_id, region_code, platform, start_date, end_date
         ),
-        "breakdown": song_popularity_service.get_breakdown(song_id),
+        "breakdown": song_popularity_service.get_breakdown(
+            song_id, start_date, end_date
+        ),
     }
 
 @router.get("/songs/{song_id}/sentiment")

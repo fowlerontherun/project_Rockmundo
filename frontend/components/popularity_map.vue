@@ -3,14 +3,21 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import Chart from 'chart.js/auto'
 
-const props = defineProps<{ songId: number }>()
+const props = defineProps<{ songId: number; startDate?: string; endDate?: string }>()
 const canvas = ref<HTMLCanvasElement | null>(null)
+let chart: Chart | null = null
 
-onMounted(async () => {
-  const resp = await fetch(`/music/metrics/songs/${props.songId}/popularity`)
+async function render() {
+  const params = new URLSearchParams()
+  if (props.startDate) params.append('start_date', props.startDate)
+  if (props.endDate) params.append('end_date', props.endDate)
+  const query = params.toString()
+  const resp = await fetch(
+    `/music/metrics/songs/${props.songId}/popularity${query ? `?${query}` : ''}`,
+  )
   const data = await resp.json()
   const breakdown = data.breakdown || {}
   const labels: string[] = []
@@ -23,7 +30,8 @@ onMounted(async () => {
     values.push(total)
   }
   if (canvas.value) {
-    new Chart(canvas.value, {
+    if (chart) chart.destroy()
+    chart = new Chart(canvas.value, {
       type: 'bar',
       data: {
         labels,
@@ -31,5 +39,8 @@ onMounted(async () => {
       },
     })
   }
-})
+}
+
+onMounted(render)
+watch(() => [props.songId, props.startDate, props.endDate], render)
 </script>
