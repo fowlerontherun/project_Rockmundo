@@ -121,24 +121,21 @@ class SongService:
     # ------------------------------------------------------------------
     # Cover licensing and royalties
     # ------------------------------------------------------------------
-    def has_active_license(self, song_id: int, band_id: int) -> bool:
-        """Check if a band has an active license for a song."""
-        conn = sqlite3.connect(self.db)
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT 1 FROM cover_royalties
-            WHERE song_id = ? AND cover_band_id = ? AND license_proof_url IS NOT NULL
-            LIMIT 1
-            """,
-            (song_id, band_id),
-        )
-        row = cur.fetchone()
-        conn.close()
-        return row is not None
+    def purchase_cover_license(
+        self,
+        song_id: int,
+        band_id: int,
+        proof_url: str,
+        duration_days: int = 365,
+    ) -> Dict:
+        """Record payment of the cover license fee and store proof.
 
-    def purchase_cover_license(self, song_id: int, band_id: int, proof_url: str) -> Dict:
-        """Record payment of the cover license fee and store proof."""
+        A record is inserted into ``cover_license_transactions`` with the
+        purchase timestamp and an expiration date.  The returned dictionary
+        includes the transaction id so it can be referenced when creating the
+        cover song.
+        """
+
         conn = sqlite3.connect(self.db)
         cur = conn.cursor()
         cur.execute("SELECT license_fee FROM songs WHERE id = ?", (song_id,))
@@ -149,14 +146,66 @@ class SongService:
         fee = row[0]
         cur.execute(
             """
-            INSERT INTO cover_royalties (song_id, cover_band_id, amount_owed, amount_paid, license_proof_url)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO cover_license_transactions
+            (song_id, cover_band_id, license_fee, license_proof_url, purchased_at, expires_at)
+            VALUES (?, ?, ?, ?, datetime('now'), datetime('now', ?))
             """,
-            (song_id, band_id, fee, fee, proof_url),
+            (song_id, band_id, fee, proof_url, f'+{duration_days} days'),
         )
+        tx_id = cur.lastrowid
         conn.commit()
         conn.close()
-        return {"status": "ok", "license_fee": fee}
+        return {"status": "ok", "license_fee": fee, "transaction_id": tx_id}
+
+    def has_active_license(self, song_id: int, band_id: int) -> bool:
+        """Check if a band has an active (unexpired) license for a song."""
+
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT 1 FROM cover_license_transactions
+            WHERE song_id = ? AND cover_band_id = ? AND expires_at > datetime('now')
+            LIMIT 1
+            """,
+            (song_id, band_id),
+        )
+        row = cur.fetchone()
+        conn.close()
+        return row is not None
+
+    def create_cover(self, data: Dict, license_transaction_id: int) -> Dict:
+        """Create a cover song ensuring the license transaction is valid."""
+
+        band_id = data["band_id"]
+        original_song_id = data.get("original_song_id")
+        if not original_song_id:
+            raise ValueError("original_song_id is required for a cover")
+
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT song_id, cover_band_id, expires_at
+            FROM cover_license_transactions
+            WHERE id = ?
+            """,
+            (license_transaction_id,),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row or row[0] != original_song_id or row[1] != band_id:
+            raise PermissionError("Invalid license transaction")
+        expires_at = row[2]
+        conn_exp = sqlite3.connect(self.db)
+        cur_exp = conn_exp.cursor()
+        cur_exp.execute("SELECT datetime(?) > datetime('now')", (expires_at,))
+        valid = cur_exp.fetchone()[0]
+        conn_exp.close()
+        if not valid:
+            raise PermissionError("License has expired")
+
+        return self.create_song(data)
 
     def record_cover_usage(self, song_id: int, band_id: int, revenue_cents: int = 0) -> Dict:
         """Record a cover performance or recording and calculate royalties owed.
@@ -195,7 +244,7 @@ class SongService:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT song_id, amount_owed, amount_paid, license_proof_url
+            SELECT song_id, amount_owed, amount_paid
             FROM cover_royalties
             WHERE cover_band_id = ?
             ORDER BY id DESC
@@ -205,11 +254,6 @@ class SongService:
         rows = cur.fetchall()
         conn.close()
         return [
-            dict(
-                zip(
-                    ["song_id", "amount_owed", "amount_paid", "license_proof_url"],
-                    row,
-                )
-            )
+            dict(zip(["song_id", "amount_owed", "amount_paid"], row))
             for row in rows
         ]

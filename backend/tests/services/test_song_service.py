@@ -1,6 +1,7 @@
 import sqlite3
 
 from backend.services.song_service import SongService
+from backend.jobs.royalty_clearing_job import run as royalty_run
 
 
 def setup_db(path):
@@ -13,7 +14,10 @@ def setup_db(path):
         "CREATE TABLE royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, user_id INTEGER, percent INTEGER)"
     )
     cur.execute(
-        "CREATE TABLE cover_royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, amount_owed INTEGER, amount_paid INTEGER, license_proof_url TEXT)"
+        "CREATE TABLE cover_royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, amount_owed INTEGER, amount_paid INTEGER)"
+    )
+    cur.execute(
+        "CREATE TABLE cover_license_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, license_fee INTEGER, license_proof_url TEXT, purchased_at TEXT, expires_at TEXT)"
     )
     conn.commit()
     conn.close()
@@ -34,19 +38,29 @@ def test_create_cover_and_list(tmp_path):
     res = service.create_song(original)
     orig_id = res["song_id"]
 
+    cover_band = 2
     cover = {
-        "band_id": 2,
+        "band_id": cover_band,
         "title": "Cover",
         "duration_sec": 120,
         "genre": "rock",
-        "royalties_split": {2: 100},
+        "royalties_split": {cover_band: 100},
         "original_song_id": orig_id,
     }
-    service.create_song(cover)
+
+    # creating a cover without a license should fail
+    try:
+        service.create_cover(cover, license_transaction_id=999)
+        assert False, "expected PermissionError"
+    except PermissionError:
+        pass
+
+    tx = service.purchase_cover_license(orig_id, cover_band, "proof.png")
+    service.create_cover(cover, tx["transaction_id"])
 
     covers = service.list_covers_of_song(orig_id)
     assert len(covers) == 1
-    assert covers[0]["band_id"] == 2
+    assert covers[0]["band_id"] == cover_band
 
 
 def test_cover_royalties_and_license(tmp_path):
@@ -74,10 +88,25 @@ def test_cover_royalties_and_license(tmp_path):
     except PermissionError:
         pass
 
-    # Purchase license and record usage
-    service.purchase_cover_license(song_id, band_id, "proof.png")
+    # Purchase license and create cover
+    tx = service.purchase_cover_license(song_id, band_id, "proof.png")
+    cover_data = {
+        "band_id": band_id,
+        "title": "Cover",
+        "duration_sec": 120,
+        "genre": "rock",
+        "royalties_split": {band_id: 100},
+        "original_song_id": song_id,
+    }
+    service.create_cover(cover_data, tx["transaction_id"])
+
+    # Record usage and check royalties
     res = service.record_cover_usage(song_id, band_id, revenue_cents=1000)
     assert res["amount_owed"] == 100
     royalties = service.list_cover_royalties(band_id)
-    assert len(royalties) == 2
-    assert any(r["license_proof_url"] == "proof.png" for r in royalties)
+    assert len(royalties) == 1
+
+    # Run royalty clearing job and ensure amount_paid updated
+    royalty_run(db=str(db_path))
+    royalties_after = service.list_cover_royalties(band_id)
+    assert royalties_after[0]["amount_paid"] == royalties_after[0]["amount_owed"]
