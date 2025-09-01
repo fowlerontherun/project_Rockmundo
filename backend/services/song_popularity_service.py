@@ -26,6 +26,19 @@ def _ensure_schema(cur: sqlite3.Cursor) -> None:
         )
         """
     )
+    # Indexes to speed up common queries on song popularity
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_song_id ON song_popularity(song_id)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_region_code ON song_popularity(region_code)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_platform ON song_popularity(platform)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_updated_at ON song_popularity(updated_at)"
+    )
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS song_popularity_events (
@@ -38,6 +51,19 @@ def _ensure_schema(cur: sqlite3.Cursor) -> None:
             created_at TEXT NOT NULL
         )
         """
+    )
+    # Indexes to speed up queries on popularity events
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_events_song_id ON song_popularity_events(song_id)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_events_region_code ON song_popularity_events(region_code)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_events_platform ON song_popularity_events(platform)"
+    )
+    cur.execute(
+        "CREATE INDEX IF NOT EXISTS idx_song_popularity_events_created_at ON song_popularity_events(created_at)"
     )
 
 
