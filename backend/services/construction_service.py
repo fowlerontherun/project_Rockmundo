@@ -1,6 +1,7 @@
 """Service for managing building construction queues and upgrades."""
 from __future__ import annotations
 
+import logging
 from typing import Dict, List, Optional
 
 from models.construction import Blueprint, ConstructionTask, LandParcel
@@ -23,11 +24,13 @@ class ConstructionService:
         try:
             self.property_service.ensure_schema()
         except Exception:
-            pass
+            logging.exception("Failed to ensure property schema")
+            raise
         try:
             self.venue_service.ensure_schema()
         except Exception:
-            pass
+            logging.exception("Failed to ensure venue schema")
+            raise
         self.parcels: Dict[int, LandParcel] = {}
         self.queue: List[ConstructionTask] = []
         self._next_parcel_id = 1
@@ -86,7 +89,7 @@ class ConstructionService:
             try:
                 self.property_service.upgrade_property(task.target_id, task.owner_id)
             except Exception:
-                pass
+                logging.exception("Failed to upgrade property %s", task.target_id)
             effect = task.blueprint.upgrade_effect
             if effect:
                 import sqlite3
@@ -103,7 +106,7 @@ class ConstructionService:
             try:
                 self.venue_service.update_venue(task.target_id, updates)
             except Exception:
-                pass
+                logging.exception("Failed to update venue %s", task.target_id)
 
     # ---------------- helpers ----------------
     def get_queue(self) -> List[Dict[str, int]]:
