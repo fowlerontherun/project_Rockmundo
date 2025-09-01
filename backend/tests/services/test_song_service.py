@@ -78,3 +78,6 @@ def test_cover_royalties_and_license(tmp_path):
     service.purchase_cover_license(song_id, band_id, "proof.png")
     res = service.record_cover_usage(song_id, band_id, revenue_cents=1000)
     assert res["amount_owed"] == 100
+    royalties = service.list_cover_royalties(band_id)
+    assert len(royalties) == 2
+    assert any(r["license_proof_url"] == "proof.png" for r in royalties)
