@@ -13,4 +13,5 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
+    # Upgrade performed no schema changes; nothing to undo.
     pass

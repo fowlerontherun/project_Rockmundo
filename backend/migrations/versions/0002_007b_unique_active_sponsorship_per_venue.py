@@ -13,4 +13,4 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP INDEX IF EXISTS ux_current_sponsor_per_venue;")

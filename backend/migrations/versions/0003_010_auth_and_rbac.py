@@ -13,4 +13,8 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP TABLE IF EXISTS audit_log;")
+    op.execute("DROP TABLE IF EXISTS refresh_tokens;")
+    op.execute("DROP TABLE IF EXISTS user_roles;")
+    op.execute("DROP TABLE IF EXISTS roles;")
+    op.execute("DROP TABLE IF EXISTS users;")

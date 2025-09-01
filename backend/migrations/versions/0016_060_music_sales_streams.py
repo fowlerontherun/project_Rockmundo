@@ -13,4 +13,9 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP VIEW IF EXISTS music_ledger_view;")
+    op.execute("DROP TABLE IF EXISTS streams;")
+    op.execute("DROP TABLE IF EXISTS sales_vinyl;")
+    op.execute("DROP TABLE IF EXISTS sales_digital;")
+    op.execute("DROP TABLE IF EXISTS songs;")
+    op.execute("DROP TABLE IF EXISTS albums;")

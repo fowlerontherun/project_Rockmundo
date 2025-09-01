@@ -13,4 +13,5 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP TABLE IF EXISTS royalty_run_lines;")
+    op.execute("DROP TABLE IF EXISTS royalty_runs;")

@@ -13,4 +13,8 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP TABLE IF EXISTS world_pulse_weekly_cache;")
+    op.execute("DROP TABLE IF EXISTS world_pulse_rankings;")
+    op.execute("DROP TABLE IF EXISTS world_pulse_metrics;")
+    op.execute("DROP TABLE IF EXISTS app_config;")
+    op.execute("DROP TABLE IF EXISTS job_metadata;")
