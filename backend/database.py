@@ -223,6 +223,7 @@ def init_db():
             platform TEXT NOT NULL DEFAULT 'any',
             source TEXT NOT NULL,
             boost INTEGER NOT NULL,
+            details TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(song_id) REFERENCES songs(id)
         )

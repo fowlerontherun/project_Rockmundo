@@ -3,6 +3,7 @@ from typing import Optional
 from auth.dependencies import require_role
 from fastapi import APIRouter, Depends
 from services.media_event_service import media_event_service
+from services.media_monitor_service import media_monitor_service
 from services.song_popularity_service import song_popularity_service
 
 from pydantic import BaseModel
@@ -39,5 +40,21 @@ async def tiktok(evt: MediaEvent):
 
 
 @router.get("/events", dependencies=[Depends(require_role(["admin"]))])
-async def list_events(song_id: Optional[int] = None):
-    return {"events": song_popularity_service.list_events(song_id)}
+async def list_events(song_id: Optional[int] = None, source: Optional[str] = None):
+    return {"events": song_popularity_service.list_events(song_id, source=source)}
+
+
+class MediaAdjust(BaseModel):
+    song_id: int
+    amount: int
+    details: str = ""
+
+
+@router.post("/media/poll", dependencies=[Depends(require_role(["admin"]))])
+async def poll_media():
+    return {"mentions": media_monitor_service.poll_feed()}
+
+
+@router.post("/media/adjust", dependencies=[Depends(require_role(["admin"]))])
+async def media_adjust(evt: MediaAdjust):
+    return media_monitor_service.manual_adjust(evt.song_id, evt.amount, evt.details)
