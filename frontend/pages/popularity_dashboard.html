@@ -48,9 +48,12 @@ async function loadPopularity() {
     li.innerText = `${point.captured_at}: ${point.sentiment}`;
     sList.appendChild(li);
   });
+
   renderTrendChart(data.history, sData.history);
 
   const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
+
+  // Hooks for custom chart rendering if available
   const fData = await fRes.json();
   const fList = document.getElementById('forecast');
   fList.innerHTML = '';
