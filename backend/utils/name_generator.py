@@ -40,6 +40,44 @@ FEMALE_FIRST_NAMES = _load_names("female_names.csv")
 LAST_NAMES = _load_names("surnames.csv")
 
 
+def reload_name_pools() -> None:
+    """Reload name pools from CSV files into module-level lists."""
+
+    global MALE_FIRST_NAMES, FEMALE_FIRST_NAMES, LAST_NAMES
+    MALE_FIRST_NAMES = _load_names("male_names.csv")
+    FEMALE_FIRST_NAMES = _load_names("female_names.csv")
+    LAST_NAMES = _load_names("surnames.csv")
+
+
+def append_name(gender: str | None, name: str) -> None:
+    """Append ``name`` to the appropriate pool and update in-memory lists.
+
+    Parameters
+    ----------
+    gender:
+        ``"male"`` or ``"female"`` appends to the respective first-name pool.
+        ``None`` appends to the surname pool.
+    name:
+        The name to add.
+    """
+
+    mapping = {
+        "male": ("male_names.csv", MALE_FIRST_NAMES),
+        "female": ("female_names.csv", FEMALE_FIRST_NAMES),
+        None: ("surnames.csv", LAST_NAMES),
+    }
+    if gender not in mapping:
+        raise ValueError("gender must be 'male', 'female', or None")
+
+    filename, target = mapping[gender]
+    path = DATA_DIR / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([name])
+    target.append(name.strip())
+
+
 # === Static stage/alias data ===============================================
 
 STAGE_SUFFIXES = [
