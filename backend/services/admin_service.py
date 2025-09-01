@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional
 
 from backend.models.admin_action import AdminAction
 from backend.utils.db import get_conn
+from backend.utils import name_generator
 
 
 class AdminActionRepository:
@@ -133,4 +134,10 @@ class AdminService:
         if hasattr(self.repo, "update_game_balance"):
             self.repo.update_game_balance(setting_name, value)  # type: ignore[attr-defined]
         return {"status": f"{setting_name} updated to {value}."}
+
+    def add_name_to_pool(self, gender: str | None, name: str) -> Dict[str, str]:
+        """Append a name to the appropriate generator pool and refresh lists."""
+
+        name_generator.append_name(gender, name)
+        return {"status": "name added"}
 
