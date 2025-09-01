@@ -5,23 +5,31 @@ By default, this only registers jobs (manual trigger via admin endpoints).
 """
 
 from __future__ import annotations
+
 import asyncio
-from typing import Awaitable, Callable
+import logging
 from fastapi import FastAPI
 
 from backend.core.scheduler import register_jobs, run_job
 
+
+logger = logging.getLogger(__name__)
+
+
 def setup_scheduler(app: FastAPI) -> None:
     register_jobs()
 
-    # Example periodic tasks (commented out by default):
-    # async def periodic() -> None:
-    #     while True:
-    #         try:
-    #             await run_job("cleanup_idempotency")
-    #             await run_job("cleanup_rate_limits")
-    #         except Exception:
-    #             pass
-    #         await asyncio.sleep(6 * 60 * 60)  # every 6 hours
-    #
-    # app.add_event_handler("startup", lambda: asyncio.create_task(periodic()))
+    async def periodic() -> None:
+        while True:
+            for job in ("cleanup_idempotency", "cleanup_rate_limits"):
+                try:
+                    result = await run_job(job)
+                    if not result.get("ok"):
+                        logger.error(
+                            "scheduled job %s failed: %s", job, result.get("error")
+                        )
+                except Exception:
+                    logger.exception("error running scheduled job %s", job)
+            await asyncio.sleep(6 * 60 * 60)  # every 6 hours
+
+    app.add_event_handler("startup", lambda: asyncio.create_task(periodic()))
