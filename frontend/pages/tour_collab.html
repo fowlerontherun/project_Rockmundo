@@ -1,0 +1,74 @@
+<h2>Tour Collaboration Planner</h2>
+<form id="collabForm">
+  <label>Band IDs (comma separated):</label>
+  <input type="text" id="bandIds" required />
+  <h3>Setlist (JSON)</h3>
+  <textarea id="setlist" placeholder='[{"type":"song","reference":"1"}]'></textarea>
+  <h3>Schedule</h3>
+  <div id="scheduleList"></div>
+  <button type="button" id="addDate">Add Date</button>
+  <h3>Expenses</h3>
+  <div id="expenseList"></div>
+  <button type="button" id="addExpense">Add Expense</button>
+  <h3>Revenue Split (JSON band_id:share)</h3>
+  <textarea id="revenueSplit" placeholder='{"1":0.5,"2":0.5}'></textarea>
+  <button type="submit">Create Collaboration</button>
+</form>
+<pre id="result"></pre>
+
+<script>
+const schedule = [];
+const expenses = [];
+
+function renderSchedule() {
+  const box = document.getElementById('scheduleList');
+  box.innerHTML = '';
+  schedule.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.textContent = `${s.date} @ ${s.venue}`;
+    box.appendChild(div);
+  });
+}
+function renderExpenses() {
+  const box = document.getElementById('expenseList');
+  box.innerHTML = '';
+  expenses.forEach(e => {
+    const div = document.createElement('div');
+    div.textContent = `${e.description}: $${e.amount}`;
+    box.appendChild(div);
+  });
+}
+
+document.getElementById('addDate').onclick = () => {
+  const date = prompt('Date?');
+  const venue = prompt('Venue?');
+  if (date && venue) {
+    schedule.push({date, venue});
+    renderSchedule();
+  }
+};
+
+document.getElementById('addExpense').onclick = () => {
+  const description = prompt('Description?');
+  const amount = prompt('Amount?');
+  if (description && amount) {
+    expenses.push({description, amount: parseFloat(amount)});
+    renderExpenses();
+  }
+};
+
+document.getElementById('collabForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const bandIds = document.getElementById('bandIds').value.split(',').map(b => parseInt(b.trim())).filter(Boolean);
+  const setlist = JSON.parse(document.getElementById('setlist').value || '[]');
+  const revenueSplit = document.getElementById('revenueSplit').value ? JSON.parse(document.getElementById('revenueSplit').value) : {};
+  const payload = { band_ids: bandIds, setlist, revenue_split: revenueSplit, schedule, expenses };
+  const res = await fetch('/api/tour-collab', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+});
+</script>
