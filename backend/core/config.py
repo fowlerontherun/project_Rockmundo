@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel, Field
 
 
 class DatabaseSettings(BaseModel):
@@ -54,19 +54,16 @@ class RealtimeSettings(BaseModel):
     )
 
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     """Top level application settings."""
 
-    env: str = Field("dev", env="ROCKMUNDO_ENV")
-    log_level: str = Field("INFO", env="ROCKMUNDO_LOG_LEVEL")
+    env: str = Field("dev")
+    log_level: str = Field("INFO")
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     auth: AuthSettings = Field(default_factory=AuthSettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     cors: CORSSettings = Field(default_factory=CORSSettings)
     realtime: RealtimeSettings = Field(default_factory=RealtimeSettings)
-
-    class Config:
-        env_file = Path(__file__).resolve().parents[2] / ".env"
 
 
 settings = Settings()
