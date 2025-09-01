@@ -13,6 +13,10 @@ from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
 from backend.services import live_performance_analysis
+try:
+    from backend.realtime.polling import poll_hub
+except Exception:  # pragma: no cover - optional realtime module
+    poll_hub = None  # type: ignore
 
 def crowd_reaction_stream() -> Generator[Dict[str, float], None, None]:
     """Endless stream of crowd reaction metrics.
@@ -33,19 +37,21 @@ def simulate_gig(
     band_id: int,
     city: str,
     venue: str,
-    setlist_revision_id: int,
-    reaction_stream: Optional[Iterable[float]] = None,
-    setlist,
-    reaction_stream: Optional[Iterable[Dict[str, float]]] = None,
+    setlist_or_revision,
+    reaction_stream: Optional[Iterable[Dict[str, float]] | Iterable[float]] = None,
 ) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    approved = get_approved_setlist(setlist_revision_id)
-    if not approved:
-        conn.close()
-        return {"error": "Setlist revision must be approved"}
-    setlist = approved
+    if isinstance(setlist_or_revision, int):
+        approved = get_approved_setlist(setlist_or_revision)
+        if not approved:
+            conn.close()
+            return {"error": "Setlist revision must be approved"}
+        setlist = approved
+    else:
+        setlist = setlist_or_revision
+
     # ensure performance_events table exists
     cur.execute(
         """
@@ -92,7 +98,10 @@ def simulate_gig(
             else:
                 main_actions.append(action)
 
-    for action in main_actions + encore_actions:
+    poll_results: Dict[str, int] = {}
+
+    def _handle_action(action: dict) -> None:
+        nonlocal skill_gain, fame_bonus
         a_type = action.get("type")
         action_bonus = 0
         fame_modifier = 0
@@ -123,6 +132,7 @@ def simulate_gig(
         if action.get("encore") or a_type == "encore":
             action_bonus += 3
 
+        fame_modifier = 0
         if recent_reactions:
             avg_recent = sum(recent_reactions[-3:]) / len(recent_reactions[-3:])
             if avg_recent > 0.7:
@@ -133,17 +143,40 @@ def simulate_gig(
         fame_bonus += action_bonus + fame_modifier
 
         reaction = next(stream)
-        score = (reaction.get("cheers", 0) + reaction.get("energy", 0)) / 2
+        if isinstance(reaction, dict):
+            cheers = reaction.get("cheers", 0)
+            energy = reaction.get("energy", 0)
+        else:
+            cheers = energy = float(reaction)
+        score = (cheers + energy) / 2
         recent_reactions.append(score)
         event_log.append(
             {
                 "action": a_type,
-                "cheers": reaction.get("cheers", 0),
-                "energy": reaction.get("energy", 0),
+                "cheers": cheers,
+                "energy": energy,
                 "crowd_reaction": score,
                 "fame_modifier": fame_modifier,
             }
         )
+
+    for action in main_actions:
+        _handle_action(action)
+
+    # Pause for encore poll
+    if poll_hub is not None:
+        poll_id = str(band_id)
+        poll_results = poll_hub.results(poll_id)
+        poll_hub.clear(poll_id)
+        if poll_results:
+            sorted_items = sorted(poll_results.items(), key=lambda kv: kv[1], reverse=True)
+            top_votes = sorted_items[0][1]
+            winners = [song for song, votes in sorted_items if votes == top_votes]
+            for song_id in reversed(winners):
+                encore_actions.insert(0, {"type": "encore", "reference": str(song_id)})
+
+    for action in encore_actions:
+        _handle_action(action)
 
     fame_earned = crowd_size // 10 + fame_bonus
     revenue_earned = crowd_size * 5
@@ -191,6 +224,32 @@ def simulate_gig(
                 datetime.utcnow().isoformat(),
             ),
         )
+
+    if poll_results:
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS encore_poll_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                performance_id INTEGER,
+                song_id INTEGER,
+                votes INTEGER,
+                created_at TEXT
+            )
+            """
+        )
+        for song_id, votes in poll_results.items():
+            cur.execute(
+                """
+                INSERT INTO encore_poll_results (performance_id, song_id, votes, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    performance_record_id,
+                    int(song_id),
+                    votes,
+                    datetime.utcnow().isoformat(),
+                ),
+            )
 
     conn.commit()
 
