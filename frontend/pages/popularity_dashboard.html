@@ -16,9 +16,12 @@
 <ul id="popularityHistory"></ul>
 <h3>Sentiment History</h3>
 <ul id="sentimentHistory"></ul>
+<h3>Sentiment vs Popularity</h3>
+<canvas id="trendChart" width="400" height="200"></canvas>
 <h3>Forecast</h3>
 <ul id="forecast"></ul>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 async function loadPopularity() {
   const id = document.getElementById('songId').value;
@@ -45,8 +48,8 @@ async function loadPopularity() {
     li.innerText = `${point.captured_at}: ${point.sentiment}`;
     sList.appendChild(li);
   });
-  // Hooks for custom chart rendering if available
-=======
+  renderTrendChart(data.history, sData.history);
+
   const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
   const fData = await fRes.json();
   const fList = document.getElementById('forecast');
@@ -63,6 +66,36 @@ async function loadPopularity() {
   if (window.renderSentimentChart) {
     window.renderSentimentChart(sData.history);
   }
+}
+
+let trendChart = null;
+function renderTrendChart(popularityHistory, sentimentHistory) {
+  const times = Array.from(new Set([
+    ...popularityHistory.map(p => p.updated_at),
+    ...sentimentHistory.map(s => s.captured_at),
+  ])).sort();
+  const popMap = new Map(popularityHistory.map(p => [p.updated_at, p.popularity_score]));
+  const sentMap = new Map(sentimentHistory.map(s => [s.captured_at, s.sentiment]));
+  const popData = times.map(t => popMap.get(t) ?? null);
+  const sentData = times.map(t => sentMap.get(t) ?? null);
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: times,
+      datasets: [
+        { label: 'Popularity', data: popData, yAxisID: 'y1', borderColor: 'blue', fill: false },
+        { label: 'Sentiment', data: sentData, yAxisID: 'y2', borderColor: 'red', fill: false },
+      ],
+    },
+    options: {
+      scales: {
+        y1: { type: 'linear', position: 'left', title: { display: true, text: 'Popularity' } },
+        y2: { type: 'linear', position: 'right', title: { display: true, text: 'Sentiment' } },
+      },
+    },
+  });
 }
 </script>
 
