@@ -5,6 +5,7 @@ from contextlib import suppress
 import pytest
 
 from backend.realtime.jam_gateway import jam_ws, jam_service
+from backend.services.economy_service import EconomyService
 
 
 class FakeWebSocket:
@@ -31,7 +32,7 @@ def test_jam_session_flow(tmp_path):
         jam_service.participants.clear()
         jam_service.db_path = str(tmp_path / "jam.db")
         jam_service.ensure_schema()
-        jam_service.economy.db_path = str(tmp_path / "jam_eco.db")
+        jam_service.economy = EconomyService(str(tmp_path / "jam_eco.db"))
         jam_service.economy.ensure_schema()
         # clear jam tables
         import sqlite3
