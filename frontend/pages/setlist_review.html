@@ -7,7 +7,9 @@
   <thead>
     <tr>
       <th>Action</th>
-      <th>Crowd Reaction</th>
+      <th>Cheers</th>
+      <th>Energy</th>
+      <th>Reaction Score</th>
       <th>Fame Modifier</th>
     </tr>
   </thead>
@@ -26,7 +28,7 @@ document.getElementById('loadBtn').onclick = async () => {
   body.innerHTML = '';
   data.actions.forEach(a => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${a.action}</td><td>${a.crowd_reaction.toFixed(2)}</td><td>${a.fame_modifier}</td>`;
+    tr.innerHTML = `<td>${a.action}</td><td>${a.cheers.toFixed(2)}</td><td>${a.energy.toFixed(2)}</td><td>${a.crowd_reaction.toFixed(2)}</td><td>${a.fame_modifier}</td>`;
     body.appendChild(tr);
   });
   const suggestion = document.getElementById('suggestion');

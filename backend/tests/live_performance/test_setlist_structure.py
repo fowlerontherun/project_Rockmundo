@@ -49,7 +49,11 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
         {"type": "song", "reference": "2", "encore": True},
     ]
 
-    reaction = iter([0.5, 0.5, 0.5])
+    reaction = iter([
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+    ])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
 
     assert result["fame_earned"] == 28
@@ -101,7 +105,10 @@ def test_cover_song_reduces_fame_and_boosts_original(monkeypatch, tmp_path):
         {"type": "song", "reference": "2"},  # cover
     ]
 
-    reaction = iter([0.5, 0.5])
+    reaction = iter([
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+    ])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
 
     assert result["fame_earned"] == 23
