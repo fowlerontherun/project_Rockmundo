@@ -20,6 +20,8 @@ from routes import (
     sponsorship,
     video_routes,
     setlist_routes,
+    music_metrics_routes,
+    song_forecast_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -78,6 +80,8 @@ app.include_router(
     tags=["Onboarding"],
 )
 app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
+app.include_router(music_metrics_routes.router)
+app.include_router(song_forecast_routes.router)
 
 
 @app.get("/metrics")

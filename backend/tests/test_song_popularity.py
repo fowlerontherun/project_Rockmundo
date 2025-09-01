@@ -79,6 +79,25 @@ def test_forecast_generation():
     assert "predicted_score" in forecasts[0]
 
 
+def test_forecast_endpoint(client_factory):
+    if FastAPI is None:
+        pytest.skip("FastAPI not installed")
+    _reset_db()
+    app = FastAPI()
+    from backend.routes.song_forecast_routes import router as forecast_router
+
+    app.include_router(forecast_router)
+    add_event(6, 5, "stream")
+    add_event(6, 3, "sale")
+    client = client_factory(app)
+    resp = client.get("/songs/6/forecast")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["song_id"] == 6
+    assert len(data["forecast"]) > 0
+    assert "predicted_score" in data["forecast"][0]
+
+
 def test_add_event_invalid_inputs():
     _reset_db()
     with pytest.raises(ValueError):

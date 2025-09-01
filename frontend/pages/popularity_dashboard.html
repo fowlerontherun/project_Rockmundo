@@ -46,8 +46,7 @@ async function loadPopularity() {
     sList.appendChild(li);
   });
   // Hooks for custom chart rendering if available
-=======
-  const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
+  const fRes = await fetch(`/songs/${id}/forecast`);
   const fData = await fRes.json();
   const fList = document.getElementById('forecast');
   fList.innerHTML = '';
