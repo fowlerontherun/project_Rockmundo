@@ -1,4 +1,5 @@
 import math
+import math
 import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -60,6 +61,7 @@ def _ensure_schema(cur: sqlite3.Cursor) -> None:
             platform TEXT NOT NULL DEFAULT 'any',
             source TEXT NOT NULL,
             boost INTEGER NOT NULL,
+            details TEXT,
             created_at TEXT NOT NULL
         )
         """
@@ -92,6 +94,7 @@ class SongPopularityService:
         boost: int,
         region_code: str = "global",
         platform: str = "any",
+        details: str = "",
     ) -> Dict[str, int]:
         """Apply a popularity boost and log the event."""
         _validate_region_platform(region_code, platform)
@@ -102,10 +105,10 @@ class SongPopularityService:
             cur.execute(
                 """
                 INSERT INTO song_popularity_events
-                    (song_id, region_code, platform, source, boost, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (song_id, region_code, platform, source, boost, details, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (song_id, region_code, platform, source, boost, now),
+                (song_id, region_code, platform, source, boost, details, now),
             )
             cur.execute(
                 """
@@ -144,12 +147,13 @@ class SongPopularityService:
         song_id: Optional[int] = None,
         region_code: Optional[str] = None,
         platform: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> List[Dict]:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             _ensure_schema(cur)
             query = (
-                "SELECT id, song_id, region_code, platform, source, boost, created_at FROM song_popularity_events"
+                "SELECT id, song_id, region_code, platform, source, boost, details, created_at FROM song_popularity_events"
             )
             params: List = []
             conditions = []
@@ -162,6 +166,9 @@ class SongPopularityService:
             if platform is not None:
                 conditions.append("platform = ?")
                 params.append(platform)
+            if source is not None:
+                conditions.append("source = ?")
+                params.append(source)
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
             query += " ORDER BY id DESC"
@@ -175,7 +182,8 @@ class SongPopularityService:
                     "platform": r[3],
                     "source": r[4],
                     "boost": r[5],
-                    "created_at": r[6],
+                    "details": r[6],
+                    "created_at": r[7],
                 }
                 for r in rows
             ]
@@ -191,6 +199,7 @@ def add_event(
     source: str,
     region_code: str = "global",
     platform: str = "any",
+    details: str = "",
 ) -> float:
     """Boost a song's popularity by a given amount from some source."""
     _validate_region_platform(region_code, platform)
@@ -220,10 +229,10 @@ def add_event(
         cur.execute(
             """
             INSERT INTO song_popularity_events
-                (song_id, region_code, platform, source, boost, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (song_id, region_code, platform, source, boost, details, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (song_id, region_code, platform, source, amount, now),
+            (song_id, region_code, platform, source, amount, details, now),
         )
         conn.commit()
         try:
