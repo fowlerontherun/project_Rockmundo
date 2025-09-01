@@ -3,7 +3,7 @@ import sqlite3
 import json
 from datetime import datetime
 
-from typing import Generator, Iterable, Optional
+from typing import Generator, Iterable, Optional, Dict
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
@@ -14,10 +14,19 @@ from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
 from backend.services import live_performance_analysis
 
-def crowd_reaction_stream() -> Generator[float, None, None]:
-    """Endless stream of crowd reaction scores between 0 and 1."""
+def crowd_reaction_stream() -> Generator[Dict[str, float], None, None]:
+    """Endless stream of crowd reaction metrics.
+
+    Each yielded dictionary contains a ``cheers`` and ``energy`` value,
+    both normalised between 0 and 1. The function is deterministic enough
+    to be swapped out in tests by passing a custom ``reaction_stream`` to
+    :func:`simulate_gig`.
+    """
     while True:
-        yield random.uniform(0.0, 1.0)
+        yield {
+            "cheers": random.uniform(0.0, 1.0),
+            "energy": random.uniform(0.0, 1.0),
+        }
 
 
 def simulate_gig(
@@ -26,6 +35,8 @@ def simulate_gig(
     venue: str,
     setlist_revision_id: int,
     reaction_stream: Optional[Iterable[float]] = None,
+    setlist,
+    reaction_stream: Optional[Iterable[Dict[str, float]]] = None,
 ) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -122,11 +133,14 @@ def simulate_gig(
         fame_bonus += action_bonus + fame_modifier
 
         reaction = next(stream)
-        recent_reactions.append(reaction)
+        score = (reaction.get("cheers", 0) + reaction.get("energy", 0)) / 2
+        recent_reactions.append(score)
         event_log.append(
             {
                 "action": a_type,
-                "crowd_reaction": reaction,
+                "cheers": reaction.get("cheers", 0),
+                "energy": reaction.get("energy", 0),
+                "crowd_reaction": score,
                 "fame_modifier": fame_modifier,
             }
         )

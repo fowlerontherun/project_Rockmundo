@@ -56,8 +56,15 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
     revision_id = setlist_service.create_revision(1, setlist, "tester")
     setlist_service.approve_revision(1, revision_id)
 
+
     reaction = iter([0.9, 0.9])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
+    reaction = iter([
+        {"cheers": 0.9, "energy": 0.9},
+        {"cheers": 0.9, "energy": 0.9},
+    ])
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
+
 
     assert result["fame_earned"] == 25
 
@@ -69,5 +76,6 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
     cur.execute("SELECT summary FROM setlist_summaries")
     summary = json.loads(cur.fetchone()[0])
     assert summary["average_reaction"] == 0.9
+    assert summary["actions"][0]["cheers"] == 0.9
     conn.close()
 

@@ -55,8 +55,17 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
     revision_id = setlist_service.create_revision(1, setlist, "tester")
     setlist_service.approve_revision(1, revision_id)
 
+
     reaction = iter([0.5, 0.5, 0.5])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
+
+    reaction = iter([
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+    ])
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
+
 
     assert result["fame_earned"] == 28
     assert result["skill_gain"] == 0.7
@@ -113,8 +122,15 @@ def test_cover_song_reduces_fame_and_boosts_original(monkeypatch, tmp_path):
     revision_id = setlist_service.create_revision(1, setlist, "tester")
     setlist_service.approve_revision(1, revision_id)
 
+
     reaction = iter([0.5, 0.5])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
+
+    reaction = iter([
+        {"cheers": 0.5, "energy": 0.5},
+        {"cheers": 0.5, "energy": 0.5},
+    ])
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
 
     assert result["fame_earned"] == 23
     conn = sqlite3.connect(db_file)
