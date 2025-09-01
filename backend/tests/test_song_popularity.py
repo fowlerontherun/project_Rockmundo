@@ -117,3 +117,25 @@ def test_get_song_popularity_validation(client_factory):
         "/music/metrics/songs/1/popularity?region_code=US&platform=bad"
     )
     assert resp.status_code == 400
+
+
+def test_date_filters():
+    _reset_db()
+    add_event(5, 5, "stream", region_code="US", platform="spotify")
+    add_event(5, 3, "stream", region_code="US", platform="spotify")
+    add_event(5, 4, "stream", region_code="EU", platform="apple")
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE song_popularity SET updated_at=? WHERE id=1", ("2023-01-01T00:00:00",))
+        cur.execute("UPDATE song_popularity SET updated_at=? WHERE id=2", ("2023-02-01T00:00:00",))
+        cur.execute("UPDATE song_popularity SET updated_at=? WHERE id=3", ("2023-03-01T00:00:00",))
+        conn.commit()
+    hist = song_popularity_service.get_history(
+        5, region_code="US", platform="spotify", start_date="2023-02-01T00:00:00"
+    )
+    assert len(hist) == 1
+    assert hist[0]["popularity_score"] == 8
+    breakdown = song_popularity_service.get_breakdown(
+        5, start_date="2023-02-15T00:00:00", end_date="2023-03-15T00:00:00"
+    )
+    assert breakdown == {"EU": {"apple": 4}}

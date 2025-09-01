@@ -270,20 +270,27 @@ def get_history(
     song_id: int,
     region_code: str = "global",
     platform: str = "any",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> List[Dict[str, float]]:
     """Return the popularity history for a song."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         _ensure_schema(cur)
-        cur.execute(
-            """
-            SELECT popularity_score, updated_at FROM song_popularity
-            WHERE song_id=? AND region_code=? AND platform=?
-            ORDER BY updated_at
-            """,
-            (song_id, region_code, platform),
+        query = (
+            "SELECT popularity_score, updated_at FROM song_popularity "
+            "WHERE song_id=? AND region_code=? AND platform=?"
         )
+        params: List = [song_id, region_code, platform]
+        if start_date:
+            query += " AND updated_at >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND updated_at <= ?"
+            params.append(end_date)
+        query += " ORDER BY updated_at"
+        cur.execute(query, params)
         return [dict(r) for r in cur.fetchall()]
 
 
@@ -329,16 +336,29 @@ def get_last_boost_source(
         return row[0] if row else None
 
 
-def get_breakdown(song_id: int) -> Dict[str, Dict[str, float]]:
+def get_breakdown(
+    song_id: int,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+) -> Dict[str, Dict[str, float]]:
     """Return latest popularity scores grouped by region and platform."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         _ensure_schema(cur)
-        cur.execute(
-            "SELECT region_code, platform, popularity_score, updated_at FROM song_popularity WHERE song_id=? ORDER BY updated_at DESC",
-            (song_id,),
+        query = (
+            "SELECT region_code, platform, popularity_score, updated_at FROM song_popularity "
+            "WHERE song_id=?"
         )
+        params: List = [song_id]
+        if start_date:
+            query += " AND updated_at >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND updated_at <= ?"
+            params.append(end_date)
+        query += " ORDER BY updated_at DESC"
+        cur.execute(query, params)
         rows = cur.fetchall()
     breakdown: Dict[str, Dict[str, float]] = {}
     seen = set()
