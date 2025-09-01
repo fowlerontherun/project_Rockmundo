@@ -31,10 +31,19 @@ class ValidationError(Exception):
 class FieldInfo:
     """Store metadata about a model field."""
 
-    def __init__(self, default: Any = None, *, default_factory=None, env: str | None = None):
+    def __init__(
+        self,
+        default: Any = None,
+        *,
+        default_factory=None,
+        env: str | None = None,
+        **kwargs,
+    ):
         self.default = default
         self.default_factory = default_factory
         self.env = env
+        self.alias = kwargs.get("alias")
+        self.convert_underscores = kwargs.get("convert_underscores")
 
 
 def Field(default: Any = None, *, default_factory=None, env: str | None = None, **kwargs) -> FieldInfo:
@@ -71,6 +80,10 @@ class BaseModel:
 
     def dict(self) -> dict[str, Any]:  # pragma: no cover - trivial
         return self.__dict__.copy()
+
+    @classmethod
+    def update_forward_refs(cls, **kwargs):  # pragma: no cover - placeholder
+        return None
 
     @staticmethod
     def _coerce(value: str, field_type: Any) -> Any:
