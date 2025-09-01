@@ -36,11 +36,16 @@ export default {
       currentSetlist: '',
       revisions: [],
       comment: '',
-      comments: []
+      comments: [],
+      poller: null
     }
   },
   created() {
     this.fetchRevisions()
+    this.poller = setInterval(this.fetchRevisions, 5000)
+  },
+  beforeUnmount() {
+    clearInterval(this.poller)
   },
   methods: {
     async fetchRevisions() {

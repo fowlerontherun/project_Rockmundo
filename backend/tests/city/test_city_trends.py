@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 from backend.services.city_service import city_service
-from backend.services import event_service, live_performance_service
+from backend.services import event_service, live_performance_service, setlist_service
 from backend.services.quest_service import QuestService
 from backend.models.weather import Forecast
 from backend.models.city import City
@@ -42,15 +42,21 @@ def test_city_trends_affect_merch_sales(monkeypatch, tmp_path):
     cur.execute(
         "CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)"
     )
+    cur.execute(
+        "CREATE TABLE setlist_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, setlist_id INTEGER NOT NULL, setlist TEXT NOT NULL, author TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved INTEGER DEFAULT 0)"
+    )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
     conn.commit()
     conn.close()
 
     monkeypatch.setattr(live_performance_service, "DB_PATH", db_file)
+    monkeypatch.setattr(setlist_service, "DB_PATH", db_file)
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
     monkeypatch.setattr(event_service, "DB_PATH", db_file)
 
-    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", [{"type": "song", "reference": "song"}])
+    revision_id = setlist_service.create_revision(1, [{"type": "song", "reference": "song"}], "tester")
+    setlist_service.approve_revision(1, revision_id)
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id)
     assert result["crowd_size"] == 300  # 200 base * 1.5 modifier
     assert result["merch_sold"] == 90   # 300 * 0.15 * 2.0
 

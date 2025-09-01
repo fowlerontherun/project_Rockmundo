@@ -33,19 +33,19 @@ def simulate_gig(
     band_id: int,
     city: str,
     venue: str,
+    setlist_revision_id: int,
+    reaction_stream: Optional[Iterable[float]] = None,
     setlist,
     reaction_stream: Optional[Iterable[Dict[str, float]]] = None,
 ) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-
-    if isinstance(setlist, int):
-        approved = get_approved_setlist(setlist)
-        if not approved:
-            conn.close()
-            return {"error": "Setlist revision must be approved"}
-        setlist = approved
+    approved = get_approved_setlist(setlist_revision_id)
+    if not approved:
+        conn.close()
+        return {"error": "Setlist revision must be approved"}
+    setlist = approved
     # ensure performance_events table exists
     cur.execute(
         """

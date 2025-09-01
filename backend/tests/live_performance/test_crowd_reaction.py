@@ -1,7 +1,7 @@
 import json
 import sqlite3
 
-from backend.services import live_performance_service, live_performance_analysis
+from backend.services import live_performance_service, live_performance_analysis, setlist_service
 from backend.services.city_service import city_service
 from backend.models.city import City
 
@@ -34,6 +34,9 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
     cur.execute(
         "CREATE TABLE setlist_summaries (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, summary TEXT, created_at TEXT)"
     )
+    cur.execute(
+        "CREATE TABLE setlist_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, setlist_id INTEGER NOT NULL, setlist TEXT NOT NULL, author TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved INTEGER DEFAULT 0)"
+    )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
     cur.execute("INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id) VALUES (1, 1, 'Song A', 0, '', 0, NULL)")
     conn.commit()
@@ -41,6 +44,7 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
 
     monkeypatch.setattr(live_performance_service, "DB_PATH", db_file)
     monkeypatch.setattr(live_performance_analysis, "DB_PATH", db_file)
+    monkeypatch.setattr(setlist_service, "DB_PATH", db_file)
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
     monkeypatch.setattr(live_performance_service.gear_service, "get_band_bonus", lambda band_id, name: 0)
     monkeypatch.setattr(live_performance_service, "is_skill_blocked", lambda band_id, skill_id: False)
@@ -49,12 +53,18 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
         {"type": "song", "reference": "1"},
         {"type": "song", "reference": "1"},
     ]
+    revision_id = setlist_service.create_revision(1, setlist, "tester")
+    setlist_service.approve_revision(1, revision_id)
 
+
+    reaction = iter([0.9, 0.9])
+    result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
     reaction = iter([
         {"cheers": 0.9, "energy": 0.9},
         {"cheers": 0.9, "energy": 0.9},
     ])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
+
 
     assert result["fame_earned"] == 25
 
