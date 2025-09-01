@@ -39,6 +39,8 @@ def simulate_gig(
     venue: str,
     setlist_or_revision,
     reaction_stream: Optional[Iterable[Dict[str, float]] | Iterable[float]] = None,
+    partner_band_ids: Optional[list[int]] = None,
+    revenue_split: Optional[Dict[int, float]] = None,
 ) -> dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -66,16 +68,17 @@ def simulate_gig(
         """
     )
 
-    # Get band fame
-    cur.execute("SELECT fame FROM bands WHERE id = ?", (band_id,))
-    row = cur.fetchone()
-    if not row:
+    all_band_ids = [band_id] + (partner_band_ids or [])
+    placeholders = ",".join("?" for _ in all_band_ids)
+    cur.execute(f"SELECT id, fame FROM bands WHERE id IN ({placeholders})", all_band_ids)
+    rows = cur.fetchall()
+    if len(rows) != len(all_band_ids):
         conn.close()
         return {"error": "Band not found"}
-    fame = row[0]
+    fame_map = {r[0]: r[1] for r in rows}
 
-    # Simulate crowd size based on fame and randomness
-    base_crowd = fame * 2
+    # Simulate crowd size based on combined fame and randomness
+    base_crowd = sum(fame_map.values()) * 2
     crowd_size = min(random.randint(base_crowd, base_crowd + 300), 2000)
     crowd_size = int(crowd_size * city_service.get_event_modifier(city))
 
@@ -118,11 +121,12 @@ def simulate_gig(
                     row = cur.fetchone()
                     if row:
                         owner_band = row[0]
-                        if owner_band != band_id:
+                        increment = 2 if owner_band in all_band_ids else 1
+                        if owner_band not in all_band_ids:
                             song_bonus = 1
                         cur.execute(
                             "UPDATE songs SET play_count = play_count + ? WHERE id = ?",
-                            (2 if owner_band == band_id else 1, song_id),
+                            (increment, song_id),
                         )
 
             action_bonus += song_bonus
@@ -178,36 +182,54 @@ def simulate_gig(
     for action in encore_actions:
         _handle_action(action)
 
-    fame_earned = crowd_size // 10 + fame_bonus
-    revenue_earned = crowd_size * 5
+    fame_total = crowd_size // 10 + fame_bonus
+    revenue_total = crowd_size * 5
     skill_gain += gear_service.get_band_bonus(band_id, "performance")
     performance_id = SKILL_NAME_TO_ID["performance"]
     applied_skill = 0 if is_skill_blocked(band_id, performance_id) else skill_gain
-    merch_sold = int(crowd_size * 0.15 * city_service.get_market_demand(city))
+    merch_total = int(crowd_size * 0.15 * city_service.get_market_demand(city))
 
-    # Record performance
-    cur.execute(
-        """
-        INSERT INTO live_performances (
-            band_id, city, venue, date, setlist,
-            crowd_size, fame_earned, revenue_earned,
-            skill_gain, merch_sold
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            band_id,
-            city,
-            venue,
-            datetime.utcnow().isoformat(),
-            json.dumps({"setlist": main_actions, "encore": encore_actions}),
-            crowd_size,
-            fame_earned,
-            revenue_earned,
-            applied_skill,
-            merch_sold,
-        ),
-    )
-    performance_record_id = cur.lastrowid
+    participants = all_band_ids
+    if revenue_split:
+        share_map = {int(k): v for k, v in revenue_split.items()}
+        missing = [b for b in participants if b not in share_map]
+        leftover = (1.0 - sum(share_map.values())) / (len(missing) or 1)
+        for b in missing:
+            share_map[b] = leftover
+    else:
+        share_map = {b: 1 / len(participants) for b in participants}
+
+    fame_dist = {b: int(fame_total * share_map[b]) for b in participants}
+    revenue_dist = {b: int(revenue_total * share_map[b]) for b in participants}
+    skill_dist = {b: applied_skill * share_map[b] for b in participants}
+    merch_dist = {b: int(merch_total * share_map[b]) for b in participants}
+
+    # Record performance for each band
+    performance_record_id = None
+    for b in participants:
+        cur.execute(
+            """
+            INSERT INTO live_performances (
+                band_id, city, venue, date, setlist,
+                crowd_size, fame_earned, revenue_earned,
+                skill_gain, merch_sold
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                b,
+                city,
+                venue,
+                datetime.utcnow().isoformat(),
+                json.dumps({"setlist": main_actions, "encore": encore_actions}),
+                crowd_size,
+                fame_dist[b],
+                revenue_dist[b],
+                skill_dist[b],
+                merch_dist[b],
+            ),
+        )
+        if b == band_id:
+            performance_record_id = cur.lastrowid
 
     for event in event_log:
         cur.execute(
@@ -263,24 +285,42 @@ def simulate_gig(
     live_performance_analysis.store_setlist_summary(summary)
 
     # Update band stats
-    cur.execute("UPDATE bands SET fame = fame + ? WHERE id = ?", (fame_earned, band_id))
-    if applied_skill:
-        cur.execute("UPDATE bands SET skill = skill + ? WHERE id = ?", (applied_skill, band_id))
-    cur.execute("UPDATE bands SET revenue = revenue + ? WHERE id = ?", (revenue_earned, band_id))
+    for b in participants:
+        cur.execute("UPDATE bands SET fame = fame + ? WHERE id = ?", (fame_dist[b], b))
+        if skill_dist[b]:
+            cur.execute(
+                "UPDATE bands SET skill = skill + ? WHERE id = ?",
+                (skill_dist[b], b),
+            )
+        cur.execute(
+            "UPDATE bands SET revenue = revenue + ? WHERE id = ?",
+            (revenue_dist[b], b),
+        )
 
     conn.commit()
     conn.close()
 
-    return {
+    result = {
         "status": "ok",
         "city": city,
         "venue": venue,
         "crowd_size": crowd_size,
-        "fame_earned": fame_earned,
-        "revenue_earned": revenue_earned,
-        "skill_gain": applied_skill,
-        "merch_sold": merch_sold,
+        "fame_earned": fame_dist[band_id],
+        "revenue_earned": revenue_dist[band_id],
+        "skill_gain": skill_dist[band_id],
+        "merch_sold": merch_dist[band_id],
     }
+    if len(participants) > 1:
+        result["band_results"] = {
+            str(b): {
+                "fame_earned": fame_dist[b],
+                "revenue_earned": revenue_dist[b],
+                "skill_gain": skill_dist[b],
+                "merch_sold": merch_dist[b],
+            }
+            for b in participants
+        }
+    return result
 
 
 def get_band_performances(band_id: int) -> list:
