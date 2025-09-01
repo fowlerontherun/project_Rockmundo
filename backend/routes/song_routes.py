@@ -23,6 +23,22 @@ def get_band_songs(band_id):
 def get_song_covers(song_id):
     return jsonify(song_service.list_covers_of_song(song_id))
 
+
+@song_routes.route('/cover_royalties/band/<int:band_id>', methods=['GET'])
+def get_cover_royalties(band_id):
+    """Return cover royalty transactions for a band."""
+    return jsonify(song_service.list_cover_royalties(band_id))
+
+
+@song_routes.route('/cover_royalties/band/<int:band_id>', methods=['POST'])
+def upload_license(band_id):
+    """Upload proof of a cover license and record payment."""
+    song_id = int(request.form['song_id'])
+    file = request.files.get('license_proof')
+    proof_url = file.filename if file else request.form.get('license_proof_url', '')
+    res = song_service.purchase_cover_license(song_id, band_id, proof_url)
+    return jsonify(res), 201
+
 @song_routes.route('/songs/<int:song_id>', methods=['PUT'])
 def update_song(song_id):
     updates = request.json

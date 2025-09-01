@@ -10,3 +10,32 @@
   <input type="file" name="license_proof" required />
   <button type="submit">Upload Proof</button>
 </form>
+
+<script>
+  const BAND_ID = 1; // Placeholder for current band
+
+  function loadRoyalties() {
+    fetch(`/cover_royalties/band/${BAND_ID}`)
+      .then(r => r.json())
+      .then(list => {
+        const body = document.querySelector('#royalties tbody');
+        body.innerHTML = '';
+        list.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.song_id}</td><td>${r.amount_owed}</td><td>${r.amount_paid}</td><td>${r.license_proof_url || ''}</td>`;
+          body.appendChild(tr);
+        });
+      });
+  }
+
+  loadRoyalties();
+
+  document.getElementById('licenseUpload').addEventListener('submit', async e => {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+    await fetch(`/cover_royalties/band/${BAND_ID}`, { method: 'POST', body: data });
+    form.reset();
+    loadRoyalties();
+  });
+</script>
