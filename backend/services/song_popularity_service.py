@@ -19,9 +19,12 @@ def _validate_region_platform(region_code: str, platform: str) -> None:
     if platform not in SUPPORTED_PLATFORMS:
         raise ValueError(f"Invalid platform: {platform}")
 
-# Popularity decays by this factor every day
-DECAY_FACTOR = 0.95
-# Derived half-life in days for the current decay factor
+# Popularity decay factors by legacy state
+DECAY_FACTOR = 0.95  # for new songs
+CLASSIC_DECAY_FACTOR = 0.98
+RETIRED_ROYALTY_EVENT = 1  # minimal residual royalty payout
+
+# Derived half-life in days for the default decay factor
 HALF_LIFE_DAYS = math.log(0.5) / math.log(DECAY_FACTOR)
 
 
@@ -243,25 +246,58 @@ def add_event(
 
 
 def apply_decay() -> int:
-    """Apply exponential decay to all songs' popularity scores."""
+    """Apply decay based on song legacy state."""
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         _ensure_schema(cur)
-        cur.execute(
-            """
-            SELECT song_id, region_code, platform, popularity_score FROM song_popularity
-            WHERE (song_id, region_code, platform, updated_at) IN (
-                SELECT song_id, region_code, platform, MAX(updated_at)
-                FROM song_popularity GROUP BY song_id, region_code, platform
+        try:
+            cur.execute(
+                """
+                SELECT sp.song_id, sp.region_code, sp.platform, sp.popularity_score, s.legacy_state
+                FROM song_popularity sp
+                LEFT JOIN songs s ON s.id = sp.song_id
+                WHERE (sp.song_id, sp.region_code, sp.platform, sp.updated_at) IN (
+                    SELECT song_id, region_code, platform, MAX(updated_at)
+                    FROM song_popularity GROUP BY song_id, region_code, platform
+                )
+                """
             )
-            """
-        )
+        except sqlite3.OperationalError:
+            cur.execute(
+                """
+                SELECT song_id, region_code, platform, popularity_score, NULL
+                FROM song_popularity
+                WHERE (song_id, region_code, platform, updated_at) IN (
+                    SELECT song_id, region_code, platform, MAX(updated_at)
+                    FROM song_popularity GROUP BY song_id, region_code, platform
+                )
+                """
+            )
         rows = cur.fetchall()
         now = datetime.utcnow().isoformat()
-        decayed = [
-            (song_id, region_code, platform, score * DECAY_FACTOR, now)
-            for song_id, region_code, platform, score in rows
-        ]
+        decayed = []
+        for song_id, region_code, platform, score, legacy in rows:
+            state = legacy or "new"
+            if state == "retired":
+                cur.execute(
+                    """
+                    INSERT INTO song_popularity_events
+                        (song_id, region_code, platform, source, boost, details, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        song_id,
+                        region_code,
+                        platform,
+                        "retired_royalty",
+                        RETIRED_ROYALTY_EVENT,
+                        "minimal residual royalties",
+                        now,
+                    ),
+                )
+                continue
+            factor = CLASSIC_DECAY_FACTOR if state == "classic" else DECAY_FACTOR
+            decayed.append((song_id, region_code, platform, score * factor, now))
         if decayed:
             cur.executemany(
                 """

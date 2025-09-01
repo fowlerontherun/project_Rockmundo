@@ -14,6 +14,7 @@ from backend.services.song_popularity_service import (
     add_event,
     apply_decay,
     get_history,
+    CLASSIC_DECAY_FACTOR,
 )
 
 
@@ -158,3 +159,27 @@ def test_date_filters():
         5, start_date="2023-02-15T00:00:00", end_date="2023-03-15T00:00:00"
     )
     assert breakdown == {"EU": {"apple": 4}}
+
+
+def test_legacy_decay_behaviour():
+    _reset_db()
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("DROP TABLE IF EXISTS songs")
+        cur.execute(
+            "CREATE TABLE songs (id INTEGER PRIMARY KEY, legacy_state TEXT, original_release_date TEXT)"
+        )
+        cur.executemany(
+            "INSERT INTO songs (id, legacy_state) VALUES (?, ?)",
+            [(1, "classic"), (2, "retired")],
+        )
+        conn.commit()
+    add_event(1, 10, "stream")
+    add_event(2, 10, "stream")
+    apply_decay()
+    pop_classic = song_popularity_service.get_current_popularity(1)
+    pop_retired = song_popularity_service.get_current_popularity(2)
+    assert pop_classic == pytest.approx(10 * CLASSIC_DECAY_FACTOR)
+    assert pop_retired == 10
+    events = song_popularity_service.song_popularity_service.list_events(2, source="retired_royalty")
+    assert events and events[0]["source"] == "retired_royalty"

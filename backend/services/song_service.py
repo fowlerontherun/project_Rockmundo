@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from backend.database import DB_PATH
@@ -34,6 +35,8 @@ class SongService:
         original_song_id = data.get("original_song_id")
         license_fee = data.get("license_fee", 0)
         royalty_rate = data.get("royalty_rate", 0.0)
+        legacy_state = data.get("legacy_state", "new")
+        original_release_date = data.get("original_release_date") or datetime.utcnow().isoformat()
 
         if sum(royalties_split.values()) != 100:
             raise ValueError("Royalties must sum to 100%")
@@ -43,10 +46,23 @@ class SongService:
 
         cur.execute(
             """
-            INSERT INTO songs (band_id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate)
-            VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+            INSERT INTO songs (
+                band_id, title, duration_sec, genre, play_count,
+                original_song_id, license_fee, royalty_rate, legacy_state, original_release_date
+            )
+            VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
             """,
-            (band_id, title, duration_sec, genre, original_song_id, license_fee, royalty_rate),
+            (
+                band_id,
+                title,
+                duration_sec,
+                genre,
+                original_song_id,
+                license_fee,
+                royalty_rate,
+                legacy_state,
+                original_release_date,
+            ),
         )
         song_id = cur.lastrowid
 
@@ -65,7 +81,7 @@ class SongService:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate
+            SELECT id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate, legacy_state, original_release_date
             FROM songs
             WHERE band_id = ?
             ORDER BY id DESC
@@ -77,7 +93,18 @@ class SongService:
         return [
             dict(
                 zip(
-                    ["song_id", "title", "duration", "genre", "plays", "original_song_id", "license_fee", "royalty_rate"],
+                    [
+                        "song_id",
+                        "title",
+                        "duration",
+                        "genre",
+                        "plays",
+                        "original_song_id",
+                        "license_fee",
+                        "royalty_rate",
+                        "legacy_state",
+                        "original_release_date",
+                    ],
                     row,
                 )
             )

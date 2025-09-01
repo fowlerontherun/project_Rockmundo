@@ -24,6 +24,8 @@ class Song:
         arrangement: Optional[List[ArrangementTrack]] = None,
         license_fee: int = 0,
         royalty_rate: float = 0.0,
+        legacy_state: str = "new",
+        original_release_date: Optional[str] = None,
     ) -> None:
         self.id = id
         self.title = title
@@ -41,6 +43,8 @@ class Song:
         self.arrangement = arrangement or []
         self.license_fee = license_fee
         self.royalty_rate = royalty_rate
+        self.legacy_state = legacy_state
+        self.original_release_date = original_release_date or self.release_date
 
     def to_dict(self):
         data = self.__dict__.copy()

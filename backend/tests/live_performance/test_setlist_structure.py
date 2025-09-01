@@ -18,7 +18,7 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
         "CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)"
     )
     cur.execute(
-        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER)"
+        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
     )
     cur.execute(
         "CREATE TABLE performance_events (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, action TEXT, crowd_reaction REAL, fame_modifier INTEGER, created_at TEXT)"
@@ -59,6 +59,12 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
     reaction = iter([0.5, 0.5, 0.5])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
 
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("UPDATE bands SET fame = 100 WHERE id = 1")
+    conn.commit()
+    conn.close()
+
     reaction = iter([
         {"cheers": 0.5, "energy": 0.5},
         {"cheers": 0.5, "energy": 0.5},
@@ -83,7 +89,7 @@ def test_cover_song_reduces_fame_and_boosts_original(monkeypatch, tmp_path):
         "CREATE TABLE live_performances (band_id INTEGER, city TEXT, venue TEXT, date TEXT, setlist TEXT, crowd_size INTEGER, fame_earned INTEGER, revenue_earned INTEGER, skill_gain REAL, merch_sold INTEGER)"
     )
     cur.execute(
-        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER)"
+        "CREATE TABLE songs (id INTEGER PRIMARY KEY, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
     )
     cur.execute(
         "CREATE TABLE performance_events (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, action TEXT, crowd_reaction REAL, fame_modifier INTEGER, created_at TEXT)"
@@ -125,6 +131,13 @@ def test_cover_song_reduces_fame_and_boosts_original(monkeypatch, tmp_path):
 
     reaction = iter([0.5, 0.5])
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", revision_id, reaction_stream=reaction)
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.executemany("UPDATE bands SET fame = ? WHERE id = ?", [(100, 1), (50, 2)])
+    cur.execute("UPDATE songs SET play_count = 0")
+    conn.commit()
+    conn.close()
 
     reaction = iter([
         {"cheers": 0.5, "energy": 0.5},
