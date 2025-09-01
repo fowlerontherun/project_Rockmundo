@@ -13,4 +13,10 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP TABLE IF EXISTS media_moderation_logs;")
+    op.execute("ALTER TABLE media_content DROP COLUMN mod_notes;")
+    op.execute("ALTER TABLE media_content DROP COLUMN mod_status;")
+    op.execute("ALTER TABLE media_campaigns DROP COLUMN mod_notes;")
+    op.execute("ALTER TABLE media_campaigns DROP COLUMN mod_status;")
+    op.execute("ALTER TABLE media_outlets DROP COLUMN mod_notes;")
+    op.execute("ALTER TABLE media_outlets DROP COLUMN mod_status;")

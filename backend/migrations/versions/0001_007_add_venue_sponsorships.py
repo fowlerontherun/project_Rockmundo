@@ -13,4 +13,7 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP VIEW IF EXISTS v_current_venue_sponsorship;")
+    op.execute("DROP TABLE IF EXISTS sponsorship_ad_events;")
+    op.execute("DROP TABLE IF EXISTS venue_sponsorships;")
+    op.execute("DROP TABLE IF EXISTS sponsors;")

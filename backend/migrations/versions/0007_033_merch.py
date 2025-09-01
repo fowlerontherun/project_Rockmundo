@@ -13,4 +13,8 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP TABLE IF EXISTS merch_refunds;")
+    op.execute("DROP TABLE IF EXISTS merch_order_items;")
+    op.execute("DROP TABLE IF EXISTS merch_orders;")
+    op.execute("DROP TABLE IF EXISTS merch_skus;")
+    op.execute("DROP TABLE IF EXISTS merch_products;")

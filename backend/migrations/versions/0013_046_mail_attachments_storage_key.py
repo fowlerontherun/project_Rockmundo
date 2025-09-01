@@ -13,4 +13,5 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    pass
+    op.execute("DROP INDEX IF EXISTS idx_mail_attachments_storage_key;")
+    op.execute("ALTER TABLE mail_attachments DROP COLUMN storage_key;")
