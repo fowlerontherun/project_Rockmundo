@@ -78,7 +78,10 @@ class TournamentService:
     # Helpers ---------------------------------------------------------------
     def _calculate_score(self, band_id: int) -> Score:
         result = self.performance.simulate_gig(
-            band_id=band_id, city="Arena City", venue="Grand Arena", setlist=["song"]
+            band_id=band_id,
+            city="Arena City",
+            venue="Grand Arena",
+            setlist_revision_id=0,
         )
         return Score(
             band_id=band_id,

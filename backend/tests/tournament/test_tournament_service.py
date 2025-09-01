@@ -17,7 +17,7 @@ class DummyPerformance:
     def __init__(self, scores):
         self.scores = scores
 
-    def simulate_gig(self, band_id, city, venue, setlist):
+    def simulate_gig(self, band_id, city, venue, setlist_revision_id=None, **_):
         value = self.scores[band_id]
         return {
             "status": "ok",
