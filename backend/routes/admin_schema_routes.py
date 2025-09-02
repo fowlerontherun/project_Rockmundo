@@ -60,6 +60,13 @@ class ItemSchema(BaseModel):
     stats: Dict[str, float] = {}
 
 
+class BookSchema(BaseModel):
+    title: str
+    genre: str
+    rarity: str
+    max_skill_level: int
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -108,3 +115,9 @@ async def xp_item_schema(req: Request) -> Dict[str, Any]:
 async def item_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return ItemSchema.model_json_schema()
+
+
+@router.get("/book")
+async def book_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return BookSchema.model_json_schema()
