@@ -67,6 +67,14 @@ class BookSchema(BaseModel):
     max_skill_level: int
 
 
+class OnlineTutorialSchema(BaseModel):
+    video_url: str
+    skill: str
+    xp_rate: int
+    plateau_level: int
+    rarity_weight: int
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -121,3 +129,9 @@ async def item_schema(req: Request) -> Dict[str, Any]:
 async def book_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return BookSchema.model_json_schema()
+
+
+@router.get("/online_tutorial")
+async def online_tutorial_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return OnlineTutorialSchema.model_json_schema()
