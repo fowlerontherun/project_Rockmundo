@@ -1,7 +1,12 @@
 import sqlite3
 
+import pytest
 from seeds.skill_seed import SKILL_NAME_TO_ID
 from services import event_service
+
+from backend.models.event import Event, EventType
+from backend.models.skill import Skill
+from backend.services.skill_service import SkillService
 
 
 def test_roll_for_daily_event_trigger(monkeypatch):
@@ -41,3 +46,27 @@ def test_clear_expired(tmp_path, monkeypatch):
     deleted = event_service.clear_expired_events()
     assert deleted == 1
     assert not event_service.is_skill_blocked(1, SKILL_NAME_TO_ID["guitar"])
+
+
+def test_workshop_registration_and_reward(monkeypatch):
+    event_service.clear_workshops()
+    workshop = Event(
+        id=1,
+        type=EventType.WORKSHOP,
+        name="Guitar Mastery",
+        skill_target="guitar",
+        ticket_cost=50,
+        xp_reward=200,
+        capacity=1,
+    )
+    event_service.schedule_workshop(workshop)
+
+    svc = SkillService()
+    monkeypatch.setattr(event_service, "skill_service", svc)
+
+    event_service.purchase_workshop_ticket(user_id=1, event_id=1)
+    skill = svc.train(1, Skill(id=SKILL_NAME_TO_ID["guitar"], name="guitar", category="instrument"), 0)
+    assert skill.xp == 200
+
+    with pytest.raises(ValueError):
+        event_service.purchase_workshop_ticket(user_id=2, event_id=1)
