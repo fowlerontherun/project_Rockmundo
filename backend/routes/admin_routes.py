@@ -6,6 +6,7 @@ from .admin_analytics_routes import router as analytics_router
 from .admin_audit_routes import router as audit_router
 from .admin_business_routes import router as business_router
 from .admin_economy_routes import router as economy_router
+from .admin_course_routes import router as course_router
 from .admin_item_routes import router as item_router
 from .admin_book_routes import router as book_router
 from .admin_online_tutorial_routes import router as online_tutorial_router
@@ -42,8 +43,11 @@ router.include_router(quest_router)
 router.include_router(schema_router)
 router.include_router(song_popularity_router)
 router.include_router(item_router)
+
+router.include_router(course_router)
 router.include_router(book_router)
 router.include_router(online_tutorial_router)
+
 router.include_router(venue_router)
 router.include_router(music_router)
 router.include_router(name_router)

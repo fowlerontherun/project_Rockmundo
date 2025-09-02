@@ -60,6 +60,13 @@ class ItemSchema(BaseModel):
     stats: Dict[str, float] = {}
 
 
+
+class CourseSchema(BaseModel):
+    skill_target: str
+    duration: int
+    prerequisites: Dict[str, Any] | None = None
+    prestige: bool = False
+
 class BookSchema(BaseModel):
     title: str
     genre: str
@@ -124,6 +131,12 @@ async def item_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return ItemSchema.model_json_schema()
 
+
+
+@router.get("/course")
+async def course_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return CourseSchema.model_json_schema()
 
 @router.get("/book")
 async def book_schema(req: Request) -> Dict[str, Any]:
