@@ -15,6 +15,7 @@ from typing import Dict, Tuple
 
 from backend.database import DB_PATH
 from backend.models.skill import Skill
+from backend.models.book import Book
 from backend.models.xp_config import get_config
 from backend.services.xp_event_service import XPEventService
 from backend.models.learning_method import (
@@ -105,6 +106,7 @@ class SkillService:
         skill: Skill,
         method: LearningMethod,
         duration: int,
+        book: Book | None = None,
     ) -> Skill:
         """Train a skill using a specific learning method.
 
@@ -120,7 +122,19 @@ class SkillService:
         if profile.max_level and inst.level > profile.max_level:
             raise ValueError("skill level too high for this method")
 
-        base_xp = profile.xp_per_hour * duration
+        if method == LearningMethod.BOOK and book is not None:
+            if inst.level >= book.max_skill_level:
+                return inst
+            xp_rate = int(profile.xp_per_hour * 0.5)
+            base_xp = xp_rate * duration
+            max_xp_total = book.max_skill_level * 100 - 1
+            allowed = max_xp_total - inst.xp
+            if allowed <= 0:
+                return inst
+            base_xp = min(base_xp, allowed)
+        else:
+            base_xp = profile.xp_per_hour * duration
+
         if profile.session_cap:
             base_xp = min(base_xp, profile.session_cap)
 
