@@ -10,6 +10,7 @@ import XPEventForm from './components/XPEventForm';
 import XPItemForm from './components/XPItemForm';
 import { EventsCalendar } from './events';
 import BooksAdmin from './learning/BooksAdmin';
+import TutorialsAdmin from './learning/TutorialsAdmin';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -38,6 +39,8 @@ const App: React.FC = () => {
     content = <EventsCalendar />;
   } else if (path.includes('/admin/learning/books')) {
     content = <BooksAdmin />;
+  } else if (path.includes('/admin/learning/tutorials')) {
+    content = <TutorialsAdmin />;
   }
 
   return (
