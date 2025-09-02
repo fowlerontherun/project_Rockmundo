@@ -11,19 +11,20 @@ from middleware.observability import ObservabilityMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
+    apprenticeship_routes,
     event_routes,
     legacy_routes,
     lifestyle_routes,
     locale_routes,
-    onboarding_routes,
-    social_routes,
-    sponsorship,
-    video_routes,
-    setlist_routes,
     music_metrics_routes,
+    onboarding_routes,
+    setlist_routes,
+    social_routes,
     song_forecast_routes,
+    sponsorship,
     tour_collab_routes,
     university_routes,
+    video_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -69,6 +70,7 @@ app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
 app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
 app.include_router(admin_mfa_router)
+app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprenticeships"])
 
 # Additional routers
 app.include_router(sponsorship.router, prefix="/api/sponsorships", tags=["Sponsorships"])

@@ -343,4 +343,18 @@ def init_db():
         )
         """)
 
+        # Apprenticeships linking mentors and students
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS apprenticeships (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            mentor_id INTEGER NOT NULL,
+            mentor_type TEXT NOT NULL,
+            skill_id INTEGER NOT NULL,
+            duration_days INTEGER NOT NULL,
+            start_date TEXT,
+            status TEXT NOT NULL DEFAULT 'pending'
+        )
+        """)
+
         conn.commit()
