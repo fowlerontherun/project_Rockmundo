@@ -27,6 +27,7 @@ class RecordingService:
         end: str,
         tracks: List[int],
         cost_cents: int,
+        environment_quality: float = 1.0,
     ) -> RecordingSession:
         """Schedule a new recording session and charge the band."""
 
@@ -42,6 +43,7 @@ class RecordingService:
             end=end,
             track_statuses={tid: "pending" for tid in tracks},
             cost_cents=cost_cents,
+            environment_quality=environment_quality,
         )
         self.sessions[session.id] = session
         self._id_seq += 1

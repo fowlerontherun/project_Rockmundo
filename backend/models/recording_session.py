@@ -17,6 +17,7 @@ class RecordingSession:
     track_statuses: Dict[int, str] = field(default_factory=dict)
     personnel: List[int] = field(default_factory=list)
     cost_cents: int = 0
+    environment_quality: float = 1.0
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
     def to_dict(self) -> dict:
@@ -29,6 +30,7 @@ class RecordingSession:
             "track_statuses": dict(self.track_statuses),
             "personnel": list(self.personnel),
             "cost_cents": self.cost_cents,
+            "environment_quality": self.environment_quality,
             "created_at": self.created_at,
         }
 

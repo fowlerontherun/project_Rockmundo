@@ -4,7 +4,6 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from .skill_service import skill_service
 from .xp_event_service import XPEventService
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
@@ -33,6 +32,8 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental):
     return round(modifier, 2)
 
 def apply_lifestyle_decay_and_xp_effects():
+    from .skill_service import skill_service  # local import to avoid cycle
+
     event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
