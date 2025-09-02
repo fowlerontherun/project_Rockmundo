@@ -4,9 +4,10 @@ interface SchemaFormProps {
   schemaUrl: string;
   submitUrl: string;
   method?: string;
+  onSubmitted?: () => void;
 }
 
-const SchemaForm: React.FC<SchemaFormProps> = ({ schemaUrl, submitUrl, method = 'POST' }) => {
+const SchemaForm: React.FC<SchemaFormProps> = ({ schemaUrl, submitUrl, method = 'POST', onSubmitted }) => {
   const [schema, setSchema] = useState<any>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
 
@@ -34,6 +35,9 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ schemaUrl, submitUrl, method = 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
     });
+    if (onSubmitted) {
+      onSubmitted();
+    }
   };
 
   return (
