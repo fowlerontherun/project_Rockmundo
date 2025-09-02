@@ -23,6 +23,7 @@ from routes import (
     music_metrics_routes,
     song_forecast_routes,
     tour_collab_routes,
+    university_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -84,6 +85,7 @@ app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
 app.include_router(music_metrics_routes.router)
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
+app.include_router(university_routes.router, prefix="/api", tags=["University"])
 
 
 @app.get("/metrics")
