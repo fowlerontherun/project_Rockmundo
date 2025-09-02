@@ -127,6 +127,27 @@ WebSocket channels:
 These endpoints power the admin dashboard widget under
 `frontend/src/admin/monitoring/`.
 
+## Learning & Burnout Mechanics
+
+Skill progression uses level-gated learning methods. Higher tiers grant more experience but carry greater burnout risk.
+
+| Level Range | Learning Method Category | XP Rate | Burnout Risk |
+|-------------|-------------------------|---------|--------------|
+| 1-3         | Books / YouTube          | 1.0x    | Low          |
+| 4-7         | University / Apprenticeships / Bandmates | 1.5x | Medium |
+| 8-10        | Tutors / Masterclasses   | 2.0x    | High         |
+
+Burnout increases with continuous practice:
+
+| Practice Hours | XP Modifier | Burnout Gain |
+|----------------|------------|--------------|
+| 0-1            | 0.5x       | 0%           |
+| 2-4            | 1.0x       | 5%           |
+| 5-6            | 1.2x       | 15%          |
+| 7+             | 1.5x       | 30%          |
+
+See [docs/learning_methods.md](docs/learning_methods.md) for detailed progression rules and meta-modifiers.
+
 ## Testing
 Run the test suite from the project root:
 
