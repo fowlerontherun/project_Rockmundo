@@ -297,4 +297,28 @@ def init_db():
             """
         )
 
+        # Learning sessions for skill training
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            skill_id INTEGER NOT NULL,
+            method TEXT NOT NULL,
+            duration INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'queued',
+            scheduled_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """)
+
+        # Optional tutor metadata
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS tutors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            specialty_skill INTEGER,
+            rate INTEGER
+        )
+        """)
+
         conn.commit()
