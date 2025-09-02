@@ -17,6 +17,10 @@ from backend.database import DB_PATH
 from backend.models.skill import Skill
 from backend.models.xp_config import get_config
 from backend.services.xp_event_service import XPEventService
+from backend.models.learning_method import (
+    LearningMethod,
+    METHOD_PROFILES,
+)
 
 
 SONGWRITING_SKILL = Skill(id=4, name="songwriting", category="creative")
@@ -94,6 +98,33 @@ class SkillService:
         inst.xp += gain
         self._check_level(inst)
         return inst
+
+    def train_with_method(
+        self,
+        user_id: int,
+        skill: Skill,
+        method: LearningMethod,
+        duration: int,
+    ) -> Skill:
+        """Train a skill using a specific learning method.
+
+        The method defines XP and cost rates along with level restrictions.
+        """
+
+        profile = METHOD_PROFILES[method]
+
+        inst = self._get_skill(user_id, skill)
+        # Level gating
+        if inst.level < profile.min_level:
+            raise ValueError("skill level too low for this method")
+        if profile.max_level and inst.level > profile.max_level:
+            raise ValueError("skill level too high for this method")
+
+        base_xp = profile.xp_per_hour * duration
+        if profile.session_cap:
+            base_xp = min(base_xp, profile.session_cap)
+
+        return self.train(user_id, skill, base_xp)
 
     def apply_decay(self, user_id: int, skill_id: int, amount: int) -> Skill | None:
         """Reduce XP for a skill and update its level."""
