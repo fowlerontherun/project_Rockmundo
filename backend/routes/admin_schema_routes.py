@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Literal
 
 from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class NPCSchema(BaseModel):
@@ -59,44 +59,56 @@ class ItemSchema(BaseModel):
     stats: Dict[str, float] = {}
 
 
+class LearningSchema(BaseModel):
+    xp_rate: int = Field(..., gt=0)
+    level_cap: int = Field(..., ge=1)
+    prerequisites: Dict[str, Any] | None = None
 
-class CourseSchema(BaseModel):
+    @field_validator("prerequisites")
+    def validate_prerequisites(cls, v: Dict[str, Any] | None) -> Dict[str, Any] | None:
+        if v is not None and not v:
+            raise ValueError("prerequisites_cannot_be_empty")
+        return v
+
+
+class CourseSchema(LearningSchema):
     skill_target: str
     duration: int
-    prerequisites: Dict[str, Any] | None = None
     prestige: bool = False
 
-class BookSchema(BaseModel):
+
+class BookSchema(LearningSchema):
     title: str
     genre: str
     rarity: str
-    max_skill_level: int
 
 
-class OnlineTutorialSchema(BaseModel):
+class OnlineTutorialSchema(LearningSchema):
     video_url: str
     skill: str
-    xp_rate: int
-    plateau_level: int
     rarity_weight: int
 
 
-class TutorSchema(BaseModel):
+class TutorSchema(LearningSchema):
     name: str
     specialization: str
     hourly_rate: int
-    level_requirement: int
 
 
-class ApprenticeshipSchema(BaseModel):
+class ApprenticeshipSchema(LearningSchema):
     student_id: int
     mentor_id: int
     mentor_type: str
     skill_id: int
     duration_days: int
-    level_requirement: int
     start_date: str | None = None
     status: str = "pending"
+
+
+class WorkshopSchema(LearningSchema):
+    name: str
+    skill_target: str
+    duration: int
 
 
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
@@ -177,3 +189,9 @@ async def tutor_schema(req: Request) -> Dict[str, Any]:
 async def apprenticeship_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return ApprenticeshipSchema.model_json_schema()
+
+
+@router.get("/workshop")
+async def workshop_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return WorkshopSchema.model_json_schema()
