@@ -4,6 +4,10 @@ from typing import Dict, List, Optional
 
 from backend.models.recording_session import RecordingSession
 from backend.services.economy_service import EconomyError, EconomyService
+from backend.services.skill_service import skill_service
+from backend.models.skill import Skill
+from backend.models.learning_method import LearningMethod
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 class RecordingService:
@@ -59,6 +63,16 @@ class RecordingService:
         if not session:
             raise KeyError("session_not_found")
         session.track_statuses[track_id] = status
+
+        # Award practice XP to all personnel based on task difficulty
+        difficulty = {"recorded": 1, "mixed": 2, "mastered": 3}.get(status, 1)
+        skill = Skill(
+            id=SKILL_NAME_TO_ID["music_production"],
+            name="music_production",
+            category="creative",
+        )
+        for uid in session.personnel:
+            skill_service.train_with_method(uid, skill, LearningMethod.PRACTICE, difficulty)
 
     def get_session(self, session_id: int) -> Optional[RecordingSession]:
         return self.sessions.get(session_id)
