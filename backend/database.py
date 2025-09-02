@@ -317,8 +317,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS tutors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            specialty_skill INTEGER,
-            rate INTEGER
+            specialization TEXT NOT NULL,
+            hourly_rate INTEGER NOT NULL,
+            level_requirement INTEGER NOT NULL DEFAULT 0
         )
         """)
 
@@ -353,6 +354,7 @@ def init_db():
             mentor_type TEXT NOT NULL,
             skill_id INTEGER NOT NULL,
             duration_days INTEGER NOT NULL,
+            level_requirement INTEGER NOT NULL DEFAULT 0,
             start_date TEXT,
             status TEXT NOT NULL DEFAULT 'pending'
         )

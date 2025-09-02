@@ -15,6 +15,7 @@ class Apprenticeship:
     mentor_type: str  # "npc" or "player"
     skill_id: int
     duration_days: int
+    level_requirement: int
     start_date: Optional[str] = None
     status: str = "pending"
 
@@ -30,6 +31,7 @@ class Apprenticeship:
             "mentor_type": self.mentor_type,
             "skill_id": self.skill_id,
             "duration_days": self.duration_days,
+            "level_requirement": self.level_requirement,
             "start_date": self.start_date,
             "status": self.status,
         }

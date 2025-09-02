@@ -16,6 +16,8 @@ const navItems: NavItem[] = [
   { label: 'Events', href: '/admin/events' },
   { label: 'Books', href: '/admin/learning/books' },
   { label: 'Tutorials', href: '/admin/learning/tutorials' },
+  { label: 'Tutors', href: '/admin/learning/tutors' },
+  { label: 'Mentors', href: '/admin/learning/mentors' },
   { label: 'Venues', href: '/admin/venues' },
   { label: 'Audit Logs', href: '/admin/audit' },
   { label: 'Modding', href: '/admin/modding' },

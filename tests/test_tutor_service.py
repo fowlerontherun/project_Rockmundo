@@ -1,8 +1,8 @@
 import pytest
 
+from backend.models.learning_method import METHOD_PROFILES, LearningMethod
 from backend.models.skill import Skill
 from backend.models.tutor import Tutor
-from backend.models.learning_method import METHOD_PROFILES, LearningMethod
 from backend.services.economy_service import EconomyService
 from backend.services.skill_service import SkillService
 from backend.services.tutor_service import TutorService
@@ -19,7 +19,13 @@ def _setup_services(tmp_path):
 def test_tutor_requires_level(tmp_path):
     svc, economy, skills = _setup_services(tmp_path)
     tutor = svc.create_tutor(
-        Tutor(id=None, name="Maestro", specialization="guitar", hourly_rate=70)
+        Tutor(
+            id=None,
+            name="Maestro",
+            specialization="guitar",
+            hourly_rate=70,
+            level_requirement=1,
+        )
     )
     skill = Skill(id=1, name="guitar", category="instrument")
 
@@ -35,7 +41,13 @@ def test_tutor_requires_level(tmp_path):
 def test_tutor_session_cost_and_xp(tmp_path):
     svc, economy, skills = _setup_services(tmp_path)
     tutor = svc.create_tutor(
-        Tutor(id=None, name="Maestro", specialization="guitar", hourly_rate=70)
+        Tutor(
+            id=None,
+            name="Maestro",
+            specialization="guitar",
+            hourly_rate=70,
+            level_requirement=1,
+        )
     )
     skill = Skill(id=2, name="guitar", category="instrument")
 

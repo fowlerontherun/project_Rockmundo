@@ -20,7 +20,15 @@ class ApprenticeshipService:
         return sqlite3.connect(self.db_path)
 
     # ------------------------------------------------------------------
-    def request(self, student_id: int, mentor_id: int, mentor_type: str, skill_id: int, duration_days: int) -> Apprenticeship:
+    def request(
+        self,
+        student_id: int,
+        mentor_id: int,
+        mentor_type: str,
+        skill_id: int,
+        duration_days: int,
+        level_requirement: int = 0,
+    ) -> Apprenticeship:
         """Record an apprenticeship request waiting for mentor approval."""
 
         app = Apprenticeship(
@@ -30,16 +38,25 @@ class ApprenticeshipService:
             mentor_type=mentor_type,
             skill_id=skill_id,
             duration_days=duration_days,
+            level_requirement=level_requirement,
             status="pending",
         )
         with self._connect() as conn:
             cur = conn.cursor()
             cur.execute(
                 """
-                INSERT INTO apprenticeships (student_id, mentor_id, mentor_type, skill_id, duration_days, status)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO apprenticeships (student_id, mentor_id, mentor_type, skill_id, duration_days, level_requirement, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (app.student_id, app.mentor_id, app.mentor_type, app.skill_id, app.duration_days, app.status),
+                (
+                    app.student_id,
+                    app.mentor_id,
+                    app.mentor_type,
+                    app.skill_id,
+                    app.duration_days,
+                    app.level_requirement,
+                    app.status,
+                ),
             )
             app.id = cur.lastrowid
             conn.commit()

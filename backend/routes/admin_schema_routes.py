@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Literal
 
 from auth.dependencies import get_current_user_id, require_role
 from fastapi import APIRouter, Request
-
 from pydantic import BaseModel
 
 
@@ -82,6 +81,24 @@ class OnlineTutorialSchema(BaseModel):
     rarity_weight: int
 
 
+class TutorSchema(BaseModel):
+    name: str
+    specialization: str
+    hourly_rate: int
+    level_requirement: int
+
+
+class ApprenticeshipSchema(BaseModel):
+    student_id: int
+    mentor_id: int
+    mentor_type: str
+    skill_id: int
+    duration_days: int
+    level_requirement: int
+    start_date: str | None = None
+    status: str = "pending"
+
+
 router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 
@@ -148,3 +165,15 @@ async def book_schema(req: Request) -> Dict[str, Any]:
 async def online_tutorial_schema(req: Request) -> Dict[str, Any]:
     await _ensure_admin(req)
     return OnlineTutorialSchema.model_json_schema()
+
+
+@router.get("/tutor")
+async def tutor_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return TutorSchema.model_json_schema()
+
+
+@router.get("/apprenticeship")
+async def apprenticeship_schema(req: Request) -> Dict[str, Any]:
+    await _ensure_admin(req)
+    return ApprenticeshipSchema.model_json_schema()

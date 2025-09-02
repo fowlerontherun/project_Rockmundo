@@ -11,6 +11,7 @@ class Tutor:
     name: str
     specialization: str
     hourly_rate: int
+    level_requirement: int
 
 
 __all__ = ["Tutor"]

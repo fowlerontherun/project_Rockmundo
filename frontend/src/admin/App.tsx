@@ -11,6 +11,8 @@ import XPItemForm from './components/XPItemForm';
 import { EventsCalendar } from './events';
 import BooksAdmin from './learning/BooksAdmin';
 import TutorialsAdmin from './learning/TutorialsAdmin';
+import TutorsAdmin from './learning/TutorsAdmin';
+import MentorsAdmin from './learning/MentorsAdmin';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -41,6 +43,10 @@ const App: React.FC = () => {
     content = <BooksAdmin />;
   } else if (path.includes('/admin/learning/tutorials')) {
     content = <TutorialsAdmin />;
+  } else if (path.includes('/admin/learning/tutors')) {
+    content = <TutorsAdmin />;
+  } else if (path.includes('/admin/learning/mentors')) {
+    content = <MentorsAdmin />;
   }
 
   return (
