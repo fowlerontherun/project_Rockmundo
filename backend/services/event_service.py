@@ -2,16 +2,20 @@
 import logging
 import random
 import sqlite3
+from typing import Dict, List
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
+from backend.models.event import Event
 from backend.models.event_effect import EventEffect
 from backend.models.npc import NPC
+from backend.models.skill import Skill
 
 from .city_service import city_service
-from .weather_service import weather_service
 from .npc_ai_service import npc_ai_service
+from .skill_service import skill_service
+from .weather_service import weather_service
 
 logger = logging.getLogger(__name__)
 
@@ -135,3 +139,48 @@ def adjust_event_attendance(base_attendance: int, region: str) -> int:
     # apply city economic modifier
     attendance = int(attendance * city_service.get_event_modifier(region))
     return attendance
+
+
+# ---------------------------------------------------------------------------
+# Workshop events
+# ---------------------------------------------------------------------------
+
+_workshops: Dict[int, Event] = {}
+
+
+def schedule_workshop(event: Event) -> Event:
+    """Add a workshop to the upcoming schedule."""
+
+    _workshops[event.id] = event
+    return event
+
+
+def list_workshops() -> List[Event]:
+    """Return all scheduled workshops."""
+
+    return list(_workshops.values())
+
+
+def clear_workshops() -> None:
+    """Testing helper to clear registered workshops."""
+
+    _workshops.clear()
+
+
+def purchase_workshop_ticket(user_id: int, event_id: int) -> Event:
+    """Register a user for a workshop and award XP."""
+
+    workshop = _workshops.get(event_id)
+    if workshop is None:
+        raise ValueError("workshop not found")
+    if user_id in workshop.attendees:
+        raise ValueError("already registered")
+    if not workshop.has_space():
+        raise ValueError("workshop full")
+
+    workshop.attendees.append(user_id)
+
+    skill_id = SKILL_NAME_TO_ID.get(workshop.skill_target, 0)
+    skill = Skill(id=skill_id, name=workshop.skill_target, category="event")
+    skill_service.train(user_id, skill, workshop.xp_reward)
+    return workshop
