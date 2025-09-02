@@ -19,6 +19,7 @@ class Band(Base):
     # aggregate skill metric and upcoming performance quality modifier
     skill = Column(Integer, default=0)
     performance_quality = Column(Integer, default=0)
+    cohesion = Column(Integer, default=0)
 
 class BandMember(Base):
     __tablename__ = "band_members"
