@@ -1,8 +1,13 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
+
+from backend.models.item import Item
+from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
 from backend.models.xp_config import XPConfig, get_config, set_config
+from backend.services.item_service import item_service
 from backend.services.skill_service import SkillService
 
 
@@ -65,4 +70,56 @@ def test_skill_decay() -> None:
 
     assert updated.xp == 90
     assert updated.level == 1
+
+
+def _setup_device() -> int:
+    """Create an internet device item and reset inventory state."""
+
+    item_service._items.clear()
+    item_service._inventories.clear()
+    item_service._id_seq = 1
+    device = item_service.create_item(
+        Item(id=None, name="internet device", category="tech")
+    )
+    return device.id
+
+
+def test_youtube_requires_internet_device() -> None:
+    svc = SkillService()
+    skill = Skill(id=10, name="guitar", category="instrument")
+    _setup_device()
+
+    with pytest.raises(ValueError):
+        svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
+
+
+def test_youtube_plateau() -> None:
+    svc = SkillService()
+    skill = Skill(id=11, name="guitar", category="instrument")
+    device_id = _setup_device()
+    item_service.add_to_inventory(1, device_id)
+
+    svc.train(1, skill, 1000)
+
+    with pytest.raises(ValueError):
+        svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
+
+
+def test_breakthrough_double_xp(monkeypatch: pytest.MonkeyPatch) -> None:
+    svc = SkillService()
+    skill = Skill(id=12, name="guitar", category="instrument")
+    device_id = _setup_device()
+    item_service.add_to_inventory(1, device_id)
+
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.01
+    )
+    updated = svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
+    assert updated.xp == 100
+
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    updated = svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
+    assert updated.xp == 150
 
