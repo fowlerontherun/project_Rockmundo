@@ -1,8 +1,13 @@
 import sqlite3
 import random
 from datetime import datetime, timedelta
+
 from backend.database import DB_PATH
 from backend.services import fan_service
+from backend.services.skill_service import skill_service
+from backend.models.skill import Skill
+from backend.models.learning_method import LearningMethod
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 def create_gig(band_id: int, city: str, venue_size: int, date: str, ticket_price: int) -> dict:
@@ -83,6 +88,15 @@ def simulate_gig_result(gig_id: int):
 
     # Boost fans after gig
     fan_service.boost_fans_after_gig(band_id, city, attendance)
+
+    # Practice boosts performance skill scaled by venue size
+    performance_skill = Skill(
+        id=SKILL_NAME_TO_ID["performance"], name="performance", category="stage"
+    )
+    difficulty = max(1, venue_size // 50)
+    skill_service.train_with_method(
+        band_id, performance_skill, LearningMethod.PRACTICE, difficulty
+    )
 
     return {
         "attendance": attendance,
