@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from backend.database import DB_PATH
 from backend.services import chart_service, fan_service, song_popularity_service
 from backend.services.books_service import books_service
+from backend.services.peer_learning_service import run_scheduled_session
 from backend.services.song_popularity_forecast import forecast_service
 from backend.services.skill_service import skill_service
 from backend.services.social_sentiment_service import social_sentiment_service
@@ -18,6 +19,7 @@ EVENT_HANDLERS = {
     "song_popularity_forecast": forecast_service.recompute_all,
     "social_sentiment": social_sentiment_service.process_song,
     "complete_reading": books_service.complete_reading,
+    "peer_learning": run_scheduled_session,
     # Add more event handlers here as needed
 }
 

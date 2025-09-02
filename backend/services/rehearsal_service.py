@@ -16,6 +16,7 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
+from backend.services.peer_learning_service import peer_learning_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -46,10 +47,17 @@ class RehearsalService:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
                     skill REAL DEFAULT 0,
-                    performance_quality REAL DEFAULT 0
+                    performance_quality REAL DEFAULT 0,
+                    cohesion REAL DEFAULT 0
                 )
                 """
             )
+            c.execute("PRAGMA table_info(bands)")
+            cols = [row[1] for row in c.fetchall()]
+            if "cohesion" not in cols:
+                c.execute(
+                    "ALTER TABLE bands ADD COLUMN cohesion REAL DEFAULT 0"
+                )
             c.execute(
                 """
                 CREATE TABLE IF NOT EXISTS rehearsals (
@@ -129,6 +137,9 @@ class RehearsalService:
                 (skill_gain, bonus * 0.5, band_id),
             )
             conn.commit()
+        peer_learning_service.schedule_session(
+            band_id, attendee_list, end_dt.isoformat()
+        )
         return {"rehearsal_id": rehearsal_id, "bonus": bonus}
 
     def record_attendance(self, rehearsal_id: int, member_id: int) -> None:
