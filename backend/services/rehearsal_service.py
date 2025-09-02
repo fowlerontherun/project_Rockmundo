@@ -67,10 +67,17 @@ class RehearsalService:
                     end TEXT NOT NULL,
                     attendees TEXT,
                     bonus REAL DEFAULT 0,
+                    environment_quality REAL DEFAULT 1.0,
                     FOREIGN KEY(band_id) REFERENCES bands(id)
                 )
                 """
             )
+            c.execute("PRAGMA table_info(rehearsals)")
+            cols = [row[1] for row in c.fetchall()]
+            if "environment_quality" not in cols:
+                c.execute(
+                    "ALTER TABLE rehearsals ADD COLUMN environment_quality REAL DEFAULT 1.0"
+                )
             c.execute(
                 """
                 CREATE TABLE IF NOT EXISTS rehearsal_attendance (
@@ -87,7 +94,12 @@ class RehearsalService:
     # ------------------------------------------------------------------
 
     def book_session(
-        self, band_id: int, start: str, end: str, attendees: Iterable[int]
+        self,
+        band_id: int,
+        start: str,
+        end: str,
+        attendees: Iterable[int],
+        environment_quality: float = 1.0,
     ) -> dict:
         """Book a rehearsal session.
 
@@ -117,8 +129,8 @@ class RehearsalService:
             bonus += gear_service.get_band_bonus(band_id, "rehearsal")
             c.execute(
                 """
-                INSERT INTO rehearsals(band_id, start, end, attendees, bonus)
-                VALUES (?,?,?,?,?)
+                INSERT INTO rehearsals(band_id, start, end, attendees, bonus, environment_quality)
+                VALUES (?,?,?,?,?,?)
                 """,
                 (
                     band_id,
@@ -126,6 +138,7 @@ class RehearsalService:
                     end_dt.isoformat(),
                     ",".join(str(a) for a in attendee_list),
                     bonus,
+                    environment_quality,
                 ),
             )
             rehearsal_id = c.lastrowid
@@ -140,7 +153,11 @@ class RehearsalService:
         peer_learning_service.schedule_session(
             band_id, attendee_list, end_dt.isoformat()
         )
-        return {"rehearsal_id": rehearsal_id, "bonus": bonus}
+        return {
+            "rehearsal_id": rehearsal_id,
+            "bonus": bonus,
+            "environment_quality": environment_quality,
+        }
 
     def record_attendance(self, rehearsal_id: int, member_id: int) -> None:
         """Mark a band member as present for a rehearsal."""

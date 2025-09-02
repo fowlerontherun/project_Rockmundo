@@ -15,7 +15,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT DEFAULT 'player'
+            role TEXT DEFAULT 'player',
+            learning_style TEXT DEFAULT 'balanced'
         )
         """)
 

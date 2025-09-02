@@ -17,10 +17,12 @@ from typing import Dict, Tuple
 from backend.database import DB_PATH
 from backend.models.book import Book
 from backend.models.learning_method import METHOD_PROFILES, LearningMethod
+from backend.models.learning_style import LEARNING_STYLE_BONUS, LearningStyle
 from backend.models.skill import Skill
 from backend.models.xp_config import get_config
 from backend.services.item_service import item_service
 from backend.services.xp_event_service import XPEventService
+from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 
 INTERNET_DEVICE_NAME = "internet device"
 
@@ -42,23 +44,53 @@ class SkillService:
         self._skills: Dict[Tuple[int, int], Skill] = {}
         # Track XP earned per day to enforce caps
         self._xp_today: Dict[Tuple[int, int, date], int] = {}
+        # Track consecutive method usage for burnout
+        self._method_history: Dict[int, Tuple[LearningMethod | None, int]] = {}
 
     # ------------------------------------------------------------------
     # Internal helpers
     def _lifestyle_modifier(self, user_id: int) -> float:
-        """Return the last lifestyle XP modifier for the user."""
+        """Combine lifestyle metrics and stored modifiers for XP."""
 
+        modifier = 1.0
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cur = conn.cursor()
+                # Lifestyle metrics
+                cur.execute(
+                    "SELECT sleep_hours, stress, training_discipline, mental_health FROM lifestyle WHERE user_id = ?",
+                    (user_id,),
+                )
+                row = cur.fetchone()
+                if row:
+                    modifier *= lifestyle_xp_modifier(*row)
+                # Stored modifiers (e.g., events)
                 cur.execute(
                     "SELECT modifier FROM xp_modifiers WHERE user_id = ? ORDER BY date DESC LIMIT 1",
                     (user_id,),
                 )
                 row = cur.fetchone()
+                if row:
+                    modifier *= row[0]
+        except sqlite3.Error:
+            pass
+        return modifier
+
+    def _learning_style(self, user_id: int) -> LearningStyle:
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT learning_style FROM users WHERE id = ?",
+                    (user_id,),
+                )
+                row = cur.fetchone()
         except sqlite3.Error:
             row = None
-        return row[0] if row else 1.0
+        try:
+            return LearningStyle(row[0]) if row and row[0] else LearningStyle.BALANCED
+        except ValueError:
+            return LearningStyle.BALANCED
 
     def _get_skill(self, user_id: int, skill: Skill) -> Skill:
         key = (user_id, skill.id)
@@ -117,6 +149,7 @@ class SkillService:
         method: LearningMethod,
         duration: int,
         book: Book | None = None,
+        environment_quality: float = 1.0,
     ) -> Skill:
         """Train a skill using a specific learning method.
 
@@ -157,7 +190,24 @@ class SkillService:
         if random.random() < 0.05:
             base_xp *= 2
 
-        return self.train(user_id, skill, base_xp)
+        # Environment quality bonus
+        base_xp *= environment_quality
+
+        # Learning style influence
+        style = self._learning_style(user_id)
+        base_xp *= LEARNING_STYLE_BONUS.get(style, {}).get(method, 1.0)
+
+        # Burnout diminishing returns
+        last, streak = self._method_history.get(user_id, (None, 0))
+        if last == method:
+            streak += 1
+        else:
+            streak = 1
+        burnout = 0.9 ** (streak - 1)
+        base_xp *= burnout
+        self._method_history[user_id] = (method, streak)
+
+        return self.train(user_id, skill, int(base_xp))
 
     def apply_decay(self, user_id: int, skill_id: int, amount: int) -> Skill | None:
         """Reduce XP for a skill and update its level."""

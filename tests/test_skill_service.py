@@ -19,22 +19,38 @@ class DummyXPEvents:
         return self.mult
 
 
-def _setup_db(tmp_path: Path, modifier: float) -> Path:
+def _setup_db(
+    tmp_path: Path,
+    xp_modifier: float = 1.0,
+    lifestyle: tuple[float, float, float, float] = (7, 0, 50, 100),
+    learning_style: str = "balanced",
+) -> Path:
     db = tmp_path / "db.sqlite"
     conn = sqlite3.connect(db)
     cur = conn.cursor()
-    cur.execute("CREATE TABLE xp_modifiers (user_id INTEGER, modifier REAL, date TEXT)")
+    cur.execute(
+        "CREATE TABLE xp_modifiers (user_id INTEGER, modifier REAL, date TEXT)"
+    )
     cur.execute(
         "INSERT INTO xp_modifiers (user_id, modifier, date) VALUES (1, ?, '2024-01-01')",
-        (modifier,),
+        (xp_modifier,),
     )
+    cur.execute(
+        "CREATE TABLE lifestyle (user_id INTEGER, sleep_hours REAL, stress REAL, training_discipline REAL, mental_health REAL)"
+    )
+    cur.execute(
+        "INSERT INTO lifestyle (user_id, sleep_hours, stress, training_discipline, mental_health) VALUES (1, ?, ?, ?, ?)",
+        lifestyle,
+    )
+    cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, learning_style TEXT)")
+    cur.execute("INSERT INTO users (id, learning_style) VALUES (1, ?)", (learning_style,))
     conn.commit()
     conn.close()
     return db
 
 
 def test_skill_gain_with_modifiers(tmp_path: Path) -> None:
-    db = _setup_db(tmp_path, 1.5)
+    db = _setup_db(tmp_path, xp_modifier=1.5)
     svc = SkillService(xp_events=DummyXPEvents(2.0), db_path=db)
     skill = Skill(id=1, name="guitar", category="instrument")
 
@@ -121,5 +137,52 @@ def test_breakthrough_double_xp(monkeypatch: pytest.MonkeyPatch) -> None:
         "backend.services.skill_service.random.random", lambda: 0.99
     )
     updated = svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
-    assert updated.xp == 150
+    assert updated.xp == 145
+
+
+def test_learning_style_bonus(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _setup_db(tmp_path, learning_style="visual")
+    svc = SkillService(db_path=db)
+    skill = Skill(id=20, name="guitar", category="instrument")
+    device_id = _setup_device()
+    item_service.add_to_inventory(1, device_id)
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    updated = svc.train_with_method(1, skill, LearningMethod.YOUTUBE, 1)
+    assert updated.xp == 60
+
+
+def test_environment_quality(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _setup_db(tmp_path)
+    svc = SkillService(db_path=db)
+    skill = Skill(id=21, name="drums", category="instrument")
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    updated = svc.train_with_method(
+        1, skill, LearningMethod.PRACTICE, 1, environment_quality=1.5
+    )
+    assert updated.xp == 15
+
+
+def test_lifestyle_modifier(tmp_path: Path) -> None:
+    db = _setup_db(tmp_path, lifestyle=(4, 90, 50, 100))
+    svc = SkillService(db_path=db, xp_events=DummyXPEvents(1.0))
+    skill = Skill(id=22, name="bass", category="instrument")
+    updated = svc.train(1, skill, 10)
+    assert updated.xp == 5
+
+
+def test_method_burnout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _setup_db(tmp_path)
+    svc = SkillService(db_path=db)
+    skill = Skill(id=23, name="piano", category="instrument")
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    updated = svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    assert updated.xp == 27
 
