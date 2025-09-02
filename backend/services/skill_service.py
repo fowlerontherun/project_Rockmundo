@@ -8,20 +8,21 @@ demo environments.
 
 from __future__ import annotations
 
+import random
 import sqlite3
 from datetime import date
 from pathlib import Path
 from typing import Dict, Tuple
 
 from backend.database import DB_PATH
-from backend.models.skill import Skill
 from backend.models.book import Book
+from backend.models.learning_method import METHOD_PROFILES, LearningMethod
+from backend.models.skill import Skill
 from backend.models.xp_config import get_config
+from backend.services.item_service import item_service
 from backend.services.xp_event_service import XPEventService
-from backend.models.learning_method import (
-    LearningMethod,
-    METHOD_PROFILES,
-)
+
+INTERNET_DEVICE_NAME = "internet device"
 
 
 SONGWRITING_SKILL = Skill(id=4, name="songwriting", category="creative")
@@ -75,6 +76,15 @@ class SkillService:
         if level != skill.level:
             skill.level = level
 
+    def _has_item(self, user_id: int, item_name: str) -> bool:
+        """Return True if the user possesses an item by name."""
+
+        inv = item_service.get_inventory(user_id)
+        for item in item_service.list_items():
+            if item.name == item_name:
+                return inv.get(item.id, 0) > 0
+        return False
+
     # ------------------------------------------------------------------
     # Public API
     def train(self, user_id: int, skill: Skill, base_xp: int) -> Skill:
@@ -116,6 +126,12 @@ class SkillService:
         profile = METHOD_PROFILES[method]
 
         inst = self._get_skill(user_id, skill)
+
+        if method == LearningMethod.YOUTUBE and not self._has_item(
+            user_id, INTERNET_DEVICE_NAME
+        ):
+            raise ValueError("internet device required for this method")
+
         # Level gating
         if inst.level < profile.min_level:
             raise ValueError("skill level too low for this method")
@@ -137,6 +153,9 @@ class SkillService:
 
         if profile.session_cap:
             base_xp = min(base_xp, profile.session_cap)
+
+        if random.random() < 0.05:
+            base_xp *= 2
 
         return self.train(user_id, skill, base_xp)
 

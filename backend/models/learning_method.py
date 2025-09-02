@@ -44,7 +44,7 @@ METHOD_PROFILES: Dict[LearningMethod, MethodProfile] = {
         xp_per_hour=30, cost_per_hour=50, min_level=10
     ),
     LearningMethod.YOUTUBE: MethodProfile(
-        xp_per_hour=15, cost_per_hour=0, max_level=30
+        xp_per_hour=50, cost_per_hour=0, max_level=10
     ),
     LearningMethod.TUTOR: MethodProfile(xp_per_hour=35, cost_per_hour=70, min_level=15),
     LearningMethod.BANDMATE: MethodProfile(
