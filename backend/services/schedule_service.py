@@ -78,16 +78,41 @@ class ScheduleService:
     """Service layer wrapping activity and daily schedule operations."""
 
     # Activity CRUD -----------------------------------------------------
-    def create_activity(self, name: str, duration_hours: float, category: str) -> int:
-        return activity_model.create_activity(name, duration_hours, category)
+    def create_activity(
+        self,
+        name: str,
+        duration_hours: float,
+        category: str,
+        required_skill: str | None = None,
+        energy_cost: int = 0,
+        rewards_json: str | None = None,
+    ) -> int:
+        return activity_model.create_activity(
+            name, duration_hours, category, required_skill, energy_cost, rewards_json
+        )
 
     def get_activity(self, activity_id: int) -> Dict | None:
         return activity_model.get_activity(activity_id)
 
     def update_activity(
-        self, activity_id: int, name: str, duration_hours: float, category: str
+        self,
+        activity_id: int,
+        name: str,
+        duration_hours: float,
+        category: str,
+        required_skill: str | None = None,
+        energy_cost: int = 0,
+        rewards_json: str | None = None,
     ) -> None:
-        activity_model.update_activity(activity_id, name, duration_hours, category)
+        activity_model.update_activity(
+            activity_id,
+            name,
+            duration_hours,
+            category,
+            required_skill,
+            energy_cost,
+            rewards_json,
+        )
 
     def delete_activity(self, activity_id: int) -> None:
         activity_model.delete_activity(activity_id)
@@ -96,6 +121,61 @@ class ScheduleService:
     def schedule_activity(
         self, user_id: int, date: str, slot: int, activity_id: int
     ) -> None:
+        """Schedule an activity after validating requirements and energy."""
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            # Ensure helper tables
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_skills (
+                    user_id INTEGER NOT NULL,
+                    skill TEXT NOT NULL,
+                    level INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(user_id, skill)
+                )
+                """
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_energy (
+                    user_id INTEGER PRIMARY KEY,
+                    energy INTEGER NOT NULL DEFAULT 100
+                )
+                """
+            )
+            cur.execute(
+                "SELECT required_skill, energy_cost FROM activities WHERE id = ?",
+                (activity_id,),
+            )
+            row = cur.fetchone()
+            req_skill = row[0] if row else None
+            energy_cost = row[1] if row else 0
+            if req_skill:
+                cur.execute(
+                    "SELECT level FROM user_skills WHERE user_id = ? AND skill = ?",
+                    (user_id, req_skill),
+                )
+                skill_row = cur.fetchone()
+                if not skill_row or skill_row[0] <= 0:
+                    raise ValueError("User lacks required skill")
+            cur.execute(
+                "INSERT OR IGNORE INTO user_energy(user_id, energy) VALUES (?, 100)",
+                (user_id,),
+            )
+            cur.execute(
+                "SELECT energy FROM user_energy WHERE user_id = ?",
+                (user_id,),
+            )
+            energy = cur.fetchone()[0]
+            if energy < energy_cost:
+                raise ValueError("Insufficient energy")
+            if energy_cost:
+                cur.execute(
+                    "UPDATE user_energy SET energy = energy - ? WHERE user_id = ?",
+                    (energy_cost, user_id),
+                )
+            conn.commit()
+
         schedule_model.add_entry(user_id, date, slot, activity_id)
 
     def update_schedule_entry(

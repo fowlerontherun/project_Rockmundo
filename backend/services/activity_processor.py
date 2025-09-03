@@ -39,18 +39,34 @@ def _ensure_tables(cur: sqlite3.Cursor) -> None:
         )
         """
     )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_skills (
+            user_id INTEGER NOT NULL,
+            skill TEXT NOT NULL,
+            level INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(user_id, skill)
+        )
+        """
+    )
 
 
 def _apply_effects(cur: sqlite3.Cursor, user_id: int, activity_id: int) -> Dict[str, int]:
     cur.execute(
-        "SELECT duration_hours FROM activities WHERE id = ?",
+        "SELECT duration_hours, rewards_json FROM activities WHERE id = ?",
         (activity_id,),
     )
     row = cur.fetchone()
     duration = row[0] if row else 1
-    xp_gain = int(duration * 10)
-    energy_change = int(-duration * 5)
-    skill_gain = xp_gain  # simplified
+    rewards = json.loads(row[1]) if row and row[1] else None
+    if rewards:
+        xp_gain = int(rewards.get("xp", 0))
+        energy_change = int(rewards.get("energy", 0))
+        skill_map = rewards.get("skills", {}) or {}
+    else:
+        xp_gain = int(duration * 10)
+        energy_change = int(-duration * 5)
+        skill_map = {}
 
     cur.execute(
         "INSERT OR IGNORE INTO user_xp(user_id, xp) VALUES (?, 0)",
@@ -69,7 +85,22 @@ def _apply_effects(cur: sqlite3.Cursor, user_id: int, activity_id: int) -> Dict[
         (energy_change, user_id),
     )
 
-    outcome = {"xp": xp_gain, "energy": energy_change, "skill_gain": skill_gain}
+    if skill_map:
+        for skill, amount in skill_map.items():
+            cur.execute(
+                "INSERT OR IGNORE INTO user_skills(user_id, skill, level) VALUES (?, ?, 0)",
+                (user_id, skill),
+            )
+            cur.execute(
+                "UPDATE user_skills SET level = level + ? WHERE user_id = ? AND skill = ?",
+                (amount, user_id, skill),
+            )
+
+    outcome: Dict[str, int] = {"xp": xp_gain, "energy": energy_change}
+    if skill_map:
+        outcome["skills"] = skill_map
+    else:
+        outcome["skill_gain"] = xp_gain
     cur.execute(
         "INSERT INTO activity_log(user_id, date, activity_id, outcome_json) VALUES (?, ?, ?, ?)",
         (user_id, _current_date, activity_id, json.dumps(outcome)),

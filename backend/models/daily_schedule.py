@@ -1,4 +1,6 @@
 import sqlite3
+import sqlite3
+import sqlite3
 from typing import List, Dict
 
 from backend.database import DB_PATH
@@ -10,11 +12,11 @@ def add_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO daily_schedule (user_id, date, slot, activity_id)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(user_id, date, slot) DO UPDATE SET activity_id = excluded.activity_id
+            INSERT INTO daily_schedule (user_id, date, slot, hour, activity_id)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, date, slot) DO UPDATE SET activity_id = excluded.activity_id, hour = excluded.hour
             """,
-            (user_id, date, slot, activity_id),
+            (user_id, date, slot, slot, activity_id),
         )
         conn.commit()
 
@@ -23,8 +25,8 @@ def update_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE daily_schedule SET activity_id = ? WHERE user_id = ? AND date = ? AND slot = ?",
-            (activity_id, user_id, date, slot),
+            "UPDATE daily_schedule SET activity_id = ?, hour = ? WHERE user_id = ? AND date = ? AND slot = ?",
+            (activity_id, slot, user_id, date, slot),
         )
         conn.commit()
 
