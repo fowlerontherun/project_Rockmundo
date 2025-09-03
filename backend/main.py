@@ -19,6 +19,7 @@ from routes import (
     locale_routes,
     music_metrics_routes,
     onboarding_routes,
+    playlist_routes,
     setlist_routes,
     social_routes,
     song_forecast_routes,
@@ -26,8 +27,8 @@ from routes import (
     tour_collab_routes,
     tour_planner_routes,
     university_routes,
-    video_routes,
     user_settings_routes,
+    video_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -96,6 +97,7 @@ app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
+app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 
 
 @app.get("/metrics")

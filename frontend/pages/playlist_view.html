@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>View Playlist</title>
+  <link rel="stylesheet" href="../index.css" />
+</head>
+<body>
+  <h2 id="playlistName">Playlist</h2>
+  <ul id="songList"></ul>
+  <script>
+  async function load() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+    const res = await fetch(`/playlists/public/${id}`);
+    if (res.status !== 200) {
+      document.getElementById('playlistName').textContent = 'Playlist unavailable';
+      return;
+    }
+    const pl = await res.json();
+    document.getElementById('playlistName').textContent = pl.name;
+    const list = document.getElementById('songList');
+    list.innerHTML = '';
+    pl.song_ids.forEach(sid => {
+      const li = document.createElement('li');
+      li.textContent = `Song ${sid}`;
+      list.appendChild(li);
+    });
+  }
+  window.addEventListener('DOMContentLoaded', load);
+  </script>
+  <script src="../components/themeToggle.js"></script>
+</body>
+</html>
