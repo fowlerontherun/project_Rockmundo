@@ -143,6 +143,23 @@ class AlbumService:
                 )
             return result
 
+    def search_releases(self, query: str, page: int = 1, limit: int = 10) -> list[dict]:
+        """Search albums by title with basic fuzzy matching and pagination."""
+        with self.session_factory() as session:
+            q = (
+                session.query(Release)
+                .filter(Release.title.ilike(f"%{query}%"))
+                .order_by(Release.title.asc())
+            )
+            releases = q.offset((page - 1) * limit).limit(limit).all()
+            return [
+                {
+                    "release_id": r.id,
+                    "title": r.title,
+                }
+                for r in releases
+            ]
+
     # ------------------------------------------------------------------
     def update_release(self, release_id: int, updates: dict) -> dict:
         """Update fields on a release."""

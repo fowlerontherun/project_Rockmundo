@@ -123,6 +123,25 @@ class SongService:
             for row in rows
         ]
 
+    def search_songs(self, query: str, page: int = 1, limit: int = 10) -> List[Dict]:
+        """Search songs by title with basic fuzzy matching and pagination."""
+        conn = sqlite3.connect(self.db)
+        cur = conn.cursor()
+        like = f"%{query}%"
+        offset = (page - 1) * limit
+        cur.execute(
+            """
+            SELECT id, title FROM songs
+            WHERE LOWER(title) LIKE LOWER(?)
+            ORDER BY title ASC
+            LIMIT ? OFFSET ?
+            """,
+            (like, limit, offset),
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return [dict(zip(["song_id", "title"], row)) for row in rows]
+
     def list_covers_of_song(self, song_id: int) -> List[Dict]:
         """Return cover versions referencing ``song_id`` as original."""
         conn = sqlite3.connect(self.db)

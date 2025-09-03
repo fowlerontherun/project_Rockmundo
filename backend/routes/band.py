@@ -57,3 +57,8 @@ def create_collaboration(collab: BandCollaborationCreate):
 @router.get("/{band_id}/collaborations", response_model=list[BandCollaborationResponse])
 def list_collaborations(band_id: int):
     return band_service.list_collaborations(band_id)
+
+
+@router.get("/", response_model=list[BandResponse])
+def search_bands(search: str = "", page: int = 1, limit: int = 10):
+    return band_service.search_bands(search, page, limit)

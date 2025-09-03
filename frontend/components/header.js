@@ -14,4 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   header.appendChild(nav);
   document.body.prepend(header);
+
+  if (window.initGlobalSearch) {
+    window.initGlobalSearch(nav);
+  }
 });

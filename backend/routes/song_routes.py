@@ -13,6 +13,14 @@ def create_song():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
+
+@song_routes.route('/songs', methods=['GET'])
+def search_songs():
+    query = request.args.get('search', '')
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 10))
+    return jsonify(song_service.search_songs(query, page, limit))
+
 @song_routes.route('/songs/band/<int:band_id>', methods=['GET'])
 def get_band_songs(band_id):
     search = request.args.get('search')
