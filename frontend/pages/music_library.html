@@ -15,6 +15,7 @@
       <option value="duration">Duration</option>
       <option value="plays">Plays</option>
     </select>
+    <select id="playlistSelect"></select>
   </div>
   <div id="tabs">
     <button onclick="showTab('songs')">Songs</button>
@@ -36,6 +37,19 @@
   </script>
   <script>
   const BAND_ID = 1;
+  const playlistSelect = document.getElementById('playlistSelect');
+
+  async function loadPlaylists() {
+    const res = await fetch('/playlists');
+    const data = await res.json();
+    playlistSelect.innerHTML = '';
+    data.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name;
+      playlistSelect.appendChild(opt);
+    });
+  }
 
   async function loadSongs(search = '', sort = 'title') {
     const res = await fetch(`/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
@@ -45,6 +59,14 @@
     data.forEach(song => {
       const li = document.createElement('li');
       li.textContent = `${song.title} (${song.genre})`;
+      const addBtn = document.createElement('button');
+      addBtn.textContent = 'Add';
+      addBtn.onclick = () => addToPlaylist(song.id);
+      const remBtn = document.createElement('button');
+      remBtn.textContent = 'Remove';
+      remBtn.onclick = () => removeFromPlaylist(song.id);
+      li.appendChild(addBtn);
+      li.appendChild(remBtn);
       list.appendChild(li);
     });
     filterList();
@@ -78,9 +100,26 @@
     filterList();
   }
 
+  async function addToPlaylist(songId) {
+    const pid = playlistSelect.value;
+    if (!pid) return;
+    await fetch(`/playlists/${pid}/songs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ song_id: songId })
+    });
+  }
+
+  async function removeFromPlaylist(songId) {
+    const pid = playlistSelect.value;
+    if (!pid) return;
+    await fetch(`/playlists/${pid}/songs/${songId}`, { method: 'DELETE' });
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('searchInput').addEventListener('input', handleInput);
     document.getElementById('sortSelect').addEventListener('change', handleInput);
+    loadPlaylists();
     handleInput();
   });
   </script>
