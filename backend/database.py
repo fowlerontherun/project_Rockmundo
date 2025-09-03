@@ -360,4 +360,17 @@ def init_db():
         )
         """)
 
+        # Daily loop table for login streaks and challenges
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_loop (
+            user_id INTEGER PRIMARY KEY,
+            login_streak INTEGER DEFAULT 0,
+            last_login TEXT,
+            current_challenge TEXT,
+            challenge_progress INTEGER DEFAULT 0,
+            reward_claimed INTEGER DEFAULT 0,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """)
+
         conn.commit()
