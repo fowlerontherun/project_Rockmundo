@@ -1,0 +1,10 @@
+{
+  "language": "Language",
+  "login": {
+    "title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Login",
+    "error": "Invalid credentials"
+  }
+}
