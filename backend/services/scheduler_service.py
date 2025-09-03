@@ -1,10 +1,11 @@
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from backend.database import DB_PATH
 from backend.models import daily_loop
 from backend.services import chart_service, fan_service, song_popularity_service
+from backend.services.schedule_service import schedule_service
 from backend.services.books_service import books_service
 from backend.services.peer_learning_service import run_scheduled_session
 from backend.services.skill_service import skill_service
@@ -12,6 +13,25 @@ from backend.services.social_sentiment_service import social_sentiment_service
 from backend.services.song_popularity_forecast import forecast_service
 
 # Map event_type to handler functions
+def _daily_loop_reset_wrapper() -> None:
+    """Rotate challenge and seed schedules for inactive users."""
+    daily_loop.rotate_daily_challenge()
+    today = date.today().isoformat()
+    weekday = date.today().strftime("%A").lower()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT user_id, last_login FROM daily_loop")
+    users = cur.fetchall()
+    conn.close()
+    for user_id, last_login in users:
+        if last_login != today:
+            plan = schedule_service.get_default_plan(user_id, weekday)
+            for entry in plan:
+                schedule_service.schedule_activity(
+                    user_id, today, entry["hour"], entry["activity"]["id"]
+                )
+
+
 EVENT_HANDLERS = {
     "fan_decay": fan_service.decay_fan_loyalty,
     "weekly_charts": chart_service.calculate_weekly_chart,
@@ -21,7 +41,7 @@ EVENT_HANDLERS = {
     "social_sentiment": social_sentiment_service.process_song,
     "complete_reading": books_service.complete_reading,
     "peer_learning": run_scheduled_session,
-    "daily_loop_reset": daily_loop.rotate_daily_challenge,
+    "daily_loop_reset": _daily_loop_reset_wrapper,
     # Add more event handlers here as needed
 }
 

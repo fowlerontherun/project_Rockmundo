@@ -71,6 +71,7 @@ from typing import List, Dict
 
 from backend.models import activity as activity_model
 from backend.models import daily_schedule as schedule_model
+from backend.models import default_schedule as default_model
 
 
 class ScheduleService:
@@ -107,6 +108,14 @@ class ScheduleService:
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
         return schedule_model.get_schedule(user_id, date)
+
+    # Default plan logic ----------------------------------------------
+    def set_default_plan(self, user_id: int, day_of_week: str, plan: List[Dict]) -> None:
+        entries = ((p["hour"], p["activity_id"]) for p in plan)
+        default_model.set_plan(user_id, day_of_week, entries)
+
+    def get_default_plan(self, user_id: int, day_of_week: str) -> List[Dict]:
+        return default_model.get_plan(user_id, day_of_week)
 
 
 schedule_service = ScheduleService()
