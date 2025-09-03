@@ -18,3 +18,44 @@
   <input type="file" name="cover_art" />
   <button type="submit">Create Release</button>
 </form>
+
+<script src="../components/notification.js"></script>
+<script>
+  document.getElementById('albumForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const tracks = Array.from(document.querySelectorAll('#songSelector input[type="checkbox"]:checked')).map(i => i.value);
+    const format = form.format.value;
+    if (tracks.length === 0) {
+      showNotification('Please select at least one track', 'error');
+      return;
+    }
+    if (format === 'ep' && tracks.length > 4) {
+      showNotification('EP releases can have at most 4 tracks', 'error');
+      return;
+    }
+    const payload = {
+      title: form.title.value.trim(),
+      format,
+      genre: form.genre.value.trim(),
+      distribution_channels: Array.from(form.distribution_channels.selectedOptions).map(o => o.value),
+      tracks
+    };
+    try {
+      const res = await fetch('/albums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Release created successfully', 'success');
+        form.reset();
+      } else {
+        showNotification(data.message || data.error || 'Failed to create release', 'error');
+      }
+    } catch (err) {
+      showNotification('Network error', 'error');
+    }
+  });
+</script>

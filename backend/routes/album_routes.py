@@ -10,7 +10,7 @@ def create_release():
     try:
         return jsonify(album_service.create_release(data)), 201
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'status': 'error', 'message': str(e)}), 400
 
 @album_routes.route('/albums/band/<int:band_id>', methods=['GET'])
 def get_band_releases(band_id):

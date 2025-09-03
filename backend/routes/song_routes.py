@@ -11,7 +11,7 @@ def create_song():
     try:
         return jsonify(song_service.create_song(data)), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'status': 'error', 'message': str(e)}), 400
 
 @song_routes.route('/songs/band/<int:band_id>', methods=['GET'])
 def get_band_songs(band_id):
