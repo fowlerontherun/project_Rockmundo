@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from backend.database import DB_PATH
 from backend.models import daily_loop
 from backend.services import chart_service, fan_service, song_popularity_service
+from backend.services.activity_processor import process_previous_day
 from backend.services.schedule_service import schedule_service
 from backend.services.books_service import books_service
 from backend.services.peer_learning_service import run_scheduled_session
@@ -41,6 +42,8 @@ EVENT_HANDLERS = {
     "social_sentiment": social_sentiment_service.process_song,
     "complete_reading": books_service.complete_reading,
     "peer_learning": run_scheduled_session,
+    "daily_loop_reset": daily_loop.rotate_daily_challenge,
+    "daily_activity_resolution": process_previous_day,
     "daily_loop_reset": _daily_loop_reset_wrapper,
     # Add more event handlers here as needed
 }
@@ -151,6 +154,25 @@ def schedule_daily_loop_reset() -> dict:
     next_run = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     return schedule_task(
         "daily_loop_reset",
+        {},
+        next_run.isoformat(),
+        recurring=True,
+        interval_days=1,
+    )
+
+
+def schedule_daily_activity_resolution() -> dict:
+    """Ensure a nightly job exists to resolve scheduled activities."""
+    tasks = get_scheduled_tasks()
+    for task in tasks:
+        if task["event_type"] == "daily_activity_resolution":
+            return {"status": "exists"}
+    next_run = (
+        datetime.utcnow().replace(hour=0, minute=5, second=0, microsecond=0)
+        + timedelta(days=1)
+    )
+    return schedule_task(
+        "daily_activity_resolution",
         {},
         next_run.isoformat(),
         recurring=True,
