@@ -409,6 +409,22 @@ def init_db():
         )
         """)
 
+        # Weekly schedule entries linking users to activities
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS weekly_schedule (
+                user_id INTEGER NOT NULL,
+                week_start TEXT NOT NULL,
+                day TEXT NOT NULL,
+                slot INTEGER NOT NULL,
+                activity_id INTEGER NOT NULL,
+                PRIMARY KEY (user_id, week_start, day, slot),
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(activity_id) REFERENCES activities(id)
+            )
+            """
+        )
+
         # Daily schedule entries linking users to activities
         cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_schedule (

@@ -72,6 +72,7 @@ from typing import List, Dict
 from backend.models import activity as activity_model
 from backend.models import daily_schedule as schedule_model
 from backend.models import default_schedule as default_model
+from backend.models import weekly_schedule as weekly_model
 
 
 class ScheduleService:
@@ -188,6 +189,29 @@ class ScheduleService:
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
         return schedule_model.get_schedule(user_id, date)
+
+    # Weekly schedule logic -------------------------------------------
+    def set_weekly_schedule(self, user_id: int, week_start: str, plan: List[Dict]) -> None:
+        entries = ((p["day"], p["slot"], p["activity_id"]) for p in plan)
+        weekly_model.set_schedule(user_id, week_start, entries)
+
+    def get_weekly_schedule(self, user_id: int, week_start: str) -> List[Dict]:
+        return weekly_model.get_schedule(user_id, week_start)
+
+    def add_weekly_entry(
+        self, user_id: int, week_start: str, day: str, slot: int, activity_id: int
+    ) -> None:
+        weekly_model.add_entry(user_id, week_start, day, slot, activity_id)
+
+    def update_weekly_entry(
+        self, user_id: int, week_start: str, day: str, slot: int, activity_id: int
+    ) -> None:
+        weekly_model.update_entry(user_id, week_start, day, slot, activity_id)
+
+    def remove_weekly_entry(
+        self, user_id: int, week_start: str, day: str, slot: int
+    ) -> None:
+        weekly_model.remove_entry(user_id, week_start, day, slot)
 
     # Default plan logic ----------------------------------------------
     def set_default_plan(self, user_id: int, day_of_week: str, plan: List[Dict]) -> None:
