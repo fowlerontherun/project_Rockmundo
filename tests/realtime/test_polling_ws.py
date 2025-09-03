@@ -11,13 +11,16 @@ from backend.realtime import polling
 def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(polling.router)
+    async def _uid() -> int:
+        return 1
+    app.dependency_overrides[polling.get_current_user_id_dep] = _uid
     return app
 
 
 def test_polling_vote_flow():
     app = create_app()
     client = TestClient(app)
-    with client.websocket_connect("/encore/ws/rock", headers={"X-User-Id": "1"}) as ws:
+    with client.websocket_connect("/encore/ws/rock") as ws:
         ws.send_json({"vote": "A"})
         message = ws.receive_json()
         assert message["type"] == "leaderboard"
