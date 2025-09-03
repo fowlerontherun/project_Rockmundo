@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      font-family: Arial, sans-serif;
+    }
+    #conversation-list {
+      width: 30%;
+      border-right: 1px solid #ccc;
+      overflow-y: auto;
+    }
+    #message-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    #message-thread {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #input-area {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+    }
+    #message-input {
+      flex: 1;
+      padding: 5px;
+    }
+    .conversation {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    .conversation:hover {
+      background: #f0f0f0;
+    }
+    .msg {
+      margin: 5px 0;
+    }
+    .msg.me {
+      text-align: right;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="conversation-list"></div>
+  <div id="message-panel">
+    <div id="message-thread"></div>
+    <div id="input-area">
+      <input type="text" id="message-input" placeholder="Type a message" />
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+  <script src="../components/chat.js"></script>
+</body>
+</html>
