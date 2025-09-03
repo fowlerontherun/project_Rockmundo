@@ -1,0 +1,60 @@
+"""High-level planning for daily schedules.
+
+This module maps high level category selections (social, career, band)
+into concrete activity names and fills the remaining day with rest
+activities.  The service is intentionally simple and in-memory so it can
+be used by routes and tests without any external dependencies.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List
+
+
+# Default mapping of category -> list of activity names.
+CATEGORY_MAP: Dict[str, List[str]] = {
+    "social": ["network", "promote"],
+    "career": ["practice", "songwriting"],
+    "band": ["rehearsal", "gig_prep"],
+}
+
+# Number of slots that make up a day in the generated plan.
+DEFAULT_SLOTS = 8
+
+
+@dataclass
+class PlanService:
+    """Generate simple daily plans based on category selections."""
+
+    # expose defaults for easy access in tests or other modules
+    CATEGORY_MAP = CATEGORY_MAP
+    DEFAULT_SLOTS = DEFAULT_SLOTS
+
+    category_map: Dict[str, List[str]] = field(default_factory=lambda: CATEGORY_MAP)
+    slots: int = DEFAULT_SLOTS
+
+    def create_plan(self, social: bool = False, career: bool = False, band: bool = False) -> List[str]:
+        """Return a list of activities for the day.
+
+        Selected categories contribute their activities in the order
+        defined by ``category_map``.  The list is padded with ``"rest"``
+        entries until ``slots`` is reached.
+        """
+
+        schedule: List[str] = []
+        if social:
+            schedule.extend(self.category_map.get("social", []))
+        if career:
+            schedule.extend(self.category_map.get("career", []))
+        if band:
+            schedule.extend(self.category_map.get("band", []))
+
+        while len(schedule) < self.slots:
+            schedule.append("rest")
+
+        return schedule[: self.slots]
+
+
+plan_service = PlanService()
+
+__all__ = ["PlanService", "plan_service"]
