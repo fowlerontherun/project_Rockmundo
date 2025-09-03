@@ -13,16 +13,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Iterable
 
-from sqlalchemy import create_engine, or_
-from sqlalchemy.orm import Session, sessionmaker
-
-from models.music import Base as MusicBase, Release, Track
-from services.band_service import (
+from models.music import Base as MusicBase  # noqa: F401
+from models.music import Release, Track
+from services.band_service import (  # noqa: F401
     BandCollaboration,
     BandService,
-    Base as BandBase,
 )
-
+from sqlalchemy import create_engine, or_
+from sqlalchemy.orm import Session, sessionmaker
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -98,11 +96,16 @@ class AlbumService:
             return {"status": "ok", "release_id": release.id}
 
     # ------------------------------------------------------------------
-    def list_releases_by_band(self, band_id: int) -> list[dict]:
+    def list_releases_by_band(
+        self,
+        band_id: int,
+        search: str | None = None,
+        sort: str | None = None,
+    ) -> list[dict]:
         """List releases belonging to the band or its collaborations."""
 
         with self.session_factory() as session:
-            releases = (
+            query = (
                 session.query(Release)
                 .outerjoin(
                     BandCollaboration,
@@ -115,9 +118,14 @@ class AlbumService:
                         BandCollaboration.band_2_id == band_id,
                     )
                 )
-                .order_by(Release.release_date.desc())
-                .all()
             )
+            if search:
+                query = query.filter(Release.title.ilike(f"%{search}%"))
+            if sort == "title":
+                query = query.order_by(Release.title)
+            else:
+                query = query.order_by(Release.release_date.desc())
+            releases = query.all()
 
             result: list[dict] = []
             for r in releases:

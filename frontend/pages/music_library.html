@@ -1,5 +1,13 @@
 
 <h2>Your Music Library</h2>
+<div>
+  <input type="text" id="searchInput" placeholder="Search..." />
+  <select id="sortSelect">
+    <option value="title">Title</option>
+    <option value="duration">Duration</option>
+    <option value="plays">Plays</option>
+  </select>
+</div>
 <div id="tabs">
   <button onclick="showTab('songs')">Songs</button>
   <button onclick="showTab('albums')">Albums</button>
@@ -17,4 +25,54 @@ function showTab(tab) {
   document.getElementById('songsTab').style.display = tab === 'songs' ? 'block' : 'none';
   document.getElementById('albumsTab').style.display = tab === 'albums' ? 'block' : 'none';
 }
+</script>
+<script>
+const BAND_ID = 1;
+
+async function loadSongs(search = '', sort = 'title') {
+  const res = await fetch(`/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+  const data = await res.json();
+  const list = document.getElementById('songList');
+  list.innerHTML = '';
+  data.forEach(song => {
+    const li = document.createElement('li');
+    li.textContent = `${song.title} (${song.genre})`;
+    list.appendChild(li);
+  });
+  filterList();
+}
+
+async function loadAlbums(search = '', sort = 'title') {
+  const res = await fetch(`/albums/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+  const data = await res.json();
+  const list = document.getElementById('albumList');
+  list.innerHTML = '';
+  data.forEach(album => {
+    const li = document.createElement('li');
+    li.textContent = `${album.title} (${album.format})`;
+    list.appendChild(li);
+  });
+  filterList();
+}
+
+function filterList() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#songList li, #albumList li').forEach(li => {
+    li.style.display = li.textContent.toLowerCase().includes(query) ? '' : 'none';
+  });
+}
+
+function handleInput() {
+  const search = document.getElementById('searchInput').value;
+  const sort = document.getElementById('sortSelect').value;
+  loadSongs(search, sort);
+  loadAlbums(search, sort);
+  filterList();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('searchInput').addEventListener('input', handleInput);
+  document.getElementById('sortSelect').addEventListener('change', handleInput);
+  handleInput();
+});
 </script>

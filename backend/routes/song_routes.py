@@ -1,6 +1,5 @@
-from auth.dependencies import get_current_user_id, require_role
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 from services.song_service import SongService
 
 song_routes = Blueprint('song_routes', __name__)
@@ -16,7 +15,9 @@ def create_song():
 
 @song_routes.route('/songs/band/<int:band_id>', methods=['GET'])
 def get_band_songs(band_id):
-    return jsonify(song_service.list_songs_by_band(band_id))
+    search = request.args.get('search')
+    sort = request.args.get('sort')
+    return jsonify(song_service.list_songs_by_band(band_id, search=search, sort=sort))
 
 
 @song_routes.route('/songs/<int:song_id>/covers', methods=['GET'])
