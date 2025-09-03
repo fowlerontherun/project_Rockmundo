@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple  # noqa: F401
+from typing import Any, Dict, List, Optional, Set, Tuple  # noqa: F401
 
 from .gateway import hub, topic_for_user
 
@@ -27,6 +27,17 @@ class ForumReplyEvent:
     post_id: int = 0
 
 
+@dataclass
+class NotificationEvent:
+    """Generic payload for standard notifications."""
+
+    type: str = "notification"
+    id: int = 0
+    title: str = ""
+    body: str = ""
+    category: str = "system"
+
+
 async def publish_friend_request(target_user_id: int, from_user_id: int) -> int:
     """Notify a user of a new friend request."""
 
@@ -40,6 +51,22 @@ async def publish_forum_reply(target_user_id: int, thread_id: int, post_id: int)
 
     payload: Dict[str, int] = ForumReplyEvent(
         thread_id=int(thread_id), post_id=int(post_id)
+    ).__dict__
+    topic = topic_for_user(int(target_user_id))
+    return await hub.publish(topic, payload)
+
+
+async def publish_notification(
+    target_user_id: int,
+    notif_id: int,
+    title: str,
+    body: str = "",
+    category: str = "system",
+) -> int:
+    """Publish a generic notification to a user's channel."""
+
+    payload: Dict[str, Any] = NotificationEvent(
+        id=int(notif_id), title=title, body=body, category=category
     ).__dict__
     topic = topic_for_user(int(target_user_id))
     return await hub.publish(topic, payload)

@@ -6,12 +6,17 @@
 </head>
 <body>
     <h1>Welcome to RockMundo</h1>
+    <div id="notification-root"></div>
     <div id="daily-banner">
         <p id="streak">Streak: --</p>
         <p id="challenge">Today's challenge: --</p>
         <p id="reward">Reward: --</p>
         <button id="claim-btn">Claim Reward</button>
     </div>
+    <script src="../components/notification.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script type="module" src="../components/NotificationCenter.jsx"></script>
     <script>
     async function loadDaily() {
         const res = await fetch('/api/daily/status/1');

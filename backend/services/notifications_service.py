@@ -1,9 +1,11 @@
 # File: backend/services/notifications_service.py
 
+import asyncio
 from typing import Any, Dict, List, Optional
 
 from services.discord_service import DiscordServiceError, send_message
 from utils.db import get_conn
+from backend.realtime.social_gateway import publish_notification
 
 
 class NotificationsError(Exception):
@@ -37,6 +39,19 @@ class NotificationsService:
                 send_message(content)
             except DiscordServiceError as exc:
                 print(f"Discord notification failed: {exc}")
+
+        # Fire-and-forget realtime event
+        try:
+            asyncio.create_task(
+                publish_notification(user_id, notif_id, title, body, type_)
+            )
+        except RuntimeError:
+            # No running loop (e.g., sync context); create one ad-hoc
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(
+                publish_notification(user_id, notif_id, title, body, type_)
+            )
+            loop.close()
 
         return notif_id
 
