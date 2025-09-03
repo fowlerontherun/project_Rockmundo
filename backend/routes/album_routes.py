@@ -12,6 +12,14 @@ def create_release():
     except ValueError as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
+
+@album_routes.route('/albums', methods=['GET'])
+def search_releases():
+    query = request.args.get('search', '')
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 10))
+    return jsonify(album_service.search_releases(query, page, limit))
+
 @album_routes.route('/albums/band/<int:band_id>', methods=['GET'])
 def get_band_releases(band_id):
     search = request.args.get('search')

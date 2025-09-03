@@ -199,6 +199,26 @@ class BandService:
                 .all()
             )
 
+    def search_bands(self, query: str, page: int = 1, limit: int = 10) -> list[dict]:
+        """Search bands by name with basic fuzzy matching and pagination."""
+        with self.session_factory() as session:
+            q = (
+                session.query(Band)
+                .filter(Band.name.ilike(f"%{query}%"))
+                .order_by(Band.name.asc())
+            )
+            bands = q.offset((page - 1) * limit).limit(limit).all()
+            return [
+                {
+                    "id": b.id,
+                    "name": b.name,
+                    "founder_id": b.founder_id,
+                    "genre": b.genre,
+                    "formed_at": b.formed_at,
+                }
+                for b in bands
+            ]
+
     # ------------------------------------------------------------------
     def get_band_collaborations(self, band_id: int) -> list[dict]:
         """Compatibility wrapper returning collaborations as dictionaries."""
