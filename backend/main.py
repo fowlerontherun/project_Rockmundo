@@ -24,6 +24,7 @@ from routes import (
     song_forecast_routes,
     sponsorship,
     tour_collab_routes,
+    tour_planner_routes,
     university_routes,
     video_routes,
 )
@@ -90,6 +91,7 @@ app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
 app.include_router(music_metrics_routes.router)
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
+app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner"])
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 

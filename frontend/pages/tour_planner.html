@@ -1,19 +1,68 @@
 
 <h2>Tour Planner</h2>
 
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-sA+e8oqJ7uwVB1Cifj8P6R9iW/tSti7ouemZoDUopkw="
+  crossorigin=""
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-o9N1j7UwyZwLRyy1A8kz7VF8NjFsg6z2g52n8TbNLD0="
+  crossorigin=""
+></script>
+
 <form id="tourForm">
   <input type="text" name="title" placeholder="Tour Name" required />
   <input type="text" name="band_id" placeholder="Band ID" required />
   <input type="text" name="start_date" placeholder="Start Date (YYYY-MM-DD)" required />
   <input type="text" name="end_date" placeholder="End Date (YYYY-MM-DD)" required />
   <input type="text" name="vehicle_type" placeholder="Vehicle (van, bus, truck, plane)" required />
-  <textarea name="route" placeholder="Cities (comma-separated)" required></textarea>
-  <button type="submit">Create Tour</button>
+  <div id="map" style="height: 400px; margin-top: 10px;"></div>
+  <p id="selectedCities" style="margin-top: 10px;"></p>
+  <button type="submit">Plan Tour</button>
 </form>
 
+<div id="itinerary"></div>
+
 <script>
+const cities = {
+  "New York": [40.7128, -74.006],
+  "Los Angeles": [34.0522, -118.2437],
+  "Chicago": [41.8781, -87.6298],
+  "Houston": [29.7604, -95.3698],
+  "Phoenix": [33.4484, -112.074]
+};
+
+const map = L.map('map').setView([39.5, -98.35], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const route = [];
+Object.entries(cities).forEach(([name, coords]) => {
+  const marker = L.marker(coords).addTo(map).bindPopup(name);
+  marker.on('click', () => {
+    if (!route.includes(name)) {
+      route.push(name);
+      document.getElementById('selectedCities').innerText = route.join(' -> ');
+    }
+  });
+});
+
 document.getElementById('tourForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  if (route.length < 2) {
+    alert('Select at least two cities.');
+    return;
+  }
+  if (new Set(route).size !== route.length) {
+    alert('Duplicate cities in route.');
+    return;
+  }
+
   const formData = new FormData(e.target);
   const payload = {
     title: formData.get('title'),
@@ -21,16 +70,22 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
     start_date: formData.get('start_date'),
     end_date: formData.get('end_date'),
     vehicle_type: formData.get('vehicle_type'),
-    route: formData.get('route').split(',').map(c => c.trim())
+    route: route
   };
 
-  const res = await fetch('/tours', {
+  const res = await fetch('/api/tour-planner/optimize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 
   const result = await res.json();
-  alert(JSON.stringify(result));
+  document.getElementById('itinerary').innerHTML = `
+    <h3>Optimized Itinerary</h3>
+    <p>${result.itinerary.join(' -> ')}</p>
+    <p>Total Distance: ${result.total_distance.toFixed(2)} km</p>
+    <p>Total Time: ${result.total_time.toFixed(2)} hrs</p>
+    <p>Estimated Cost: $${result.total_cost.toFixed(2)}</p>
+  `;
 });
 </script>
