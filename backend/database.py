@@ -389,7 +389,10 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             duration_hours REAL NOT NULL,
-            category TEXT
+            category TEXT,
+            required_skill TEXT,
+            energy_cost INTEGER NOT NULL DEFAULT 0,
+            rewards_json TEXT
         )
         """)
 
@@ -412,6 +415,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             date TEXT NOT NULL,
             slot INTEGER NOT NULL,
+            hour INTEGER NOT NULL,
             activity_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, date, slot),
             FOREIGN KEY(user_id) REFERENCES users(id),
