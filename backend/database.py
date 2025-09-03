@@ -383,4 +383,27 @@ def init_db():
         )
         """)
 
+        # Activities table for user tasks
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            duration_hours INTEGER NOT NULL,
+            category TEXT
+        )
+        """)
+
+        # Daily schedule entries linking users to activities
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_schedule (
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, date, hour),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
         conn.commit()
