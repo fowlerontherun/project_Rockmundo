@@ -4,7 +4,7 @@ from typing import List, Optional, Dict
 from backend.database import DB_PATH
 
 
-def create_activity(name: str, duration_hours: int, category: str) -> int:
+def create_activity(name: str, duration_hours: float, category: str) -> int:
     """Insert a new activity and return its id."""
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
@@ -47,7 +47,7 @@ def list_activities() -> List[Dict]:
     ]
 
 
-def update_activity(activity_id: int, name: str, duration_hours: int, category: str) -> None:
+def update_activity(activity_id: int, name: str, duration_hours: float, category: str) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(

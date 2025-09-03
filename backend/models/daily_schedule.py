@@ -4,37 +4,37 @@ from typing import List, Dict
 from backend.database import DB_PATH
 
 
-def add_entry(user_id: int, date: str, hour: int, activity_id: int) -> None:
-    """Insert a schedule entry for a user."""
+def add_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
+    """Insert or update a schedule entry for a user."""
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO daily_schedule (user_id, date, hour, activity_id)
+            INSERT INTO daily_schedule (user_id, date, slot, activity_id)
             VALUES (?, ?, ?, ?)
-            ON CONFLICT(user_id, date, hour) DO UPDATE SET activity_id = excluded.activity_id
+            ON CONFLICT(user_id, date, slot) DO UPDATE SET activity_id = excluded.activity_id
             """,
-            (user_id, date, hour, activity_id),
+            (user_id, date, slot, activity_id),
         )
         conn.commit()
 
 
-def update_entry(user_id: int, date: str, hour: int, activity_id: int) -> None:
+def update_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
-            "UPDATE daily_schedule SET activity_id = ? WHERE user_id = ? AND date = ? AND hour = ?",
-            (activity_id, user_id, date, hour),
+            "UPDATE daily_schedule SET activity_id = ? WHERE user_id = ? AND date = ? AND slot = ?",
+            (activity_id, user_id, date, slot),
         )
         conn.commit()
 
 
-def remove_entry(user_id: int, date: str, hour: int) -> None:
+def remove_entry(user_id: int, date: str, slot: int) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
-            "DELETE FROM daily_schedule WHERE user_id = ? AND date = ? AND hour = ?",
-            (user_id, date, hour),
+            "DELETE FROM daily_schedule WHERE user_id = ? AND date = ? AND slot = ?",
+            (user_id, date, slot),
         )
         conn.commit()
 
@@ -45,18 +45,18 @@ def get_schedule(user_id: int, date: str) -> List[Dict]:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT ds.hour, a.id, a.name, a.duration_hours, a.category
+            SELECT ds.slot, a.id, a.name, a.duration_hours, a.category
             FROM daily_schedule ds
             JOIN activities a ON ds.activity_id = a.id
             WHERE ds.user_id = ? AND ds.date = ?
-            ORDER BY ds.hour
+            ORDER BY ds.slot
             """,
             (user_id, date),
         )
         rows = cur.fetchall()
     return [
         {
-            "hour": r[0],
+            "slot": r[0],
             "activity": {
                 "id": r[1],
                 "name": r[2],

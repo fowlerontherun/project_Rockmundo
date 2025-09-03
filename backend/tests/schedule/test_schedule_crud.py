@@ -22,17 +22,17 @@ def setup_db(tmp_path):
 def test_create_and_retrieve_schedule(tmp_path):
     svc = setup_db(tmp_path)
 
-    act_id = svc.create_activity("Practice", 2, "music")
-    svc.schedule_activity(1, "2024-01-01", 9, act_id)
+    act_id = svc.create_activity("Practice", 1.5, "music")
+    svc.schedule_activity(1, "2024-01-01", 38, act_id)  # 09:30 slot
 
     schedule = svc.get_daily_schedule(1, "2024-01-01")
     assert schedule == [
         {
-            "hour": 9,
+            "slot": 38,
             "activity": {
                 "id": act_id,
                 "name": "Practice",
-                "duration_hours": 2,
+                "duration_hours": 1.5,
                 "category": "music",
             },
         }
@@ -42,11 +42,12 @@ def test_create_and_retrieve_schedule(tmp_path):
 def test_update_schedule_entry(tmp_path):
     svc = setup_db(tmp_path)
 
-    act1 = svc.create_activity("Practice", 2, "music")
-    act2 = svc.create_activity("Workout", 1, "fitness")
+    act1 = svc.create_activity("Practice", 2.0, "music")
+    act2 = svc.create_activity("Workout", 0.5, "fitness")
 
-    svc.schedule_activity(1, "2024-01-01", 9, act1)
-    svc.update_schedule_entry(1, "2024-01-01", 9, act2)
+    svc.schedule_activity(1, "2024-01-01", 36, act1)
+    svc.update_schedule_entry(1, "2024-01-01", 36, act2)
 
     schedule = svc.get_daily_schedule(1, "2024-01-01")
+    assert schedule[0]["slot"] == 36
     assert schedule[0]["activity"]["id"] == act2
