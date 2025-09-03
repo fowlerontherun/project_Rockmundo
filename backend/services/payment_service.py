@@ -29,16 +29,21 @@ class PaymentGateway:
 
 
 @dataclass
-class StripeGateway(PaymentGateway):
-    """Mock Stripe integration used for testing payment flows."""
+class MockGateway(PaymentGateway):
+    """In-memory gateway useful for tests.
 
+    It simulates an external provider by recording expected outcomes for
+    generated payment identifiers.
+    """
+
+    prefix: str
     succeed: bool = True
     counter: int = 0
     payments: Dict[str, bool] = field(default_factory=dict)
 
     def create_payment(self, amount_cents: int, currency: str) -> str:
         self.counter += 1
-        payment_id = f"stripe_{uuid4().hex}_{self.counter}"
+        payment_id = f"{self.prefix}_{uuid4().hex}_{self.counter}"
         # store expected result for verification
         self.payments[payment_id] = self.succeed
         return payment_id
@@ -47,22 +52,18 @@ class StripeGateway(PaymentGateway):
         return self.payments.get(payment_id, False)
 
 
-@dataclass
-class PayPalGateway(PaymentGateway):
+class StripeGateway(MockGateway):
+    """Mock Stripe integration used for testing payment flows."""
+
+    def __init__(self, succeed: bool = True):
+        super().__init__(prefix="stripe", succeed=succeed)
+
+
+class PayPalGateway(MockGateway):
     """Mock PayPal integration used for testing payment flows."""
 
-    succeed: bool = True
-    counter: int = 0
-    payments: Dict[str, bool] = field(default_factory=dict)
-
-    def create_payment(self, amount_cents: int, currency: str) -> str:
-        self.counter += 1
-        payment_id = f"paypal_{uuid4().hex}_{self.counter}"
-        self.payments[payment_id] = self.succeed
-        return payment_id
-
-    def verify_payment(self, payment_id: str) -> bool:
-        return self.payments.get(payment_id, False)
+    def __init__(self, succeed: bool = True):
+        super().__init__(prefix="paypal", succeed=succeed)
 
 
 class PaymentService:
