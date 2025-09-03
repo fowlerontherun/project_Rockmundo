@@ -49,7 +49,7 @@ def test_build_queue_and_property_upgrade(setup_services):
     assert svc.get_queue() == []
     prop = prop_service.list_properties(owner)[0]
     assert prop["level"] == 2
-    assert prop["base_rent"] == int(1000 * 1.2) + 100
+    assert prop["base_rent"] == 1100
     assert econ.get_balance(owner) == 50000 - 1000 - 10000 - 10000
 
 

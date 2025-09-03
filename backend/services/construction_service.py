@@ -90,6 +90,7 @@ class ConstructionService:
                 self.property_service.upgrade_property(task.target_id, task.owner_id)
             except Exception:
                 logging.exception("Failed to upgrade property %s", task.target_id)
+                return
             effect = task.blueprint.upgrade_effect
             if effect:
                 import sqlite3

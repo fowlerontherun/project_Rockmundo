@@ -89,8 +89,9 @@ def test_complete_task_logs_property_upgrade_failure(caplog: pytest.LogCaptureFi
     service = _make_service(FailingUpgradePropertyService(), StubVenueService())
     blueprint = Blueprint("bp", 0, [BuildPhase("phase", 1)], "property", {})
     task = ConstructionTask(parcel_id=1, blueprint=blueprint, owner_id=1, target_id=1)
+    service.queue.append(task)
     with caplog.at_level(logging.ERROR):
-        service._complete_task(task)
+        service.advance_time(1)
     assert "Failed to upgrade property" in caplog.text
 
 
@@ -98,6 +99,7 @@ def test_complete_task_logs_venue_update_failure(caplog: pytest.LogCaptureFixtur
     service = _make_service(StubPropertyService(), FailingUpdateVenueService())
     blueprint = Blueprint("bp", 0, [BuildPhase("phase", 1)], "venue", {})
     task = ConstructionTask(parcel_id=1, blueprint=blueprint, owner_id=1, target_id=1)
+    service.queue.append(task)
     with caplog.at_level(logging.ERROR):
-        service._complete_task(task)
+        service.advance_time(1)
     assert "Failed to update venue" in caplog.text
