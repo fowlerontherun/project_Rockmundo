@@ -40,49 +40,79 @@
   const playlistSelect = document.getElementById('playlistSelect');
 
   async function loadPlaylists() {
-    const res = await fetch('/playlists');
-    const data = await res.json();
-    playlistSelect.innerHTML = '';
-    data.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
-      playlistSelect.appendChild(opt);
-    });
+    try {
+      const res = await fetch('/playlists');
+      if (!res.ok) {
+        console.error('Failed to load playlists', res.status);
+        playlistSelect.innerHTML = '<option>Error loading playlists</option>';
+        return;
+      }
+      const data = await res.json();
+      playlistSelect.innerHTML = '';
+      data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        playlistSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Error loading playlists', err);
+      playlistSelect.innerHTML = '<option>Error loading playlists</option>';
+    }
   }
 
   async function loadSongs(search = '', sort = 'title') {
-    const res = await fetch(`/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
-    const data = await res.json();
-    const list = document.getElementById('songList');
-    list.innerHTML = '';
-    data.forEach(song => {
-      const li = document.createElement('li');
-      li.textContent = `${song.title} (${song.genre})`; // Display song title and genre
-      const addBtn = document.createElement('button');
-      addBtn.textContent = 'Add';
-      addBtn.onclick = () => addToPlaylist(song.id);
-      const remBtn = document.createElement('button');
-      remBtn.textContent = 'Remove';
-      remBtn.onclick = () => removeFromPlaylist(song.id);
-      li.appendChild(addBtn);
-      li.appendChild(remBtn);
-      list.appendChild(li);
-    });
-    filterList();
+    try {
+      const res = await fetch(`/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+      if (!res.ok) {
+        console.error('Failed to load songs', res.status);
+        document.getElementById('songList').innerHTML = '<li>Error loading songs</li>';
+        return;
+      }
+      const data = await res.json();
+      const list = document.getElementById('songList');
+      list.innerHTML = '';
+      data.forEach(song => {
+        const li = document.createElement('li');
+        li.textContent = `${song.title} (${song.genre})`; // Display song title and genre
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.onclick = () => addToPlaylist(song.id);
+        const remBtn = document.createElement('button');
+        remBtn.textContent = 'Remove';
+        remBtn.onclick = () => removeFromPlaylist(song.id);
+        li.appendChild(addBtn);
+        li.appendChild(remBtn);
+        list.appendChild(li);
+      });
+      filterList();
+    } catch (err) {
+      console.error('Error loading songs', err);
+      document.getElementById('songList').innerHTML = '<li>Error loading songs</li>';
+    }
   }
 
   async function loadAlbums(search = '', sort = 'title') {
-    const res = await fetch(`/albums/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
-    const data = await res.json();
-    const list = document.getElementById('albumList');
-    list.innerHTML = '';
-    data.forEach(album => {
-      const li = document.createElement('li');
-      li.textContent = `${album.title} (${album.format})`;
-      list.appendChild(li);
-    });
-    filterList();
+    try {
+      const res = await fetch(`/albums/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+      if (!res.ok) {
+        console.error('Failed to load albums', res.status);
+        document.getElementById('albumList').innerHTML = '<li>Error loading albums</li>';
+        return;
+      }
+      const data = await res.json();
+      const list = document.getElementById('albumList');
+      list.innerHTML = '';
+      data.forEach(album => {
+        const li = document.createElement('li');
+        li.textContent = `${album.title} (${album.format})`;
+        list.appendChild(li);
+      });
+      filterList();
+    } catch (err) {
+      console.error('Error loading albums', err);
+      document.getElementById('albumList').innerHTML = '<li>Error loading albums</li>';
+    }
   }
 
   function filterList() {
@@ -103,17 +133,35 @@
   async function addToPlaylist(songId) {
     const pid = playlistSelect.value;
     if (!pid) return;
-    await fetch(`/playlists/${pid}/songs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ song_id: songId })
-    });
+    try {
+      const res = await fetch(`/playlists/${pid}/songs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ song_id: songId })
+      });
+      if (!res.ok) {
+        console.error('Failed to add song to playlist', res.status);
+        alert('Failed to add song to playlist.');
+      }
+    } catch (err) {
+      console.error('Error adding song to playlist', err);
+      alert('Error adding song to playlist.');
+    }
   }
 
   async function removeFromPlaylist(songId) {
     const pid = playlistSelect.value;
     if (!pid) return;
-    await fetch(`/playlists/${pid}/songs/${songId}`, { method: 'DELETE' });
+    try {
+      const res = await fetch(`/playlists/${pid}/songs/${songId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        console.error('Failed to remove song from playlist', res.status);
+        alert('Failed to remove song from playlist.');
+      }
+    } catch (err) {
+      console.error('Error removing song from playlist', err);
+      alert('Error removing song from playlist.');
+    }
   }
 
   window.addEventListener('DOMContentLoaded', () => {
