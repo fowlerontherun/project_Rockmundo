@@ -28,6 +28,7 @@ def book_gig(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
 ):
+    """Create a gig with acoustic eligibility checks."""
     if gig.acoustic:
         if is_band_solo(gig.band_id, db):
             skill = get_band_acoustic_skill_score(gig.band_id, db)

@@ -133,3 +133,51 @@ def test_book_acoustic_gig_non_solo_insufficient(monkeypatch):
 
     assert getattr(exc.value, "status_code", None) == 403
 
+
+def test_book_acoustic_gig_solo_band_insufficient(monkeypatch):
+    gig_routes = load_gig_module(monkeypatch)
+    db = DummySession()
+
+    # Solo band with low skill should raise HTTPException
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: True)
+    monkeypatch.setattr(
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 60
+    )
+
+    gig = DummyGigCreate(
+        band_id=1,
+        venue_id=2,
+        date=date(2024, 1, 1),
+        ticket_price=10.0,
+        acoustic=True,
+    )
+
+    with pytest.raises(Exception) as exc:
+        gig_routes.book_gig(gig, db, user_id=1)
+
+    assert getattr(exc.value, "status_code", None) == 403
+
+
+def test_book_acoustic_gig_non_solo_sufficient(monkeypatch):
+    gig_routes = load_gig_module(monkeypatch)
+    db = DummySession()
+
+    # Non-solo band with sufficient fame and skill should pass
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: False)
+    monkeypatch.setattr(gig_routes, "get_band_fame", lambda band_id, db: 400)
+    monkeypatch.setattr(
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 75
+    )
+
+    gig = DummyGigCreate(
+        band_id=1,
+        venue_id=2,
+        date=date(2024, 1, 1),
+        ticket_price=10.0,
+        acoustic=True,
+    )
+
+    result = gig_routes.book_gig(gig, db, user_id=1)
+
+    assert result.acoustic is True
+
