@@ -19,6 +19,7 @@ from routes import (
     lifestyle_routes,
     locale_routes,
     music_metrics_routes,
+    schedule_routes,
     onboarding_routes,
     playlist_routes,
     setlist_routes,
@@ -92,6 +93,7 @@ app.include_router(
 )
 app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
 app.include_router(music_metrics_routes.router)
+app.include_router(schedule_routes.router, prefix="/api", tags=["Schedule"])
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
 app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner"])
