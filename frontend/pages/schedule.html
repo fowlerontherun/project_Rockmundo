@@ -4,24 +4,42 @@
   <meta charset="UTF-8" />
   <title>Schedule Planner</title>
   <link rel="stylesheet" href="../index.css" />
+  <style>
+    .tabs button.active { font-weight: bold; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    #plannerGrid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+    #plannerGrid .slot { border: 1px solid #ccc; height: 40px; }
+  </style>
 </head>
 <body>
   <h2>Schedule Planner</h2>
-  <form id="scheduleForm">
-    <label><input type="radio" name="mode" value="hourly" checked> Hourly Planner</label>
-    <label><input type="radio" name="mode" value="category"> Category</label>
-    <div id="hourlyFields"></div>
-    <div id="categoryField" style="display:none;">
-      <select id="categorySelect" name="category">
-        <option value="practice">Practice</option>
-        <option value="rest">Rest</option>
-        <option value="travel">Travel</option>
-      </select>
-    </div>
-    <button type="submit">Save</button>
-  </form>
-  <div id="scheduleDisplay"></div>
-  <script type="module" src="../components/schedule.js"></script>
+  <div class="tabs">
+    <button id="quickPlanTab" class="active">Quick Plan</button>
+    <button id="advancedPlannerTab">Advanced Planner</button>
+  </div>
+  <div id="quickPlan" class="tab-content active"></div>
+  <div id="advancedPlanner" class="tab-content"></div>
+  <script type="module" src="../components/quickPlan.js"></script>
+  <script type="module" src="../components/advancedPlanner.js"></script>
+  <script>
+    const quickTab = document.getElementById('quickPlanTab');
+    const advTab = document.getElementById('advancedPlannerTab');
+    const quick = document.getElementById('quickPlan');
+    const adv = document.getElementById('advancedPlanner');
+    quickTab.addEventListener('click', () => {
+      quickTab.classList.add('active');
+      advTab.classList.remove('active');
+      quick.classList.add('active');
+      adv.classList.remove('active');
+    });
+    advTab.addEventListener('click', () => {
+      advTab.classList.add('active');
+      quickTab.classList.remove('active');
+      adv.classList.add('active');
+      quick.classList.remove('active');
+    });
+  </script>
   <script src="../components/themeToggle.js"></script>
 </body>
 </html>
