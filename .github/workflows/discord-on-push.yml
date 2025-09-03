@@ -1,3 +1,0 @@
-curl -H "Content-Type: application/json" \
-     -d '{"content": "your message"}' \
-     ${{ secrets.DISCORD_WEBHOOK }}
