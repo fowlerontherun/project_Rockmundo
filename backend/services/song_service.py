@@ -76,18 +76,30 @@ class SongService:
         conn.close()
         return {"status": "ok", "song_id": song_id}
 
-    def list_songs_by_band(self, band_id: int) -> List[Dict]:
+    def list_songs_by_band(
+        self,
+        band_id: int,
+        search: str | None = None,
+        sort: str | None = None,
+    ) -> List[Dict]:
         conn = sqlite3.connect(self.db)
         cur = conn.cursor()
-        cur.execute(
+        query = (
             """
             SELECT id, title, duration_sec, genre, play_count, original_song_id, license_fee, royalty_rate, legacy_state, original_release_date
             FROM songs
             WHERE band_id = ?
-            ORDER BY id DESC
-            """,
-            (band_id,),
+            """
         )
+        params: list = [band_id]
+        if search:
+            query += " AND title LIKE ?"
+            params.append(f"%{search}%")
+        sort_map = {"title": "title", "duration": "duration_sec", "plays": "play_count"}
+        order = sort_map.get(sort, "id")
+        direction = "ASC" if order != "id" else "DESC"
+        query += f" ORDER BY {order} {direction}"
+        cur.execute(query, params)
         rows = cur.fetchall()
         conn.close()
         return [

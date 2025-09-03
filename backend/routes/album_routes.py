@@ -14,7 +14,9 @@ def create_release():
 
 @album_routes.route('/albums/band/<int:band_id>', methods=['GET'])
 def get_band_releases(band_id):
-    return jsonify(album_service.list_releases_by_band(band_id))
+    search = request.args.get('search')
+    sort = request.args.get('sort')
+    return jsonify(album_service.list_releases_by_band(band_id, search=search, sort=sort))
 
 @album_routes.route("/albums/<int:release_id>", methods=["PUT"])
 def update_release(release_id):
