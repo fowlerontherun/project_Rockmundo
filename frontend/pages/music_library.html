@@ -58,7 +58,7 @@
     list.innerHTML = '';
     data.forEach(song => {
       const li = document.createElement('li');
-      li.textContent = `${song.title} (${song.genre})`;
+      li.textContent = `${song.title} (${song.genre})`; // Display song title and genre
       const addBtn = document.createElement('button');
       addBtn.textContent = 'Add';
       addBtn.onclick = () => addToPlaylist(song.id);
