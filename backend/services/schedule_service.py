@@ -78,14 +78,14 @@ class ScheduleService:
     """Service layer wrapping activity and daily schedule operations."""
 
     # Activity CRUD -----------------------------------------------------
-    def create_activity(self, name: str, duration_hours: int, category: str) -> int:
+    def create_activity(self, name: str, duration_hours: float, category: str) -> int:
         return activity_model.create_activity(name, duration_hours, category)
 
     def get_activity(self, activity_id: int) -> Dict | None:
         return activity_model.get_activity(activity_id)
 
     def update_activity(
-        self, activity_id: int, name: str, duration_hours: int, category: str
+        self, activity_id: int, name: str, duration_hours: float, category: str
     ) -> None:
         activity_model.update_activity(activity_id, name, duration_hours, category)
 
@@ -94,17 +94,17 @@ class ScheduleService:
 
     # Schedule logic ----------------------------------------------------
     def schedule_activity(
-        self, user_id: int, date: str, hour: int, activity_id: int
+        self, user_id: int, date: str, slot: int, activity_id: int
     ) -> None:
-        schedule_model.add_entry(user_id, date, hour, activity_id)
+        schedule_model.add_entry(user_id, date, slot, activity_id)
 
     def update_schedule_entry(
-        self, user_id: int, date: str, hour: int, activity_id: int
+        self, user_id: int, date: str, slot: int, activity_id: int
     ) -> None:
-        schedule_model.update_entry(user_id, date, hour, activity_id)
+        schedule_model.update_entry(user_id, date, slot, activity_id)
 
-    def remove_schedule_entry(self, user_id: int, date: str, hour: int) -> None:
-        schedule_model.remove_entry(user_id, date, hour)
+    def remove_schedule_entry(self, user_id: int, date: str, slot: int) -> None:
+        schedule_model.remove_entry(user_id, date, slot)
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
         return schedule_model.get_schedule(user_id, date)
