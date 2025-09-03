@@ -6,6 +6,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard' },
   { label: 'NPCs', href: '/admin/npcs' },
   { label: 'NPC Dialogue', href: '/admin/npcs/dialogue' },
   { label: 'Quests', href: '/admin/quests' },
