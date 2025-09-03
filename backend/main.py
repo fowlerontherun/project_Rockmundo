@@ -27,6 +27,7 @@ from routes import (
     tour_planner_routes,
     university_routes,
     video_routes,
+    user_settings_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -94,6 +95,7 @@ app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"]
 app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner"])
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
+app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
 
 
 @app.get("/metrics")
