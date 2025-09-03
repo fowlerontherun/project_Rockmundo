@@ -26,7 +26,7 @@ class JamService:
             self.economy.ensure_schema()
         except Exception as exc:
             logger.exception("Failed to ensure economy schema")
-            raise RuntimeError("failed to ensure economy schema") from exc
+            raise RuntimeError(f"failed to ensure economy schema: {exc}") from exc
         self.db_path = str(db_path or DB_PATH)
         self.ensure_schema()
         self.invites: Dict[str, Set[int]] = {}

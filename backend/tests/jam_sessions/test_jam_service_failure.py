@@ -12,6 +12,8 @@ class FailingEconomy(EconomyService):
 
 def test_jam_service_init_raises_and_logs(caplog):
     econ = FailingEconomy()
-    with caplog.at_level(logging.ERROR), pytest.raises(RuntimeError, match="failed to ensure economy schema"):
+    with caplog.at_level(logging.ERROR), pytest.raises(
+        RuntimeError, match="failed to ensure economy schema: boom"
+    ):
         JamService(economy=econ)
     assert "Failed to ensure economy schema" in caplog.text
