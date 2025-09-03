@@ -12,6 +12,7 @@ from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
     apprenticeship_routes,
+    avatar,
     daily_loop_routes,
     event_routes,
     legacy_routes,
@@ -97,6 +98,7 @@ app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
+app.include_router(avatar.router, prefix="/api", tags=["Avatars"])
 app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 
 
