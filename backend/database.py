@@ -406,4 +406,34 @@ def init_db():
         )
         """)
 
+        # Logs and progression for scheduled activities
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS activity_log (
+                user_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                activity_id INTEGER NOT NULL,
+                outcome_json TEXT NOT NULL
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_xp (
+                user_id INTEGER PRIMARY KEY,
+                xp INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_energy (
+                user_id INTEGER PRIMARY KEY,
+                energy INTEGER NOT NULL DEFAULT 100,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+
         conn.commit()
