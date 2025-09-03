@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Schedule Planner</title>
+  <link rel="stylesheet" href="../index.css" />
+</head>
+<body>
+  <h2>Schedule Planner</h2>
+  <form id="scheduleForm">
+    <label><input type="radio" name="mode" value="hourly" checked> Hourly Planner</label>
+    <label><input type="radio" name="mode" value="category"> Category</label>
+    <div id="hourlyFields"></div>
+    <div id="categoryField" style="display:none;">
+      <select id="categorySelect" name="category">
+        <option value="practice">Practice</option>
+        <option value="rest">Rest</option>
+        <option value="travel">Travel</option>
+      </select>
+    </div>
+    <button type="submit">Save</button>
+  </form>
+  <div id="scheduleDisplay"></div>
+  <script type="module" src="../components/schedule.js"></script>
+  <script src="../components/themeToggle.js"></script>
+</body>
+</html>
