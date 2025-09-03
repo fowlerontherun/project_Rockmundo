@@ -393,6 +393,19 @@ def init_db():
         )
         """)
 
+        # Default schedule template per user
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS default_schedule (
+            user_id INTEGER NOT NULL,
+            day_of_week TEXT NOT NULL,
+            hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, day_of_week, hour),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
         # Daily schedule entries linking users to activities
         cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_schedule (
