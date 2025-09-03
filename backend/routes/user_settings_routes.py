@@ -1,21 +1,40 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/user-settings", tags=["UserSettings"])
+from backend.models import user_settings
 
-_USER_THEME: dict[int, str] = {}
+router = APIRouter(prefix="/user-settings", tags=["UserSettings"])
 
 
 class ThemePref(BaseModel):
-  theme: str
+    theme: str
+
+
+class ProfilePref(BaseModel):
+    bio: str = ""
+    links: list[str] = []
 
 
 @router.get("/theme/{user_id}")
 def get_theme(user_id: int) -> dict[str, str]:
-  return {"theme": _USER_THEME.get(user_id, "light")}
+    return {"theme": user_settings.get_settings(user_id)["theme"]}
 
 
 @router.post("/theme/{user_id}")
 def set_theme(user_id: int, pref: ThemePref) -> dict[str, str]:
-  _USER_THEME[user_id] = pref.theme
-  return {"theme": pref.theme}
+    settings = user_settings.get_settings(user_id)
+    user_settings.set_settings(user_id, pref.theme, settings["bio"], settings["links"])
+    return {"theme": pref.theme}
+
+
+@router.get("/profile/{user_id}")
+def get_profile(user_id: int) -> dict:
+    settings = user_settings.get_settings(user_id)
+    return {"bio": settings["bio"], "links": settings["links"]}
+
+
+@router.post("/profile/{user_id}")
+def set_profile(user_id: int, pref: ProfilePref) -> dict:
+    settings = user_settings.get_settings(user_id)
+    user_settings.set_settings(user_id, settings["theme"], pref.bio, pref.links)
+    return {"bio": pref.bio, "links": pref.links}

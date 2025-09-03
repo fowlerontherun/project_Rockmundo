@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profile</title>
+  <link rel="stylesheet" href="../index.css" />
+</head>
+<body>
+  <header id="main-header"></header>
+  <h1>Profile</h1>
+  <form id="profile-form">
+    <div>
+      <label for="avatar-input">Avatar</label>
+      <input type="file" id="avatar-input" accept="image/*" />
+    </div>
+    <div>
+      <label for="bio">Bio</label>
+      <textarea id="bio"></textarea>
+    </div>
+    <div>
+      <label for="links">Social Links (comma separated)</label>
+      <input type="text" id="links" />
+    </div>
+    <button type="submit">Save</button>
+  </form>
+  <script src="../components/themeToggle.js"></script>
+  <script src="../components/header.js"></script>
+  <script type="module" src="../components/profile.js"></script>
+</body>
+</html>

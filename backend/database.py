@@ -373,4 +373,14 @@ def init_db():
         )
         """)
 
+        # User settings table for profile preferences
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            theme TEXT DEFAULT 'light',
+            bio TEXT,
+            links TEXT
+        )
+        """)
+
         conn.commit()
