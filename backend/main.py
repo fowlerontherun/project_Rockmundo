@@ -12,6 +12,7 @@ from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
     apprenticeship_routes,
+    daily_loop_routes,
     event_routes,
     legacy_routes,
     lifestyle_routes,
@@ -29,6 +30,7 @@ from routes import (
 from utils.db import init_pool
 from utils.i18n import _
 
+from backend.services.scheduler_service import schedule_daily_loop_reset
 from backend.utils.error_handlers import http_exception_handler
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
@@ -63,6 +65,7 @@ def startup() -> None:
     setup_tracing(exporter)
     init_db()
     init_pool()
+    schedule_daily_loop_reset()
 
 
 # Existing routers
@@ -88,6 +91,7 @@ app.include_router(music_metrics_routes.router)
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
+app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 
 
 @app.get("/metrics")
