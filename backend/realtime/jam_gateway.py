@@ -7,24 +7,12 @@ import logging
 from typing import Any, Dict
 
 try:  # pragma: no cover - explicit failure if FastAPI missing
-    from fastapi import APIRouter, Depends, Header, WebSocket, WebSocketDisconnect
+    from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
     raise ImportError("FastAPI must be installed to use backend.realtime.jam_gateway") from exc
 
 from backend.services.jam_service import JamService
-
-
-async def get_current_user_id_dep(  # pragma: no cover - simple fallback
-    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
-    authorization: str | None = Header(default=None, alias="Authorization"),
-) -> int:
-    if x_user_id:
-        return int(x_user_id)
-    if authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            return int(parts[1])
-    return 0
+from .gateway import get_current_user_id_dep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jam", tags=["realtime"])

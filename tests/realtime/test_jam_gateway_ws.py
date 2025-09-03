@@ -46,13 +46,16 @@ def create_app() -> FastAPI:
     app = FastAPI()
     jam_gateway.jam_service = FakeJamService()
     app.include_router(jam_gateway.router)
+    async def _uid() -> int:
+        return 1
+    app.dependency_overrides[jam_gateway.get_current_user_id_dep] = _uid
     return app
 
 
 def test_jam_gateway_ping_and_stream():
     app = create_app()
     client = TestClient(app)
-    with client.websocket_connect("/jam/ws/s1", headers={"X-User-Id": "1"}) as ws:
+    with client.websocket_connect("/jam/ws/s1") as ws:
         joined = ws.receive_json()
         assert joined == {"type": "joined", "user_id": 1}
         ws.send_json({"op": "ping"})
