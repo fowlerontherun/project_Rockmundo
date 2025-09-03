@@ -13,5 +13,7 @@ def upgrade() -> None:
     op.execute(SQL_FILE.read_text())
 
 def downgrade() -> None:
-    # Upgrade performed no schema changes; nothing to undo.
-    pass
+    op.execute("DROP TRIGGER IF EXISTS mail_messages_ai;")
+    op.execute("DROP TRIGGER IF EXISTS mail_messages_ad;")
+    op.execute("DROP TABLE IF EXISTS mail_fts;")
+    op.execute("DROP TABLE IF EXISTS mail_attachments;")
