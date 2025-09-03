@@ -7,7 +7,7 @@
 </div>
 <form id="songForm">
   <input type="text" name="title" placeholder="Song Title" required />
-  <input type="number" name="duration_sec" placeholder="Duration (sec)" required />
+  <input type="text" name="duration_sec" placeholder="Duration (sec or mm:ss)" required />
   <input type="text" name="genre" placeholder="Genre" required />
 
   <label for="themes">Themes (choose up to 3)</label>
@@ -35,7 +35,7 @@
   </select>
   <button type="submit">Create Song</button>
 </form>
-
+<script src="../components/notification.js"></script>
 <script>
   function loadSkill() {
     fetch('/songwriting/skill')
@@ -70,5 +70,49 @@
   document.getElementById('generateDraft').addEventListener('click', function() {
     // Draft generation happens elsewhere; refresh skill progress afterwards
     loadSkill();
+  });
+
+  document.getElementById('songForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const durationInput = form.duration_sec.value.trim();
+    if (!/^\d+(?:[:]\d{2})?$/.test(durationInput)) {
+      showNotification('Duration must be a number of seconds or mm:ss', 'error');
+      return;
+    }
+    let duration_sec = Number(durationInput);
+    if (durationInput.includes(':')) {
+      const parts = durationInput.split(':').map(Number);
+      duration_sec = parts[0] * 60 + parts[1];
+    }
+    if (duration_sec <= 0) {
+      showNotification('Duration must be positive', 'error');
+      return;
+    }
+    const payload = {
+      title: form.title.value.trim(),
+      duration_sec,
+      genre: form.genre.value.trim(),
+      themes: Array.from(document.getElementById('themes').selectedOptions).map(o => o.value),
+      lyrics: form.lyrics.value,
+      chord_progression: form.chord_progression.value,
+      distribution_channels: Array.from(form.distribution_channels.selectedOptions).map(o => o.value)
+    };
+    try {
+      const res = await fetch('/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showNotification('Song created successfully', 'success');
+        form.reset();
+      } else {
+        showNotification(data.message || data.error || 'Failed to create song', 'error');
+      }
+    } catch (err) {
+      showNotification('Network error', 'error');
+    }
   });
 </script>
