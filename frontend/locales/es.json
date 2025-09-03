@@ -1,0 +1,10 @@
+{
+  "language": "Idioma",
+  "login": {
+    "title": "Iniciar sesión",
+    "username": "Nombre de usuario",
+    "password": "Contraseña",
+    "submit": "Acceder",
+    "error": "Credenciales inválidas"
+  }
+}
