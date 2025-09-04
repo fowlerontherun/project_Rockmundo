@@ -44,6 +44,14 @@
     <input type="date" id="exportDate" />
     <button id="exportBtn">Download ICS</button>
   </div>
+  <div id="scheduleCopy">
+    <h3>Copy Schedule</h3>
+    <input type="number" id="copyUserId" placeholder="User ID" />
+    <input type="date" id="copySrcDate" />
+    <input type="date" id="copyDestStart" />
+    <input type="date" id="copyDestEnd" />
+    <button id="copyBtn">Copy</button>
+  </div>
   <div id="scheduleAnalytics">
     <h3>Weekly Analytics</h3>
     <input type="number" id="analyticsUserId" placeholder="User ID" />
@@ -140,6 +148,26 @@
       const date = document.getElementById('exportDate').value;
       if (!userId || !date) return;
       window.location = `/schedule/export/ics?user_id=${userId}&date=${date}`;
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const uid = document.getElementById('copyUserId').value;
+      const src = document.getElementById('copySrcDate').value;
+      const start = document.getElementById('copyDestStart').value;
+      const end = document.getElementById('copyDestEnd').value;
+      if (!uid || !src || !start) return;
+      const dates = [];
+      let d = new Date(start);
+      const endDate = end ? new Date(end) : new Date(start);
+      while (d <= endDate) {
+        dates.push(d.toISOString().slice(0,10));
+        d.setDate(d.getDate() + 1);
+      }
+      await fetch('/schedule/copy', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: parseInt(uid), src_date: src, dest_dates: dates})
+      });
     });
 
     const tmplSelect = document.getElementById('tmplSelect');

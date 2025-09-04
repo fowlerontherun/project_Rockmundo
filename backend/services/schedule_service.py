@@ -381,6 +381,30 @@ class ScheduleService:
                     results.append(e)
         return sorted(results, key=lambda e: e["slot"])
 
+    def copy_schedule(
+        self, user_id: int, src_date: str, dest_dates: Iterable[str]
+    ) -> None:
+        """Copy all schedule entries from ``src_date`` to each date in ``dest_dates``."""
+
+        entries = schedule_model.get_schedule(user_id, src_date)
+        if not entries:
+            return
+
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            for dest in dest_dates:
+                cur.execute(
+                    "DELETE FROM daily_schedule WHERE user_id=? AND date=?",
+                    (user_id, dest),
+                )
+                for entry in entries:
+                    slot = entry["slot"]
+                    cur.execute(
+                        "INSERT INTO daily_schedule (user_id, date, slot, hour, activity_id) VALUES (?, ?, ?, ?, ?)",
+                        (user_id, dest, slot, slot, entry["activity"]["id"]),
+                    )
+            conn.commit()
+
     def get_schedule_history(self, date: str) -> List[Dict]:
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
             cur = conn.cursor()
