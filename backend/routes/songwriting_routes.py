@@ -149,7 +149,18 @@ _subscribers: Dict[int, Set[WebSocket]] = {}
 
 
 @router.websocket("/ws/{draft_id}")
-async def songwriting_ws(ws: WebSocket, draft_id: int) -> None:
+async def songwriting_ws(
+    ws: WebSocket,
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+) -> None:
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft or (
+        draft.creator_id != user_id
+        and user_id not in songwriting_service.get_co_writers(draft_id)
+    ):
+        await ws.close(code=1008)
+        return
     await ws.accept()
     subs = _subscribers.setdefault(draft_id, set())
     subs.add(ws)
