@@ -21,7 +21,8 @@ async def create_shop(payload: dict, req: Request):
     await _ensure_admin(req)
     city = payload.get("city", "")
     name = payload.get("name", "")
-    return svc.create_shop(city=city, name=name)
+    owner = payload.get("owner_user_id")
+    return svc.create_shop(city=city, name=name, owner_user_id=owner)
 
 
 @router.get("/")

@@ -13,6 +13,7 @@ from .admin_book_routes import router as book_router
 from .admin_business_routes import router as business_router
 from .admin_course_routes import router as course_router
 from .admin_city_shop_routes import router as city_shop_router
+from .admin_player_shop_routes import router as player_shop_router
 from .admin_loyalty_routes import router as loyalty_router
 from .admin_workshop_routes import router as workshop_router
 from .admin_economy_routes import router as economy_router
@@ -55,6 +56,7 @@ router.include_router(analytics_router)
 router.include_router(audit_router)
 router.include_router(business_router)
 router.include_router(city_shop_router)
+router.include_router(player_shop_router)
 router.include_router(loyalty_router)
 router.include_router(economy_router)
 router.include_router(xp_router)

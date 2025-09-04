@@ -43,6 +43,8 @@ class CityShopService:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     city TEXT NOT NULL,
                     name TEXT NOT NULL,
+                    owner_user_id INTEGER,
+                    revenue_cents INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT DEFAULT (datetime('now')),
                     updated_at TEXT
                 )
@@ -114,6 +116,15 @@ class CityShopService:
                     cur.execute(
                         f"ALTER TABLE {tbl} ADD COLUMN price_cents INTEGER NOT NULL DEFAULT 0"
                     )
+            # ensure ownership fields exist on shops
+            cur.execute("PRAGMA table_info(city_shops)")
+            shop_cols = {row[1] for row in cur.fetchall()}
+            if "owner_user_id" not in shop_cols:
+                cur.execute("ALTER TABLE city_shops ADD COLUMN owner_user_id INTEGER")
+            if "revenue_cents" not in shop_cols:
+                cur.execute(
+                    "ALTER TABLE city_shops ADD COLUMN revenue_cents INTEGER NOT NULL DEFAULT 0"
+                )
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -146,6 +157,15 @@ class CityShopService:
             cur.execute(
                 "INSERT INTO shop_book_price_history (shop_id, book_id, price_cents, quantity_sold) VALUES (?, ?, ?, ?)",
                 (shop_id, book_id, price_cents, quantity),
+            )
+            conn.commit()
+
+    def _increment_revenue(self, shop_id: int, amount: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE city_shops SET revenue_cents = revenue_cents + ? WHERE id = ?",
+                (amount, shop_id),
             )
             conn.commit()
 
@@ -228,26 +248,38 @@ class CityShopService:
     # ------------------------------------------------------------------
     # CRUD operations
     # ------------------------------------------------------------------
-    def create_shop(self, city: str, name: str) -> Dict[str, Any]:
+    def create_shop(
+        self, city: str, name: str, owner_user_id: int | None = None
+    ) -> Dict[str, Any]:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO city_shops (city, name) VALUES (?, ?)",
-                (city, name),
+                "INSERT INTO city_shops (city, name, owner_user_id) VALUES (?, ?, ?)",
+                (city, name, owner_user_id),
             )
             conn.commit()
             sid = int(cur.lastrowid or 0)
-        return {"id": sid, "city": city, "name": name}
+        return {"id": sid, "city": city, "name": name, "owner_user_id": owner_user_id}
 
-    def list_shops(self, city: str | None = None) -> List[Dict[str, Any]]:
+    def list_shops(
+        self,
+        city: str | None = None,
+        owner_user_id: int | None = None,
+    ) -> List[Dict[str, Any]]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             q = "SELECT * FROM city_shops"
             params: List[Any] = []
+            clauses: List[str] = []
             if city:
-                q += " WHERE city = ?"
+                clauses.append("city = ?")
                 params.append(city)
+            if owner_user_id is not None:
+                clauses.append("owner_user_id = ?")
+                params.append(owner_user_id)
+            if clauses:
+                q += " WHERE " + " AND ".join(clauses)
             cur.execute(q, params)
             return [dict(r) for r in cur.fetchall()]
 
@@ -280,6 +312,20 @@ class CityShopService:
 
     def get_shop(self, shop_id: int) -> Optional[Dict[str, Any]]:
         return self._fetch(shop_id)
+
+    def transfer_ownership(
+        self, shop_id: int, new_owner_user_id: int | None
+    ) -> Dict[str, Any]:
+        return self.update_shop(shop_id, {"owner_user_id": new_owner_user_id})
+
+    def get_revenue(self, shop_id: int) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT revenue_cents FROM city_shops WHERE id = ?", (shop_id,)
+            )
+            row = cur.fetchone()
+            return int(row[0]) if row else 0
 
     # ------------------------------------------------------------------
     # inventory operations - items
@@ -504,6 +550,7 @@ class CityShopService:
         self.add_item(shop_id, item_id, quantity, price)
         total = price * quantity
         _economy.deposit(user_id, total)
+        self._increment_revenue(shop_id, total)
         return total
 
     def sell_book(self, shop_id: int, user_id: int, book_id: int, quantity: int = 1) -> int:
@@ -530,6 +577,7 @@ class CityShopService:
         self.add_book(shop_id, book_id, quantity, price)
         total = price * quantity
         _economy.deposit(user_id, total)
+        self._increment_revenue(shop_id, total)
         return total
 
     # ------------------------------------------------------------------
