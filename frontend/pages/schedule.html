@@ -21,6 +21,12 @@
     <button id="statsBtn">Load</button>
     <span id="statsOutput"></span>
   </div>
+  <div id="scheduleHistory">
+    <h3>Schedule History</h3>
+    <input type="date" id="historyDate" />
+    <button id="historyBtn">Load</button>
+    <ul id="historyList"></ul>
+  </div>
   <div class="tabs">
     <button id="quickPlanTab" class="active">Quick Plan</button>
     <button id="advancedPlannerTab">Advanced Planner</button>
@@ -87,6 +93,20 @@
       });
       li.appendChild(voteBtn);
       proposals.appendChild(li);
+    });
+
+    document.getElementById('historyBtn').addEventListener('click', async () => {
+      const date = document.getElementById('historyDate').value;
+      if (!date) return;
+      const res = await fetch(`/schedule/history/${date}`);
+      const data = await res.json();
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+      for (const h of data.history) {
+        const li = document.createElement('li');
+        li.textContent = `slot ${h.slot}: ${JSON.stringify(h.before)} -> ${JSON.stringify(h.after)}`;
+        list.appendChild(li);
+      }
     });
   </script>
   <script src="../components/themeToggle.js"></script>

@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import sqlite3
+import json
 from pathlib import Path
 from typing import Iterable, Mapping
 
@@ -75,6 +76,26 @@ from backend.models import daily_schedule as schedule_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
 from backend.models import recurring_schedule as recurring_model
+
+
+def _log_schedule_change(user_id: int, date: str, slot: int, before, after) -> None:
+    """Persist an audit record for schedule mutations."""
+    with sqlite3.connect(schedule_model.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO schedule_audit (user_id, date, slot, before_state, after_state)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                date,
+                slot,
+                json.dumps(before) if before is not None else None,
+                json.dumps(after) if after is not None else None,
+            ),
+        )
+        conn.commit()
 
 
 class ScheduleService:
@@ -225,19 +246,74 @@ class ScheduleService:
                 err.conflicts = conflicts
                 raise err
 
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
+                (user_id, date, slot),
+            )
+            row = cur.fetchone()
+            before = {"activity_id": row[0]} if row else None
+
         schedule_model.add_entry(user_id, date, slot, activity_id)
+        _log_schedule_change(
+            user_id, date, slot, before, {"activity_id": activity_id}
+        )
         return original_conflicts if auto_split else None
 
     def update_schedule_entry(
         self, user_id: int, date: str, slot: int, activity_id: int
     ) -> None:
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
+                (user_id, date, slot),
+            )
+            row = cur.fetchone()
+            before = {"activity_id": row[0]} if row else None
+
         schedule_model.update_entry(user_id, date, slot, activity_id)
+        _log_schedule_change(
+            user_id, date, slot, before, {"activity_id": activity_id}
+        )
 
     def remove_schedule_entry(self, user_id: int, date: str, slot: int) -> None:
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
+                (user_id, date, slot),
+            )
+            row = cur.fetchone()
+            before = {"activity_id": row[0]} if row else None
+
         schedule_model.remove_entry(user_id, date, slot)
+        _log_schedule_change(user_id, date, slot, before, None)
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
         return schedule_model.get_schedule(user_id, date)
+
+    def get_schedule_history(self, date: str) -> List[Dict]:
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT user_id, slot, before_state, after_state, changed_at FROM schedule_audit WHERE date=? ORDER BY id",
+                (date,),
+            )
+            rows = cur.fetchall()
+        history: List[Dict] = []
+        for uid, slot, before, after, ts in rows:
+            history.append(
+                {
+                    "user_id": uid,
+                    "slot": slot,
+                    "before": json.loads(before) if before else None,
+                    "after": json.loads(after) if after else None,
+                    "changed_at": ts,
+                }
+            )
+        return history
 
     # Band schedule logic --------------------------------------------
     def schedule_band_activity(
