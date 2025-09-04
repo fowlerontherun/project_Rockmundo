@@ -1,4 +1,5 @@
 import sqlite3
+import pytest
 
 from backend.services import live_performance_service
 from backend.services import live_performance_analysis, setlist_service
@@ -27,9 +28,16 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
         "CREATE TABLE setlist_summaries (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, summary TEXT, created_at TEXT)"
     )
     cur.execute(
+        "CREATE TABLE band_members (band_id INTEGER, user_id INTEGER)"
+    )
+    cur.execute(
         "CREATE TABLE setlist_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, setlist_id INTEGER NOT NULL, setlist TEXT NOT NULL, author TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved INTEGER DEFAULT 0)"
     )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
+    cur.executemany(
+        "INSERT INTO band_members (band_id, user_id) VALUES (?, ?)",
+        [(1, 1), (1, 2)],
+    )
     cur.executemany(
         "INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id) VALUES (?, ?, ?, 0, '', 0, NULL)",
         [
@@ -46,6 +54,11 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
     monkeypatch.setattr(live_performance_service.gear_service, "get_band_bonus", lambda band_id, name: 0)
     monkeypatch.setattr(live_performance_service, "is_skill_blocked", lambda band_id, skill_id: False)
+    monkeypatch.setattr(
+        live_performance_service.chemistry_service,
+        "initialize_pair",
+        lambda a, b: type("P", (), {"score": 10})(),
+    )
 
     setlist = [
         {"type": "song", "reference": "1"},
@@ -73,8 +86,8 @@ def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
 
 
-    assert result["fame_earned"] == 28
-    assert result["skill_gain"] == 0.7
+    assert result["fame_earned"] == 24
+    assert result["skill_gain"] == pytest.approx(0.42)
 
 
 def test_cover_song_reduces_fame_and_boosts_original(monkeypatch, tmp_path):
