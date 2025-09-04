@@ -23,6 +23,7 @@ from routes import (
     legacy_routes,
     lifestyle_routes,
     locale_routes,
+    media_routes,
     membership_routes,
     music_metrics_routes,
     onboarding_routes,
@@ -109,6 +110,7 @@ app.include_router(
 )
 app.include_router(sales.router, prefix="/api", tags=["Sales"])
 app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
+app.include_router(media_routes.router, prefix="/api", tags=["Media & Publicity"])
 app.include_router(video_routes.router, tags=["Videos"])
 app.include_router(legacy_routes.router, prefix="/api", tags=["Legacy"])
 app.include_router(locale_routes.router, prefix="/api", tags=["Locale"])
