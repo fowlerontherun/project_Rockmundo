@@ -1,6 +1,4 @@
 import sqlite3
-import sqlite3
-import sqlite3
 from typing import List, Dict
 
 from backend.database import DB_PATH
@@ -41,6 +39,39 @@ def remove_entry(user_id: int, date: str, slot: int) -> None:
         conn.commit()
 
 
+def find_conflicts(
+    user_id: int, date: str, start_slot: int, duration_slots: int
+) -> List[int]:
+    """Return occupied slots within the proposed activity window.
+
+    Because only the starting slot of each scheduled activity is stored,
+    this helper derives the occupied range for each entry using the
+    activity's duration.
+    """
+
+    end_slot = start_slot + duration_slots
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT ds.slot, a.duration_hours
+            FROM daily_schedule ds
+            JOIN activities a ON ds.activity_id = a.id
+            WHERE ds.user_id = ? AND ds.date = ?
+            """,
+            (user_id, date),
+        )
+        rows = cur.fetchall()
+
+    conflicts: set[int] = set()
+    requested = range(start_slot, end_slot)
+    for slot, duration in rows:
+        span = range(slot, slot + int(duration * 4))
+        conflicts.update(s for s in span if s in requested)
+
+    return sorted(conflicts)
+
+
 def get_schedule(user_id: int, date: str) -> List[Dict]:
     """Return all scheduled activities for a user on a given date."""
     with sqlite3.connect(DB_PATH) as conn:
@@ -70,4 +101,4 @@ def get_schedule(user_id: int, date: str) -> List[Dict]:
     ]
 
 
-__all__ = ["add_entry", "update_entry", "remove_entry", "get_schedule"]
+__all__ = ["add_entry", "update_entry", "remove_entry", "find_conflicts", "get_schedule"]
