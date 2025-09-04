@@ -182,10 +182,14 @@ class SongwritingService:
         if not draft:
             raise KeyError("draft_not_found")
         if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
-            raise PermissionError("forbidden")
+            if not (self.band_service and self.band_service.share_band(draft.creator_id, user_id)):
+                raise PermissionError("forbidden")
         if lyrics is not None:
             draft.lyrics = lyrics
             self._songs[draft_id].lyrics = lyrics
+        if themes is not None:
+            draft.themes = themes
+            self._songs[draft_id].themes = themes
 
         if chord_progression is not None:
             draft.chord_progression = chord_progression
@@ -195,7 +199,9 @@ class SongwritingService:
             self._songs[draft_id].album_art_url = album_art_url
 
         # save snapshot of updated state
-        self.save_version(draft_id, user_id, draft.lyrics, draft.chord_progression, themes)
+        self.save_version(
+            draft_id, user_id, draft.lyrics, draft.chord_progression, draft.themes
+        )
         self.skill_service.add_songwriting_xp(user_id, revised=True)
 
         return draft
