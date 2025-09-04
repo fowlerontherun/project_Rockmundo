@@ -98,3 +98,9 @@ def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry):
 @router.get("/stats/{user_id}/{date}")
 def get_schedule_stats(user_id: int, date: str):
     return evaluate_schedule_completion(user_id, date)
+
+
+@router.get("/history/{date}")
+def get_schedule_history(date: str):
+    history = schedule_service.get_schedule_history(date)
+    return {"history": history}

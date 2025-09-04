@@ -454,6 +454,21 @@ def init_db():
         )
         """)
 
+        # Audit log for schedule changes capturing before/after states
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS schedule_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                slot INTEGER NOT NULL,
+                before_state TEXT,
+                after_state TEXT,
+                changed_at TEXT DEFAULT (datetime('now'))
+            )
+            """,
+        )
+
         # Band schedule entries linking bands to activities
         cur.execute("""
         CREATE TABLE IF NOT EXISTS band_schedule (
