@@ -34,6 +34,12 @@ class RepairIn(BaseModel):
     owner_user_id: int
 
 
+class HaggleIn(BaseModel):
+    offer_cents: int
+    skill: int = 0
+    reputation: int = 0
+
+
 @router.post("/items/{item_id}/purchase")
 def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_current_user)):
     try:
@@ -80,6 +86,26 @@ def repair_item(item_id: int, payload: RepairIn, user_id: int = Depends(_current
         raise HTTPException(status_code=400, detail=str(exc))
     new_dur = item_service.repair_item(user_id, item_id)
     return {"status": "ok", "maintenance_cents": fee, "new_durability": new_dur}
+
+
+@router.post("/items/{item_id}/haggle")
+def haggle_item(item_id: int, payload: HaggleIn, user_id: int = Depends(_current_user)):
+    try:
+        item = item_service.get_item(item_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Item not found")
+    base_price = item.price_cents
+    modifier = min(1.0, (payload.skill + payload.reputation) / 200)
+    discount = int(base_price * 0.3 * modifier)
+    counter = base_price - discount
+    success = payload.offer_cents >= counter
+    dialogue = shop_npc_service.get_haggle_dialogue(success)
+    return {
+        "status": "ok",
+        "counteroffer_cents": counter,
+        "accepted": success,
+        **dialogue,
+    }
 
 
 @router.post("/city/{shop_id}/items/{item_id}/sell")
