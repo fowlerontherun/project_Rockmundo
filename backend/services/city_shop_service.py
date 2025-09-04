@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 from backend.services.item_service import item_service
 from backend.services.books_service import books_service
@@ -101,6 +102,30 @@ class CityShopService:
                     quantity_sold INTEGER DEFAULT 0,
                     recorded_at TEXT DEFAULT (datetime('now')),
                     FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS shop_bundles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    shop_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    price_cents INTEGER NOT NULL,
+                    promo_starts TEXT,
+                    promo_ends TEXT,
+                    FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS shop_bundle_items (
+                    bundle_id INTEGER NOT NULL,
+                    item_id INTEGER NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    PRIMARY KEY (bundle_id, item_id),
+                    FOREIGN KEY (bundle_id) REFERENCES shop_bundles(id) ON DELETE CASCADE
                 )
                 """,
             )
@@ -526,6 +551,110 @@ class CityShopService:
                 (shop_id,),
             )
             return [dict(r) for r in cur.fetchall()]
+
+    # ------------------------------------------------------------------
+    # bundle operations
+    # ------------------------------------------------------------------
+    def add_bundle(
+        self,
+        shop_id: int,
+        name: str,
+        price_cents: int,
+        items: List[Dict[str, int]],
+        promo_starts: str | None = None,
+        promo_ends: str | None = None,
+    ) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO shop_bundles (shop_id, name, price_cents, promo_starts, promo_ends) VALUES (?, ?, ?, ?, ?)",
+                (shop_id, name, price_cents, promo_starts, promo_ends),
+            )
+            bundle_id = int(cur.lastrowid)
+            for comp in items:
+                cur.execute(
+                    "INSERT INTO shop_bundle_items (bundle_id, item_id, quantity) VALUES (?, ?, ?)",
+                    (bundle_id, int(comp["item_id"]), int(comp.get("quantity", 1))),
+                )
+            conn.commit()
+            return bundle_id
+
+    def list_bundles(self, shop_id: int) -> List[Dict[str, Any]]:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, name, price_cents, promo_starts, promo_ends FROM shop_bundles WHERE shop_id = ?",
+                (shop_id,),
+            )
+            bundles: List[Dict[str, Any]] = []
+            for row in cur.fetchall():
+                b = dict(row)
+                cur.execute(
+                    "SELECT item_id, quantity FROM shop_bundle_items WHERE bundle_id = ?",
+                    (row["id"],),
+                )
+                b["items"] = [dict(r) for r in cur.fetchall()]
+                bundles.append(b)
+            return bundles
+
+    def purchase_bundle(
+        self, shop_id: int, user_id: int, bundle_id: int, quantity: int = 1
+    ) -> int:
+        if quantity <= 0:
+            raise ValueError("quantity must be positive")
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT price_cents, promo_starts, promo_ends FROM shop_bundles WHERE id = ? AND shop_id = ?",
+                (bundle_id, shop_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("bundle not found")
+            price, start, end = row
+            now = datetime.utcnow()
+            if start and now < datetime.fromisoformat(start):
+                raise ValueError("promotion not started")
+            if end and now > datetime.fromisoformat(end):
+                raise ValueError("promotion ended")
+            cur.execute(
+                "SELECT item_id, quantity FROM shop_bundle_items WHERE bundle_id = ?",
+                (bundle_id,),
+            )
+            comps = cur.fetchall()
+            if not comps:
+                raise ValueError("bundle empty")
+            # ensure stock
+            for item_id, qty in comps:
+                needed = qty * quantity
+                cur.execute(
+                    "SELECT quantity FROM shop_items WHERE shop_id = ? AND item_id = ?",
+                    (shop_id, item_id),
+                )
+                inv = cur.fetchone()
+                if not inv or inv[0] < needed:
+                    raise ValueError("insufficient stock")
+            # decrement stock
+            for item_id, qty in comps:
+                needed = qty * quantity
+                cur.execute(
+                    "UPDATE shop_items SET quantity = quantity - ? WHERE shop_id = ? AND item_id = ?",
+                    (needed, shop_id, item_id),
+                )
+            conn.commit()
+        # grant items to user
+        for item_id, qty in comps:
+            item_service.add_to_inventory(user_id, item_id, qty * quantity)
+        total = int(price) * quantity
+        shop = self.get_shop(shop_id)
+        owner = shop.get("owner_user_id") if shop else None
+        if owner:
+            _economy.transfer(user_id, owner, total)
+        else:
+            _economy.withdraw(user_id, total)
+        self._increment_revenue(shop_id, total)
+        return total
 
     # ------------------------------------------------------------------
     # sell operations

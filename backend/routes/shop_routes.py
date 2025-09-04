@@ -35,6 +35,9 @@ class RepairIn(BaseModel):
     owner_user_id: int
 
 
+
+class BundlePurchaseIn(BaseModel):
+    quantity: int = 1
 class HaggleIn(BaseModel):
     offer_cents: int
     skill: int = 0
@@ -116,6 +119,20 @@ def sell_item(shop_id: int, item_id: int, payload: SellIn, user_id: int = Depend
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "payout_cents": payout}
+
+
+@router.post("/city/{shop_id}/bundles/{bundle_id}/purchase")
+def purchase_bundle(
+    shop_id: int,
+    bundle_id: int,
+    payload: BundlePurchaseIn,
+    user_id: int = Depends(_current_user),
+):
+    try:
+        total = city_shop_service.purchase_bundle(shop_id, user_id, bundle_id, payload.quantity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "total_cents": total}
 
 
 @router.post("/books/{book_id}/purchase")

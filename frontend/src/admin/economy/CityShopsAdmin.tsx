@@ -12,7 +12,6 @@ interface Item {
   quantity: number;
   restock_interval?: number | null;
   restock_quantity?: number | null;
-=======
   price_cents: number;
 }
 
@@ -27,11 +26,26 @@ interface Book {
 
 }
 
+interface BundleItem {
+  item_id: number;
+  quantity: number;
+}
+
+interface Bundle {
+  id: number;
+  name: string;
+  price_cents: number;
+  promo_starts?: string | null;
+  promo_ends?: string | null;
+  items: BundleItem[];
+}
+
 const CityShopsAdmin: React.FC = () => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [items, setItems] = useState<Record<number, Item[]>>({});
   const [books, setBooks] = useState<Record<number, Book[]>>({});
+  const [bundles, setBundles] = useState<Record<number, Bundle[]>>({});
 
   const loadShops = () => {
     fetch('/admin/economy/city-shops')
@@ -43,9 +57,11 @@ const CityShopsAdmin: React.FC = () => {
     Promise.all([
       fetch(`/admin/economy/city-shops/${shopId}/items`).then((r) => r.json()),
       fetch(`/admin/economy/city-shops/${shopId}/books`).then((r) => r.json()),
-    ]).then(([itemData, bookData]) => {
+      fetch(`/admin/economy/city-shops/${shopId}/bundles`).then((r) => r.json()),
+    ]).then(([itemData, bookData, bundleData]) => {
       setItems((prev) => ({ ...prev, [shopId]: itemData }));
       setBooks((prev) => ({ ...prev, [shopId]: bookData }));
+      setBundles((prev) => ({ ...prev, [shopId]: bundleData }));
     });
   };
 
@@ -204,6 +220,42 @@ const CityShopsAdmin: React.FC = () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ interval, quantity }),
+    });
+    form.reset();
+    loadInventory(shopId);
+  };
+
+  const handleAddBundle = async (
+    shopId: number,
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+    const price = Number(
+      (form.elements.namedItem('priceCents') as HTMLInputElement).value,
+    );
+    const components = (form.elements.namedItem('components') as HTMLInputElement).value
+      .split(',')
+      .map((p) => {
+        const [id, qty] = p.split(':');
+        const item_id = Number(id);
+        const quantity = Number(qty || '1');
+        return item_id ? { item_id, quantity } : null;
+      })
+      .filter(Boolean) as BundleItem[];
+    const promo_starts = (form.elements.namedItem('promoStarts') as HTMLInputElement).value || null;
+    const promo_ends = (form.elements.namedItem('promoEnds') as HTMLInputElement).value || null;
+    await fetch(`/admin/economy/city-shops/${shopId}/bundles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        price_cents: price,
+        items: components,
+        promo_starts,
+        promo_ends,
+      }),
     });
     form.reset();
     loadInventory(shopId);
@@ -468,6 +520,63 @@ const CityShopsAdmin: React.FC = () => {
                             Set
                           </button>
                         </form>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Bundles</h4>
+                  <form
+                    onSubmit={(e) => handleAddBundle(shop.id, e)}
+                    className="space-x-2 mt-2"
+                  >
+                    <input
+                      name="name"
+                      type="text"
+                      placeholder="Name"
+                      className="border px-1"
+                    />
+                    <input
+                      name="components"
+                      type="text"
+                      placeholder="item:qty,..."
+                      className="border px-1"
+                    />
+                    <input
+                      name="priceCents"
+                      type="number"
+                      placeholder="Price (¢)"
+                      className="border px-1"
+                    />
+                    <input
+                      name="promoStarts"
+                      type="text"
+                      placeholder="Start"
+                      className="border px-1"
+                    />
+                    <input
+                      name="promoEnds"
+                      type="text"
+                      placeholder="End"
+                      className="border px-1"
+                    />
+                    <button type="submit" className="text-green-500">
+                      Add
+                    </button>
+                  </form>
+                  <ul className="mt-2 space-y-1">
+                    {(bundles[shop.id] || []).map((b) => (
+                      <li key={b.id} className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>
+                            {b.name} - {b.price_cents}¢
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {b.items
+                            .map((it) => `Item ${it.item_id} x${it.quantity}`)
+                            .join(', ')}
+                        </div>
                       </li>
                     ))}
                   </ul>
