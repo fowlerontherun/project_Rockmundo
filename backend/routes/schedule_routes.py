@@ -118,3 +118,33 @@ def export_schedule_ics(user_id: int, date: str):
         media_type="text/calendar",
         headers={"Content-Disposition": 'attachment; filename="schedule.ics"'},
     )
+
+
+class TemplateEntry(BaseModel):
+    hour: int
+    activity_id: int
+
+
+class TemplateCreate(BaseModel):
+    name: str
+    entries: List[TemplateEntry]
+
+
+@router.post("/templates/{user_id}")
+def create_template(user_id: int, data: TemplateCreate):
+    template_id = schedule_service.create_template(
+        user_id, data.name, [e.dict() for e in data.entries]
+    )
+    return {"id": template_id}
+
+
+@router.get("/templates/{user_id}")
+def list_templates(user_id: int):
+    templates = schedule_service.list_templates(user_id)
+    return {"templates": templates}
+
+
+@router.post("/apply-template/{user_id}/{date}/{template_id}")
+def apply_template(user_id: int, date: str, template_id: int):
+    schedule_service.apply_template(user_id, date, template_id)
+    return {"status": "ok"}

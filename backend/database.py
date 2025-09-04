@@ -412,6 +412,26 @@ def init_db():
         )
         """)
 
+        # Named default schedule templates
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS default_schedule_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS default_schedule_entries (
+            template_id INTEGER NOT NULL,
+            hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (template_id, hour),
+            FOREIGN KEY(template_id) REFERENCES default_schedule_templates(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
         # Recurring schedule templates
         cur.execute("""
         CREATE TABLE IF NOT EXISTS recurring_schedule (
