@@ -5,8 +5,10 @@ from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.books_service import books_service
 from backend.services.city_shop_service import city_shop_service
 from backend.services.economy_service import EconomyError, EconomyService
+from backend.services.event_service import get_active_shop_event
 from backend.services.item_service import item_service
 from backend.services.loyalty_service import loyalty_service
+from backend.services.membership_service import membership_service
 from backend.services.shop_npc_service import shop_npc_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
@@ -33,8 +35,13 @@ class RepairIn(BaseModel):
     owner_user_id: int
 
 
+
 class BundlePurchaseIn(BaseModel):
     quantity: int = 1
+class HaggleIn(BaseModel):
+    offer_cents: int
+    skill: int = 0
+    reputation: int = 0
 
 
 @router.post("/items/{item_id}/purchase")
@@ -46,8 +53,10 @@ def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
     if item.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
     base_total = item.price_cents * payload.quantity
-    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
-    discount_cents = int(base_total * discount_pct / 100)
+    loyalty_discount = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    membership_discount = membership_service.get_discount(user_id)
+    total_discount = loyalty_discount + membership_discount
+    discount_cents = int(base_total * total_discount / 100)
     total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
@@ -83,6 +92,26 @@ def repair_item(item_id: int, payload: RepairIn, user_id: int = Depends(_current
     return {"status": "ok", "maintenance_cents": fee, "new_durability": new_dur}
 
 
+@router.post("/items/{item_id}/haggle")
+def haggle_item(item_id: int, payload: HaggleIn, user_id: int = Depends(_current_user)):
+    try:
+        item = item_service.get_item(item_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Item not found")
+    base_price = item.price_cents
+    modifier = min(1.0, (payload.skill + payload.reputation) / 200)
+    discount = int(base_price * 0.3 * modifier)
+    counter = base_price - discount
+    success = payload.offer_cents >= counter
+    dialogue = shop_npc_service.get_haggle_dialogue(success)
+    return {
+        "status": "ok",
+        "counteroffer_cents": counter,
+        "accepted": success,
+        **dialogue,
+    }
+
+
 @router.post("/city/{shop_id}/items/{item_id}/sell")
 def sell_item(shop_id: int, item_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
     try:
@@ -115,8 +144,10 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
     if book.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
     base_total = book.price_cents * payload.quantity
-    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
-    discount_cents = int(base_total * discount_pct / 100)
+    loyalty_discount = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    membership_discount = membership_service.get_discount(user_id)
+    total_discount = loyalty_discount + membership_discount
+    discount_cents = int(base_total * total_discount / 100)
     total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
@@ -160,3 +191,13 @@ def get_daily_special():
     """Return today's rotating promotion."""
 
     return shop_npc_service.get_daily_special()
+
+
+@router.get("/event")
+def get_shop_event():
+    """Return the currently active shop event banner and countdown."""
+
+    event = get_active_shop_event()
+    if not event:
+        return {}
+    return event

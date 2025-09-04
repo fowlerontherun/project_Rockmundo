@@ -19,9 +19,12 @@ class ShopNPCService:
     def __init__(self, npc_service: Optional[NPCService] = None):
         self._npc_service = npc_service or NPCService()
         # create a default shop NPC with a tiny dialogue tree
-        dialogue = self._default_dialogue().dict()
+        tree = self._default_dialogue()
+        dialogue = tree.dict()
         npc = self._npc_service.create_npc("Shopkeeper", "merchant", dialogue_hooks=dialogue)
         self._npc_id = npc["id"]
+        # keep a copy of the tree so we can expose specific nodes later
+        self._dialogue_tree = tree
         # rotating promotions
         self._promotions: List[Dict[str, str]] = [
             {"item": "Guitar Strings", "description": "10% off all strings today!"},
@@ -42,12 +45,28 @@ class ShopNPCService:
                     responses=[
                         DialogueResponse(text="What's today's special?", next_id="special"),
                         DialogueResponse(text="Just browsing.", next_id="end"),
+                        DialogueResponse(text="Can we negotiate?", next_id="haggle"),
                     ],
                 ),
                 "special": DialogueNode(
                     id="special",
                     text="Check out our daily deal!",
                     responses=[DialogueResponse(text="Thanks!", next_id="end")],
+                ),
+                "haggle": DialogueNode(
+                    id="haggle",
+                    text="Think you can beat my price? Make me an offer.",
+                    responses=[DialogueResponse(text="Maybe next time", next_id="end")],
+                ),
+                "haggle_success": DialogueNode(
+                    id="haggle_success",
+                    text="Alright, you've got yourself a deal!",
+                    responses=[DialogueResponse(text="Thanks!", next_id="end")],
+                ),
+                "haggle_fail": DialogueNode(
+                    id="haggle_fail",
+                    text="Nice try, but the price stands.",
+                    responses=[DialogueResponse(text="Fair enough", next_id="end")],
                 ),
                 "end": DialogueNode(id="end", text="Come back soon!"),
             },
@@ -90,6 +109,19 @@ class ShopNPCService:
         if current:
             options = [resp.text for resp in current.responses]
         return {"lines": lines, "options": options}
+
+    # ------------------------------------------------------------------
+    def get_haggle_dialogue(self, success: bool) -> Dict[str, List[str]]:
+        """Return dialogue lines for the result of a negotiation."""
+
+        node_id = "haggle_success" if success else "haggle_fail"
+        node = self._dialogue_tree.nodes.get(node_id)
+        if not node:
+            return {"lines": [], "options": []}
+        return {
+            "lines": [node.text],
+            "options": [resp.text for resp in node.responses],
+        }
 
     # ------------------------------------------------------------------
     def get_daily_special(self) -> Dict[str, str]:

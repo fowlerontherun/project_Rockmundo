@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 
 from auth.routes import admin_mfa_router
 from core.config import settings
 from database import init_db
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
 from middleware.observability import ObservabilityMiddleware
@@ -14,26 +16,28 @@ from routes import (
     apprenticeship_routes,
     avatar,
     chemistry_routes,
+    crafting_routes,
     daily_loop_routes,
     event_routes,
     legacy_routes,
     lifestyle_routes,
     locale_routes,
+    membership_routes,
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
-    crafting_routes,
     schedule_routes,
     setlist_routes,
+    shipping_routes,
     social_routes,
     song_forecast_routes,
     sponsorship,
     tour_collab_routes,
     tour_planner_routes,
+    trade_routes,
     university_routes,
     user_settings_routes,
     video_routes,
-    shipping_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -56,6 +60,13 @@ app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(AdminMFAMiddleware)
+
+# Serve the frontend HTML pages from ``frontend/pages`` for local development.
+frontend_pages = (
+    Path(__file__).resolve().parent.parent / "frontend" / "pages"
+)
+if frontend_pages.exists():
+    app.mount("/frontend", StaticFiles(directory=str(frontend_pages), html=True), name="frontend")
 
 
 @app.on_event("startup")
@@ -108,6 +119,8 @@ app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 app.include_router(chemistry_routes.router)
 app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
+app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
+app.include_router(membership_routes.router, prefix="/api", tags=["Membership"])
 
 
 
