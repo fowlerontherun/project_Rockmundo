@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
+from backend.services.skill_service import skill_service
+
 
 # Default mapping of category -> list of activity names.
 CATEGORY_MAP: Dict[str, List[str]] = {
@@ -53,6 +55,29 @@ class PlanService:
             schedule.append("rest")
 
         return schedule[: self.slots]
+
+    def recommend_activities(self, user_id: int, goals: List[str]) -> List[str]:
+        """Recommend activities based on the user's skill levels.
+
+        For each goal (a skill name) the user's current level is inspected
+        using :mod:`backend.services.skill_service`.  Low level skills
+        receive "practice" recommendations while higher level skills are
+        encouraged with "perform" suggestions.
+        """
+
+        suggestions: List[str] = []
+        for goal in goals:
+            skill = None
+            for (uid, _), s in skill_service._skills.items():
+                if uid == user_id and s.name == goal:
+                    skill = s
+                    break
+            level = skill.level if skill else 1
+            if level < 5:
+                suggestions.append(f"practice {goal}")
+            else:
+                suggestions.append(f"perform {goal}")
+        return suggestions
 
 
 plan_service = PlanService()
