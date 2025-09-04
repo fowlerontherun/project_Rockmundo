@@ -67,9 +67,10 @@ def save_daily_plan(
 __all__ = ["save_daily_plan"]
 
 
-from typing import List, Dict
+from typing import List, Dict, Iterable
 
 from backend.models import activity as activity_model
+from backend.models import band_schedule as band_schedule_model
 from backend.models import daily_schedule as schedule_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
@@ -222,6 +223,22 @@ class ScheduleService:
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
         return schedule_model.get_schedule(user_id, date)
+
+    # Band schedule logic --------------------------------------------
+    def schedule_band_activity(
+        self,
+        band_id: int,
+        member_ids: Iterable[int],
+        date: str,
+        slot: int,
+        activity_id: int,
+    ) -> None:
+        for uid in member_ids:
+            schedule_model.add_entry(uid, date, slot, activity_id)
+        band_schedule_model.add_entry(band_id, date, slot, activity_id)
+
+    def get_band_schedule(self, band_id: int, date: str) -> List[Dict]:
+        return band_schedule_model.get_schedule(band_id, date)
 
     # Weekly schedule logic -------------------------------------------
     def set_weekly_schedule(self, user_id: int, week_start: str, plan: List[Dict]) -> None:

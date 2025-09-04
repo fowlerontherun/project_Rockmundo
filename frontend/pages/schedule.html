@@ -17,27 +17,68 @@
   <div class="tabs">
     <button id="quickPlanTab" class="active">Quick Plan</button>
     <button id="advancedPlannerTab">Advanced Planner</button>
+    <button id="bandPlanTab">Band Plan</button>
   </div>
   <div id="quickPlan" class="tab-content active"></div>
   <div id="advancedPlanner" class="tab-content"></div>
+  <div id="bandPlan" class="tab-content">
+    <h3>Band Plan</h3>
+    <p>Propose a shared slot and vote with your bandmates.</p>
+    <input type="date" id="bandDate" />
+    <input type="number" id="bandSlot" min="0" max="95" placeholder="Slot" />
+    <button id="proposeBtn">Propose</button>
+    <ul id="proposals"></ul>
+  </div>
   <script type="module" src="../components/quickPlan.js"></script>
   <script type="module" src="../components/advancedPlanner.js"></script>
   <script>
     const quickTab = document.getElementById('quickPlanTab');
     const advTab = document.getElementById('advancedPlannerTab');
+    const bandTab = document.getElementById('bandPlanTab');
     const quick = document.getElementById('quickPlan');
     const adv = document.getElementById('advancedPlanner');
+    const band = document.getElementById('bandPlan');
     quickTab.addEventListener('click', () => {
       quickTab.classList.add('active');
       advTab.classList.remove('active');
+      bandTab.classList.remove('active');
       quick.classList.add('active');
       adv.classList.remove('active');
+      band.classList.remove('active');
     });
     advTab.addEventListener('click', () => {
       advTab.classList.add('active');
       quickTab.classList.remove('active');
+      bandTab.classList.remove('active');
       adv.classList.add('active');
       quick.classList.remove('active');
+      band.classList.remove('active');
+    });
+    bandTab.addEventListener('click', () => {
+      bandTab.classList.add('active');
+      quickTab.classList.remove('active');
+      advTab.classList.remove('active');
+      band.classList.add('active');
+      quick.classList.remove('active');
+      adv.classList.remove('active');
+    });
+
+    const proposals = document.getElementById('proposals');
+    document.getElementById('proposeBtn').addEventListener('click', () => {
+      const date = document.getElementById('bandDate').value;
+      const slot = document.getElementById('bandSlot').value;
+      if (!date || slot === '') return;
+      const li = document.createElement('li');
+      li.textContent = `${date} slot ${slot}`;
+      li.dataset.votes = '0';
+      const voteBtn = document.createElement('button');
+      voteBtn.textContent = 'Vote';
+      voteBtn.addEventListener('click', () => {
+        li.dataset.votes = (parseInt(li.dataset.votes) + 1).toString();
+        voteBtn.textContent = `Vote (${li.dataset.votes})`;
+      });
+      li.appendChild(voteBtn);
+      proposals.appendChild(li);
     });
   </script>
   <script src="../components/themeToggle.js"></script>
