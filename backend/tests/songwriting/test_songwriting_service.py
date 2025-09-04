@@ -232,13 +232,31 @@ def test_theme_updates_persist_and_versioned():
             llm_client=FakeLLM(), art_service=FakeArt(), originality=OriginalityService()
         )
         draft = await _generate(svc)
-        new_themes = ["fire", "water", "earth"]
+        new_themes = ["peace", "joy", "truth"]
         svc.update_draft(draft.id, user_id=1, themes=new_themes)
         assert svc.get_draft(draft.id).themes == new_themes
         assert svc.get_song(draft.id).themes == new_themes
         versions = svc.list_versions(draft.id)
         assert len(versions) == 2
         assert versions[-1].themes == new_themes
+
+    asyncio.run(run())
+
+
+def test_update_draft_invalid_themes():
+    async def run():
+        svc = SongwritingService(
+            llm_client=FakeLLM(), art_service=FakeArt(), originality=OriginalityService()
+        )
+        draft = await _generate(svc)
+        with pytest.raises(ValueError):
+            svc.update_draft(draft.id, user_id=1, themes=["only", "two"])
+        with pytest.raises(ValueError):
+            svc.update_draft(
+                draft.id,
+                user_id=1,
+                themes=["love", "hope", "invalid"],
+            )
 
     asyncio.run(run())
 
