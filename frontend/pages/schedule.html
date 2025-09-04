@@ -44,6 +44,14 @@
     <input type="date" id="exportDate" />
     <button id="exportBtn">Download ICS</button>
   </div>
+  <div id="scheduleAnalytics">
+    <h3>Weekly Analytics</h3>
+    <input type="number" id="analyticsUserId" placeholder="User ID" />
+    <input type="date" id="analyticsWeek" />
+    <button id="analyticsBtn">Load</button>
+    <canvas id="categoryChart"></canvas>
+    <canvas id="restChart"></canvas>
+  </div>
   <div class="tabs">
     <button id="quickPlanTab" class="active">Quick Plan</button>
     <button id="advancedPlannerTab">Advanced Planner</button>
@@ -59,6 +67,8 @@
     <button id="proposeBtn">Propose</button>
     <ul id="proposals"></ul>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="../components/scheduleAnalytics.js"></script>
   <script type="module" src="../components/quickPlan.js"></script>
   <script type="module" src="../components/advancedPlanner.js"></script>
   <script type="module" src="../components/scheduleStats.js"></script>
