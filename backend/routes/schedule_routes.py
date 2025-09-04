@@ -14,12 +14,23 @@ class PlanSelections(BaseModel):
     band: bool = False
 
 
+class RecommendationRequest(BaseModel):
+    user_id: int
+    goals: List[str]
+
+
 @router.post("/plan")
 def generate_plan(data: PlanSelections):
     schedule = plan_service.create_plan(
         social=data.social, career=data.career, band=data.band
     )
     return {"schedule": schedule}
+
+
+@router.post("/recommend")
+def recommend_activities(data: RecommendationRequest):
+    suggestions = plan_service.recommend_activities(data.user_id, data.goals)
+    return {"recommendations": suggestions}
 
 
 class DefaultEntry(BaseModel):
