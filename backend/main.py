@@ -24,6 +24,7 @@ from routes import (
     lifestyle_routes,
     locale_routes,
     membership_routes,
+    mail_routes,
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
@@ -135,6 +136,7 @@ app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
 app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
 app.include_router(membership_routes.router, prefix="/api", tags=["Membership"])
+app.include_router(mail_routes.router, prefix="/api", tags=["Mail"])
 
 
 
