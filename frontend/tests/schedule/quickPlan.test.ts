@@ -22,11 +22,11 @@ describe('quick plan', () => {
     initQuickPlan();
     await new Promise((r) => setTimeout(r, 0));
 
-    const practice = document.querySelector('input[name="practice"]') as HTMLInputElement;
-    expect(practice.checked).toBe(true);
+    const social = document.querySelector('input[name="social_pct"]') as HTMLInputElement;
+    expect(social.value).toBe('10');
 
-    const rest = document.querySelector('input[name="rest"]') as HTMLInputElement;
-    rest.checked = true;
+    const band = document.querySelector('input[name="band_pct"]') as HTMLInputElement;
+    band.value = '40';
     document.querySelector('#quickPlan form')!.dispatchEvent(
       new Event('submit', { bubbles: true, cancelable: true })
     );
@@ -34,7 +34,7 @@ describe('quick plan', () => {
 
     expect(fetchMock.mock.calls[1][0]).toBe('/api/default-plan');
     const body = fetchMock.mock.calls[1][1]?.body as string;
-    expect(JSON.parse(body)).toEqual({ practice: true, rest: true, travel: true });
+    expect(JSON.parse(body)).toEqual({ social_pct: 10, career_pct: 20, band_pct: 40 });
 
     (global as any).fetch = originalFetch;
   });

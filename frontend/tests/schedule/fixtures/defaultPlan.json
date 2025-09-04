@@ -1,5 +1,5 @@
 {
-  "practice": true,
-  "rest": false,
-  "travel": true
+  "social_pct": 10,
+  "career_pct": 20,
+  "band_pct": 30
 }

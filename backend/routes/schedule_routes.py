@@ -11,10 +11,10 @@ from backend.services.schedule_service import schedule_service
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
 
-class PlanSelections(BaseModel):
-    social: bool = False
-    career: bool = False
-    band: bool = False
+class PlanPercentages(BaseModel):
+    social_pct: int = 0
+    career_pct: int = 0
+    band_pct: int = 0
 
 
 class RecommendationRequest(BaseModel):
@@ -23,9 +23,11 @@ class RecommendationRequest(BaseModel):
 
 
 @router.post("/plan")
-def generate_plan(data: PlanSelections):
+def generate_plan(data: PlanPercentages):
     schedule = plan_service.create_plan(
-        social=data.social, career=data.career, band=data.band
+        social_pct=data.social_pct,
+        career_pct=data.career_pct,
+        band_pct=data.band_pct,
     )
     return {"schedule": schedule}
 

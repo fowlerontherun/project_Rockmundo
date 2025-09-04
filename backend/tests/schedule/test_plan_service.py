@@ -3,14 +3,14 @@ from backend.services.plan_service import PlanService
 
 def test_category_mapping():
     svc = PlanService()
-    plan = svc.create_plan(social=True, career=True, band=False)
+    plan = svc.create_plan(social_pct=25, career_pct=25, band_pct=0)
     expected = PlanService.CATEGORY_MAP["social"] + PlanService.CATEGORY_MAP["career"]
     assert plan[: len(expected)] == expected
 
 
 def test_rest_insertion():
     svc = PlanService()
-    plan = svc.create_plan(social=True, career=False, band=False)
+    plan = svc.create_plan(social_pct=25, career_pct=0, band_pct=0)
     # first entries from social category
     assert plan[0:2] == PlanService.CATEGORY_MAP["social"]
     # rest fills remaining slots
