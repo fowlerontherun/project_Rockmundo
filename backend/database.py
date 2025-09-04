@@ -409,6 +409,20 @@ def init_db():
         )
         """)
 
+        # Recurring schedule templates
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS recurring_schedule (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            pattern TEXT NOT NULL,
+            hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
         # Weekly schedule entries linking users to activities
         cur.execute(
             """

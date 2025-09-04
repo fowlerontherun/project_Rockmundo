@@ -13,12 +13,35 @@ from backend.services.skill_service import skill_service
 from backend.services.social_sentiment_service import social_sentiment_service
 from backend.services.song_popularity_forecast import forecast_service
 
+
+def _pattern_matches(pattern: str, today: date) -> bool:
+    """Return True if a template pattern matches the given date."""
+    p = pattern.lower()
+    if p in {
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    }:
+        return p == today.strftime("%A").lower()
+    if p.startswith("interval:"):
+        try:
+            interval = int(p.split(":", 1)[1])
+        except ValueError:
+            return False
+        return today.toordinal() % interval == 0
+    return False
+
 # Map event_type to handler functions
 def _daily_loop_reset_wrapper() -> None:
     """Rotate challenge and seed schedules for inactive users."""
     daily_loop.rotate_daily_challenge()
-    today = date.today().isoformat()
-    weekday = date.today().strftime("%A").lower()
+    today_date = date.today()
+    today = today_date.isoformat()
+    weekday = today_date.strftime("%A").lower()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT user_id, last_login FROM daily_loop")
@@ -31,6 +54,19 @@ def _daily_loop_reset_wrapper() -> None:
                 schedule_service.schedule_activity(
                     user_id, today, entry["hour"], entry["activity"]["id"]
                 )
+        # Apply recurring templates for all users
+        templates = schedule_service.get_recurring_templates(user_id)
+        for tpl in templates:
+            if not tpl.get("active"):
+                continue
+            if _pattern_matches(tpl["pattern"], today_date):
+                try:
+                    schedule_service.schedule_activity(
+                        user_id, today, tpl["hour"], tpl["activity"]["id"]
+                    )
+                except ValueError:
+                    # Skip conflicts to avoid crashing the reset job
+                    pass
 
 
 EVENT_HANDLERS = {
