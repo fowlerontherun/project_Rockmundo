@@ -22,12 +22,12 @@ from routes import (
     crafting_routes,
     daily_loop_routes,
     event_routes,
+    gifting_routes,
     legacy_routes,
     lifestyle_routes,
     locale_routes,
-    media_routes,
-    membership_routes,
     mail_routes,
+    media_routes,
     membership_routes,
     music_metrics_routes,
     onboarding_routes,
@@ -145,6 +145,7 @@ app.include_router(character.router, prefix="/api", tags=["Characters"])
 app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 app.include_router(chemistry_routes.router)
 app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])
+app.include_router(gifting_routes.router, prefix="/api", tags=["Gifting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
 app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
 app.include_router(membership_routes.router, prefix="/api", tags=["Membership"])
