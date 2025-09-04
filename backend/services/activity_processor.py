@@ -94,6 +94,8 @@ def _apply_effects(
         outcome["skills"] = skill_map
     else:
         outcome["skill_gain"] = xp_gain
+    # Commit so the activity log writer doesn't hit a lock
+    cur.connection.commit()
     activity_log_model.record_outcome(
         user_id, _current_date, slot, activity_id, outcome
     )
@@ -108,6 +110,8 @@ def process_day(target_date: str) -> Dict[str, int]:
     """Process all scheduled activities for ``target_date``."""
     global _current_date
     _current_date = target_date
+    # Ensure activity log uses the same database
+    activity_log_model.DB_PATH = DB_PATH
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         _ensure_tables(cur)
