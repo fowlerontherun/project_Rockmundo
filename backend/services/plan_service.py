@@ -12,7 +12,6 @@ from typing import Dict, List
 
 from backend.services.skill_service import skill_service
 
-
 # Default mapping of category -> list of activity names.
 CATEGORY_MAP: Dict[str, List[str]] = {
     "social": ["network", "promote"],
@@ -35,21 +34,37 @@ class PlanService:
     category_map: Dict[str, List[str]] = field(default_factory=lambda: CATEGORY_MAP)
     slots: int = DEFAULT_SLOTS
 
-    def create_plan(self, social: bool = False, career: bool = False, band: bool = False) -> List[str]:
+    def create_plan(
+        self,
+        *,
+        social_pct: int = 0,
+        career_pct: int = 0,
+        band_pct: int = 0,
+    ) -> List[str]:
         """Return a list of activities for the day.
 
-        Selected categories contribute their activities in the order
-        defined by ``category_map``.  The list is padded with ``"rest"``
-        entries until ``slots`` is reached.
+        The ``*_pct`` arguments describe the percentage of the day that
+        should be devoted to each category.  Percentages are converted to
+        slot counts based on ``slots`` and any remaining slots are filled
+        with ``"rest"`` activities.
         """
 
         schedule: List[str] = []
-        if social:
-            schedule.extend(self.category_map.get("social", []))
-        if career:
-            schedule.extend(self.category_map.get("career", []))
-        if band:
-            schedule.extend(self.category_map.get("band", []))
+        allocations = {
+            "social": social_pct,
+            "career": career_pct,
+            "band": band_pct,
+        }
+
+        for category, pct in allocations.items():
+            if pct <= 0:
+                continue
+            activities = self.category_map.get(category, [])
+            if not activities:
+                continue
+            count = int(self.slots * (pct / 100))
+            for i in range(count):
+                schedule.append(activities[i % len(activities)])
 
         while len(schedule) < self.slots:
             schedule.append("rest")

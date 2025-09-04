@@ -22,14 +22,17 @@ export function initQuickPlan() {
   const container = document.getElementById('quickPlan');
   if (!container) return;
 
-  const categories = ['practice', 'rest', 'travel'];
+  const categories = ['social_pct', 'career_pct', 'band_pct'];
   const form = document.createElement('form');
 
   categories.forEach((cat) => {
     const label = document.createElement('label');
     const input = document.createElement('input');
-    input.type = 'checkbox';
+    input.type = 'number';
     input.name = cat;
+    input.min = '0';
+    input.max = '100';
+    input.value = '0';
     label.appendChild(input);
     label.append(` ${cat}`);
     form.appendChild(label);
@@ -45,7 +48,7 @@ export function initQuickPlan() {
     .then((plan) => {
       categories.forEach((cat) => {
         const input = form.querySelector(`input[name="${cat}"]`);
-        if (input) input.checked = !!plan[cat];
+        if (input) input.value = plan[cat] ?? 0;
       });
     })
     .catch(() => {});
@@ -55,7 +58,7 @@ export function initQuickPlan() {
     const plan = {};
     categories.forEach((cat) => {
       const input = form.querySelector(`input[name="${cat}"]`);
-      plan[cat] = !!(input && input.checked);
+      plan[cat] = input ? parseInt(input.value, 10) || 0 : 0;
     });
     await saveDefaultPlan(plan).catch(() => {});
   });
