@@ -1,15 +1,15 @@
 """Routes for AI-assisted songwriting features."""
 from __future__ import annotations
 
-from typing import Dict, Set, List
+from typing import Dict, List, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, validator
 
 from backend.auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
-from backend.services.songwriting_service import songwriting_service
 from backend.services.skill_service import skill_service
+from backend.services.songwriting_service import songwriting_service
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 
@@ -31,11 +31,13 @@ class PromptPayload(BaseModel):
 
 class DraftUpdate(BaseModel):
     lyrics: str | None = None
-    chords: str | None = None
     themes: List[str] | None = None
-
     chord_progression: str | None = None
     album_art_url: str | None = None
+
+
+class CoWriterPayload(BaseModel):
+    co_writer_id: int
 
 
 @router.post("/prompt")
@@ -59,12 +61,15 @@ def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
 
 @router.put("/drafts/{draft_id}")
 def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_current_user_id)):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
     draft = songwriting_service.update_draft(
         draft_id,
         user_id,
         lyrics=updates.lyrics,
-
-        chords=updates.chords,
         themes=updates.themes,
         chord_progression=updates.chord_progression,
         album_art_url=updates.album_art_url,
@@ -82,6 +87,31 @@ def list_versions(draft_id: int, user_id: int = Depends(get_current_user_id)):
     if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
         raise HTTPException(status_code=403, detail="forbidden")
     return songwriting_service.list_versions(draft_id)
+
+
+@router.get("/drafts/{draft_id}/co_writers")
+def get_co_writers(draft_id: int, user_id: int = Depends(get_current_user_id)):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
+
+
+@router.post("/drafts/{draft_id}/co_writers")
+def add_co_writer(
+    draft_id: int,
+    payload: CoWriterPayload,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        songwriting_service.add_co_writer(draft_id, user_id, payload.co_writer_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
 @router.get("/themes")
 def list_themes():
     return THEMES

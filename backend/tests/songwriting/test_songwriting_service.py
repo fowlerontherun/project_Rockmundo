@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest
 
 from sqlalchemy import create_engine
@@ -8,7 +9,9 @@ from backend.services.songwriting_service import SongwritingService
 from backend.services.originality_service import OriginalityService
 from backend.services.skill_service import SkillService, SONGWRITING_SKILL
 from backend.services.band_service import BandService, Base
-
+from backend.services.originality_service import OriginalityService
+from backend.services.skill_service import SONGWRITING_SKILL, SkillService
+from backend.services.songwriting_service import SongwritingService
 
 
 class FakeLLM:
@@ -164,6 +167,12 @@ def test_versioning_and_band_mates():
         band_service = _get_band_service()
         band = band_service.create_band(user_id=1, band_name="AI Band", genre="rock")
         svc = SongwritingService(llm_client=FakeLLM(), band_service=band_service)
+
+        class DummyBandService:
+            def share_band(self, a, b):
+                return {1: {2}, 2: {1}}.get(a, set()).__contains__(b)
+
+        svc = SongwritingService(llm_client=FakeLLM(), band_service=DummyBandService())
         draft = await svc.generate_draft(
             creator_id=band.id,
             title="collab",
@@ -173,6 +182,7 @@ def test_versioning_and_band_mates():
         # initial version saved
         assert len(svc.list_versions(draft.id)) == 1
 
+
         # unauthorized user cannot edit until added to band
         with pytest.raises(PermissionError):
             svc.update_draft(draft.id, user_id=2, lyrics="hack")
@@ -180,9 +190,18 @@ def test_versioning_and_band_mates():
         # add a band member and allow edits
         band_service.add_member(band.id, user_id=2)
         svc.update_draft(draft.id, user_id=2, lyrics="co-write", chords="A B")
+
+        # add a co-writer and allow edits
+        svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+        svc.update_draft(draft.id, user_id=2, lyrics="co-write", chord_progression="A B")
+
         versions = svc.list_versions(draft.id)
         assert len(versions) == 2
         assert versions[-1].author_id == 2
+
+        # cannot add non-bandmate
+        with pytest.raises(PermissionError):
+            svc.add_co_writer(draft.id, user_id=1, co_writer_id=3)
 
         # unauthorized user
         with pytest.raises(PermissionError):
