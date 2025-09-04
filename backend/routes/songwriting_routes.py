@@ -41,9 +41,8 @@ class DraftUpdate(BaseModel):
             return None
         if len(v) != 3:
             raise ValueError("exactly_three_themes_required")
-        for t in v:
-            if t not in THEMES:
-                raise ValueError("unknown_theme")
+        if any(t not in THEMES for t in v):
+            raise ValueError("unknown_theme")
         return v
 
 

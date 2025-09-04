@@ -108,8 +108,10 @@ def test_edit_draft_invalid_themes_route(client_factory):
         json={"themes": ["only", "two"]},
     )
     assert resp.status_code == 422
+    assert resp.json()["detail"][0]["msg"].endswith("exactly_three_themes_required")
     resp2 = client.put(
         f"/songwriting/drafts/{draft.id}",
         json={"themes": ["x", "y", "invalid"]},
     )
     assert resp2.status_code == 422
+    assert resp2.json()["detail"][0]["msg"].endswith("unknown_theme")
