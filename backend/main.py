@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 
 from auth.routes import admin_mfa_router
 from core.config import settings
 from database import init_db
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from middleware.admin_mfa import AdminMFAMiddleware
 from middleware.locale import LocaleMiddleware
 from middleware.observability import ObservabilityMiddleware
@@ -58,6 +60,13 @@ app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(AdminMFAMiddleware)
+
+# Serve the frontend HTML pages from ``frontend/pages`` for local development.
+frontend_pages = (
+    Path(__file__).resolve().parent.parent / "frontend" / "pages"
+)
+if frontend_pages.exists():
+    app.mount("/frontend", StaticFiles(directory=str(frontend_pages), html=True), name="frontend")
 
 
 @app.on_event("startup")
