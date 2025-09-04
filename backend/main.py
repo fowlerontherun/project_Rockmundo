@@ -26,19 +26,22 @@ from routes import (
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
+    sales,
     schedule_routes,
     setlist_routes,
     shipping_routes,
-    world_pulse_routes,
     social_routes,
     song_forecast_routes,
     sponsorship,
+    support_slot_routes,
     tour_collab_routes,
     tour_planner_routes,
     trade_routes,
     university_routes,
     user_settings_routes,
+    venue_sponsorships_routes,
     video_routes,
+    world_pulse_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -97,6 +100,9 @@ app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprentic
 
 # Additional routers
 app.include_router(sponsorship.router, prefix="/api/sponsorships", tags=["Sponsorships"])
+app.include_router(venue_sponsorships_routes.router, prefix="/api", tags=["Venue Sponsorships"])
+app.include_router(support_slot_routes.router, prefix="/api", tags=["Support Slots"])
+app.include_router(sales.router, prefix="/api", tags=["Sales"])
 app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
 app.include_router(video_routes.router, tags=["Videos"])
 app.include_router(legacy_routes.router, prefix="/api", tags=["Legacy"])
