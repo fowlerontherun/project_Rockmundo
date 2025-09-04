@@ -5,6 +5,7 @@ from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.books_service import books_service
 from backend.services.city_shop_service import city_shop_service
 from backend.services.economy_service import EconomyError, EconomyService
+from backend.services.event_service import get_active_shop_event
 from backend.services.item_service import item_service
 from backend.services.loyalty_service import loyalty_service
 from backend.services.membership_service import membership_service
@@ -147,3 +148,13 @@ def get_daily_special():
     """Return today's rotating promotion."""
 
     return shop_npc_service.get_daily_special()
+
+
+@router.get("/event")
+def get_shop_event():
+    """Return the currently active shop event banner and countdown."""
+
+    event = get_active_shop_event()
+    if not event:
+        return {}
+    return event
