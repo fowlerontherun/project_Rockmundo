@@ -1,7 +1,7 @@
 """Routes for AI-assisted songwriting features."""
 from __future__ import annotations
 
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, validator
@@ -31,12 +31,12 @@ class PromptPayload(BaseModel):
 
 class DraftUpdate(BaseModel):
     lyrics: str | None = None
-    themes: List[str] | None = None
+    themes: list[str] | None = None
     chord_progression: str | None = None
     album_art_url: str | None = None
 
     @validator("themes")
-    def validate_themes(cls, v: List[str] | None) -> List[str] | None:
+    def validate_themes(cls, v: list[str] | None) -> list[str] | None:
         if v is None:
             return None
         if len(v) != 3:

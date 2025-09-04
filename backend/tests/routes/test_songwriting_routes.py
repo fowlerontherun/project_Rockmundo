@@ -86,3 +86,30 @@ def test_add_co_writer_duplicate_route(client_factory):
         json={"co_writer_id": 2},
     )
     assert dup.status_code == 409
+
+
+def test_edit_draft_invalid_themes_route(client_factory):
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="A",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    songwriting_routes.songwriting_service = svc
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+    resp = client.put(
+        f"/songwriting/drafts/{draft.id}",
+        json={"themes": ["only", "two"]},
+    )
+    assert resp.status_code == 422
+    resp2 = client.put(
+        f"/songwriting/drafts/{draft.id}",
+        json={"themes": ["x", "y", "invalid"]},
+    )
+    assert resp2.status_code == 422
