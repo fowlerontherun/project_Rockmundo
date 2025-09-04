@@ -8,6 +8,8 @@ from datetime import date, timedelta
 from typing import Dict, List
 
 from backend.database import DB_PATH
+from backend.models import activity_log as activity_log_model
+from backend.models import user_settings
 
 
 def _ensure_tables(cur: sqlite3.Cursor) -> None:
@@ -17,6 +19,19 @@ def _ensure_tables(cur: sqlite3.Cursor) -> None:
             user_id INTEGER PRIMARY KEY,
             xp INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+        """,
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS next_day_schedule (
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            slot INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, date, slot),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
         )
         """,
     )
@@ -114,6 +129,7 @@ def _apply_effects(
         VALUES (?, ?, ?, ?, ?)
         """,
         (user_id, _current_date, slot, activity_id, json.dumps(outcome)),
+    )
     # Commit so the activity log writer doesn't hit a lock
     cur.connection.commit()
     activity_log_model.record_outcome(
@@ -141,9 +157,25 @@ def process_day(target_date: str) -> Dict[str, int]:
         )
         rows: List[tuple[int, int, int]] = cur.fetchall()
         processed = 0
+        next_date = (date.fromisoformat(target_date) + timedelta(days=1)).isoformat()
         for user_id, slot, activity_id in rows:
-            _apply_effects(cur, user_id, activity_id, slot)
-            processed += 1
+            cur.execute(
+                "SELECT 1 FROM activity_log WHERE user_id=? AND date=? AND slot=?",
+                (user_id, target_date, slot),
+            )
+            if cur.fetchone():
+                _apply_effects(cur, user_id, activity_id, slot)
+                processed += 1
+            else:
+                settings = user_settings.get_settings(user_id)
+                if settings.get("auto_reschedule", True):
+                    cur.execute(
+                        """
+                        INSERT OR REPLACE INTO next_day_schedule (user_id, date, slot, activity_id)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (user_id, next_date, slot, activity_id),
+                    )
         conn.commit()
     return {"status": "ok", "processed": processed}
 
