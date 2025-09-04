@@ -6,11 +6,11 @@ export async function fetchSchedule() {
   return res.json();
 }
 
-export async function saveSlot(time, value) {
+export async function saveSlot(time, value, durationDays = 1) {
   const res = await fetch(`/api/schedule/${encodeURIComponent(time)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value })
+    body: JSON.stringify({ value, durationDays })
   });
   if (!res.ok) {
     throw new Error('Failed to save slot');
@@ -66,16 +66,33 @@ export function initAdvancedPlanner() {
     .then((sched) => {
       Object.entries(sched || {}).forEach(([time, val]) => {
         const slot = grid.querySelector(`[data-time="${time}"]`);
-        if (slot) slot.textContent = val;
+        if (!slot) return;
+        if (val && typeof val === 'object') {
+          slot.textContent = val.label || val.value || '';
+          if (val.durationDays && val.durationDays > 1) {
+            slot.style.gridColumn = `span ${val.durationDays}`;
+          }
+        } else {
+          slot.textContent = val;
+        }
       });
     })
     .catch(() => {});
 }
 
-export async function updateSlot(time, value) {
+export async function updateSlot(time, value, durationDays = 1) {
   const slot = document.querySelector(`[data-time="${time}"]`);
-  if (slot) slot.textContent = value;
-  return saveSlot(time, value);
+  if (slot) {
+    if (typeof value === 'object') {
+      slot.textContent = value.label || value.value || '';
+      if (value.durationDays && value.durationDays > 1) {
+        slot.style.gridColumn = `span ${value.durationDays}`;
+      }
+    } else {
+      slot.textContent = value;
+    }
+  }
+  return saveSlot(time, value, durationDays);
 }
 
 if (typeof window !== 'undefined') {
