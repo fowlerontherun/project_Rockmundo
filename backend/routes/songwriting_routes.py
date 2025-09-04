@@ -1,15 +1,15 @@
 """Routes for AI-assisted songwriting features."""
 from __future__ import annotations
 
-from typing import Dict, Set, List
+from typing import Dict, List, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, validator
 
 from backend.auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
-from backend.services.songwriting_service import songwriting_service
 from backend.services.skill_service import skill_service
+from backend.services.songwriting_service import songwriting_service
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 
@@ -31,9 +31,7 @@ class PromptPayload(BaseModel):
 
 class DraftUpdate(BaseModel):
     lyrics: str | None = None
-    chords: str | None = None
     themes: List[str] | None = None
-
     chord_progression: str | None = None
     album_art_url: str | None = None
 
@@ -72,8 +70,6 @@ def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_c
         draft_id,
         user_id,
         lyrics=updates.lyrics,
-
-        chords=updates.chords,
         themes=updates.themes,
         chord_progression=updates.chord_progression,
         album_art_url=updates.album_art_url,
