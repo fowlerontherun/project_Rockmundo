@@ -1,97 +1,247 @@
-"""Service layer for generic items and inventories."""
+"""Service layer for generic items and inventories backed by SQLite."""
 from __future__ import annotations
 
+import json
+import sqlite3
 from dataclasses import asdict
+from pathlib import Path
 from typing import Dict, List
 
 from backend.models.item import Item, ItemCategory
 
 
-class ItemService:
-    """In-memory management of items and inventories."""
+DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
-    def __init__(self) -> None:
-        self._items: Dict[int, Item] = {}
-        self._categories: Dict[str, ItemCategory] = {}
-        self._inventories: Dict[int, Dict[int, int]] = {}
-        self._id_seq = 1
+
+class ItemService:
+    """Persistence-backed management of items and user inventories."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = str(db_path or DB_PATH)
+        self.ensure_schema()
+
+    # ------------------------------------------------------------------
+    # schema helpers
+    # ------------------------------------------------------------------
+    def ensure_schema(self) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS item_categories (
+                    name TEXT PRIMARY KEY,
+                    description TEXT
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    stats_json TEXT DEFAULT '{}',
+                    price_cents INTEGER DEFAULT 0,
+                    stock INTEGER DEFAULT 0,
+                    FOREIGN KEY (category) REFERENCES item_categories(name)
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_items (
+                    user_id INTEGER NOT NULL,
+                    item_id INTEGER NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, item_id),
+                    FOREIGN KEY (item_id) REFERENCES items(id)
+                )
+                """,
+            )
+            conn.commit()
 
     # ------------------------------------------------------------------
     # Category operations
     # ------------------------------------------------------------------
     def list_categories(self) -> List[ItemCategory]:
-        return list(self._categories.values())
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT name, description FROM item_categories")
+            return [ItemCategory(**dict(r)) for r in cur.fetchall()]
 
     def create_category(self, category: ItemCategory) -> ItemCategory:
-        self._categories[category.name] = category
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT OR REPLACE INTO item_categories (name, description) VALUES (?, ?)",
+                (category.name, category.description),
+            )
+            conn.commit()
         return category
 
     def delete_category(self, name: str) -> None:
-        self._categories.pop(name, None)
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM item_categories WHERE name = ?", (name,))
+            conn.commit()
 
     # ------------------------------------------------------------------
     # CRUD operations
     # ------------------------------------------------------------------
+    def _row_to_item(self, row: sqlite3.Row) -> Item:
+        data = dict(row)
+        data["stats"] = json.loads(data.get("stats_json") or "{}")
+        data.pop("stats_json", None)
+        return Item(**data)
+
     def list_items(self) -> List[Item]:
-        return list(self._items.values())
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, name, category, stats_json, price_cents, stock FROM items"
+            )
+            return [self._row_to_item(r) for r in cur.fetchall()]
 
     def create_item(self, item: Item) -> Item:
-        item.id = self._id_seq
-        self._items[item.id] = item
-        self._id_seq += 1
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO items (name, category, stats_json, price_cents, stock)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    item.name,
+                    item.category,
+                    json.dumps(item.stats),
+                    item.price_cents,
+                    item.stock,
+                ),
+            )
+            item.id = int(cur.lastrowid or 0)
+            conn.commit()
         return item
 
     def get_item(self, item_id: int) -> Item:
-        itm = self._items.get(item_id)
-        if not itm:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, name, category, stats_json, price_cents, stock FROM items WHERE id = ?",
+                (item_id,),
+            )
+            row = cur.fetchone()
+        if not row:
             raise ValueError("Item not found")
-        return itm
+        return self._row_to_item(row)
 
     def update_item(self, item_id: int, **changes) -> Item:
-        itm = self._items.get(item_id)
-        if not itm:
-            raise ValueError("Item not found")
+        if not changes:
+            return self.get_item(item_id)
+        updates: Dict[str, object] = {}
+        params: List[object] = []
         for k, v in changes.items():
-            if hasattr(itm, k) and v is not None:
-                setattr(itm, k, v)
-        return itm
+            if v is not None and k in {"name", "category", "stats", "price_cents", "stock"}:
+                if k == "stats":
+                    updates["stats_json"] = json.dumps(v)
+                else:
+                    updates[k] = v
+        if not updates:
+            return self.get_item(item_id)
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        params = list(updates.values()) + [item_id]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE items SET {set_clause} WHERE id = ?",
+                params,
+            )
+            if cur.rowcount == 0:
+                raise ValueError("Item not found")
+            conn.commit()
+        return self.get_item(item_id)
 
     def delete_item(self, item_id: int) -> None:
-        self._items.pop(item_id, None)
-        for inv in self._inventories.values():
-            inv.pop(item_id, None)
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM items WHERE id = ?", (item_id,))
+            cur.execute("DELETE FROM user_items WHERE item_id = ?", (item_id,))
+            conn.commit()
 
     def decrement_stock(self, item_id: int, quantity: int = 1) -> None:
-        itm = self.get_item(item_id)
-        if itm.stock < quantity:
-            raise ValueError("not enough stock")
-        itm.stock -= quantity
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT stock FROM items WHERE id = ?", (item_id,))
+            row = cur.fetchone()
+            if not row or row[0] < quantity:
+                raise ValueError("not enough stock")
+            cur.execute(
+                "UPDATE items SET stock = stock - ? WHERE id = ?",
+                (quantity, item_id),
+            )
+            conn.commit()
 
     # ------------------------------------------------------------------
     # Inventory management
     # ------------------------------------------------------------------
     def add_to_inventory(self, user_id: int, item_id: int, quantity: int = 1) -> None:
-        if item_id not in self._items:
-            raise ValueError("invalid item")
-        inv = self._inventories.setdefault(user_id, {})
-        inv[item_id] = inv.get(item_id, 0) + quantity
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM items WHERE id = ?", (item_id,))
+            if not cur.fetchone():
+                raise ValueError("invalid item")
+            cur.execute(
+                """
+                INSERT INTO user_items (user_id, item_id, quantity)
+                VALUES (?, ?, ?)
+                ON CONFLICT(user_id, item_id) DO UPDATE SET quantity = quantity + excluded.quantity
+                """,
+                (user_id, item_id, quantity),
+            )
+            conn.commit()
 
     def remove_from_inventory(self, user_id: int, item_id: int, quantity: int = 1) -> None:
-        inv = self._inventories.get(user_id, {})
-        if inv.get(item_id, 0) < quantity:
-            raise ValueError("not enough items")
-        inv[item_id] -= quantity
-        if inv[item_id] <= 0:
-            del inv[item_id]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT quantity FROM user_items WHERE user_id = ? AND item_id = ?",
+                (user_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row or row[0] < quantity:
+                raise ValueError("not enough items")
+            new_qty = row[0] - quantity
+            if new_qty > 0:
+                cur.execute(
+                    "UPDATE user_items SET quantity = ? WHERE user_id = ? AND item_id = ?",
+                    (new_qty, user_id, item_id),
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM user_items WHERE user_id = ? AND item_id = ?",
+                    (user_id, item_id),
+                )
+            conn.commit()
 
     def get_inventory(self, user_id: int) -> Dict[int, int]:
-        return dict(self._inventories.get(user_id, {}))
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT item_id, quantity FROM user_items WHERE user_id = ?",
+                (user_id,),
+            )
+            return {r["item_id"]: r["quantity"] for r in cur.fetchall()}
 
     # helper for routes
     def asdict(self, item: Item) -> Dict:
         return asdict(item)
 
 
+# default shared instance
 item_service = ItemService()
 
 __all__ = ["ItemService", "item_service"]
+

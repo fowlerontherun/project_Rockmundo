@@ -6,12 +6,12 @@ from pydantic import BaseModel, Field
 from backend.auth.dependencies import get_current_user_id, require_role
 from backend.models.xp_item import XPItem
 from backend.services.admin_audit_service import audit_dependency
-from backend.services.xp_item_service import XPItemService, xp_item_service
+from backend.services.xp_item_service import XPItemService
 
 router = APIRouter(
     prefix="/xp/items", tags=["AdminXPItems"], dependencies=[Depends(audit_dependency)]
 )
-svc: XPItemService = xp_item_service
+svc = XPItemService()
 
 
 class XPItemIn(BaseModel):
