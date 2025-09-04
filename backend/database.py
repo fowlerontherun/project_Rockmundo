@@ -379,7 +379,8 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             theme TEXT DEFAULT 'light',
             bio TEXT,
-            links TEXT
+            links TEXT,
+            timezone TEXT DEFAULT 'UTC'
         )
         """)
 
