@@ -14,6 +14,7 @@ import TutorialsAdmin from './learning/TutorialsAdmin';
 import TutorsAdmin from './learning/TutorsAdmin';
 import MentorsAdmin from './learning/MentorsAdmin';
 import CityShopsAdmin from './economy/CityShopsAdmin';
+import ShopAnalytics from './economy/ShopAnalytics';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -38,6 +39,8 @@ const App: React.FC = () => {
     content = <XPItemForm />;
   } else if (path.includes('/admin/modding')) {
     content = <PluginManager />;
+  } else if (path.includes('/admin/economy/analytics')) {
+    content = <ShopAnalytics />;
   } else if (path.includes('/admin/economy/city-shops')) {
     content = <CityShopsAdmin />;
   } else if (path.includes('/admin/events')) {

@@ -1,6 +1,10 @@
 """Aggregated admin router mounting all admin sub-routes."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
+
+from backend.auth.dependencies import get_current_user_id, require_role
+from backend.services.admin_audit_service import audit_dependency
+from backend.services.admin_analytics_service import fetch_shop_metrics
 
 from .admin_analytics_routes import router as analytics_router
 from .admin_apprenticeship_routes import router as apprenticeship_router
@@ -31,6 +35,21 @@ from .admin_xp_event_routes import router as xp_event_router
 from .admin_xp_routes import router as xp_router
 
 router = APIRouter()
+
+
+@router.get("/economy/analytics", dependencies=[Depends(audit_dependency)])
+async def economy_analytics(
+    req: Request,
+    period_start: str | None = None,
+    period_end: str | None = None,
+    limit: int = 5,
+):
+    """Summary of shop sales and top items."""
+
+    admin_id = await get_current_user_id(req)
+    await require_role(["admin"], admin_id)
+    return fetch_shop_metrics(period_start, period_end, limit)
+
 
 router.include_router(analytics_router)
 router.include_router(audit_router)
