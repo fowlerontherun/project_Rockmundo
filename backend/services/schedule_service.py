@@ -120,9 +120,22 @@ class ScheduleService:
 
     # Schedule logic ----------------------------------------------------
     def schedule_activity(
-        self, user_id: int, date: str, slot: int, activity_id: int
-    ) -> None:
-        """Schedule an activity after validating requirements and energy."""
+        self,
+        user_id: int,
+        date: str,
+        slot: int,
+        activity_id: int,
+        auto_split: bool = False,
+    ) -> List[int] | None:
+        """Schedule an activity after validating requirements and energy.
+
+        If ``auto_split`` is ``False`` and the requested activity conflicts with
+        existing entries, a ``ValueError`` is raised with a ``conflicts``
+        attribute listing the occupied slots. When ``auto_split`` is ``True``,
+        the activity is shifted forward until a free window of the required
+        duration is found and the originally conflicting slots are returned.
+        """
+
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
             cur = conn.cursor()
             # Ensure helper tables
@@ -145,12 +158,13 @@ class ScheduleService:
                 """
             )
             cur.execute(
-                "SELECT required_skill, energy_cost FROM activities WHERE id = ?",
+                "SELECT required_skill, energy_cost, duration_hours FROM activities WHERE id = ?",
                 (activity_id,),
             )
             row = cur.fetchone()
             req_skill = row[0] if row else None
             energy_cost = row[1] if row else 0
+            duration_hours = row[2] if row else 0
             if req_skill:
                 cur.execute(
                     "SELECT level FROM user_skills WHERE user_id = ? AND skill = ?",
@@ -177,7 +191,26 @@ class ScheduleService:
                 )
             conn.commit()
 
+        slots_needed = max(1, int(duration_hours * 4))
+        conflicts = schedule_model.find_conflicts(user_id, date, slot, slots_needed)
+        original_conflicts = list(conflicts)
+        if conflicts:
+            if auto_split:
+                # shift start until a free window is found
+                new_slot = slot
+                while conflicts:
+                    new_slot = max(conflicts) + 1
+                    conflicts = schedule_model.find_conflicts(
+                        user_id, date, new_slot, slots_needed
+                    )
+                slot = new_slot
+            else:
+                err = ValueError("Schedule conflict")
+                err.conflicts = conflicts
+                raise err
+
         schedule_model.add_entry(user_id, date, slot, activity_id)
+        return original_conflicts if auto_split else None
 
     def update_schedule_entry(
         self, user_id: int, date: str, slot: int, activity_id: int

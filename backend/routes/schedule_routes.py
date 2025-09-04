@@ -55,3 +55,28 @@ def set_weekly_schedule(user_id: int, week_start: str, entries: List[WeeklyEntry
 def get_weekly_schedule(user_id: int, week_start: str):
     schedule = schedule_service.get_weekly_schedule(user_id, week_start)
     return {"schedule": schedule}
+
+
+class DailyEntry(BaseModel):
+    slot: int
+    activity_id: int
+    auto_split: bool = False
+
+
+@router.post("/daily/{user_id}/{date}")
+def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry):
+    try:
+        conflicts = schedule_service.schedule_activity(
+            user_id,
+            date,
+            entry.slot,
+            entry.activity_id,
+            auto_split=entry.auto_split,
+        )
+    except ValueError as exc:
+        return {"status": "conflict", "conflicts": getattr(exc, "conflicts", [])}
+
+    if entry.auto_split and conflicts:
+        return {"status": "partial", "conflicts": conflicts}
+
+    return {"status": "ok"}
