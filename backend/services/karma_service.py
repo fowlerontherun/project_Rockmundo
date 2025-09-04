@@ -2,12 +2,21 @@
 from datetime import datetime
 
 from models.karma_event import KarmaEvent
+from services.karma_db import KarmaDB
 from services.xp_reward_service import xp_reward_service
 
 
 class KarmaService:
-    def __init__(self, db):
-        self.db = db
+    def __init__(self, db=None):
+        """Service for adjusting and retrieving karma information.
+
+        Parameters
+        ----------
+        db: Optional object implementing the KarmaDB interface.
+            If not provided, a :class:`KarmaDB` instance is created which
+            persists data to the shared SQLite database.
+        """
+        self.db = db or KarmaDB()
 
     def adjust_karma(self, user_id, amount, reason, source, grant_xp: bool = False):
         event = KarmaEvent(
