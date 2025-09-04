@@ -109,10 +109,11 @@ This document outlines the current state of implemented features, the roadmap fo
 ## Setup Instructions
 1. Clone the repository.
 2. Install dependencies: `pip install -r requirements.txt`
-3. Apply migrations: `alembic upgrade head`
-4. Seed the database with initial data.
-5. Run the server: `uvicorn main:app --reload`
-6. Access the API docs at `http://localhost:8000/docs`
+3. Copy the example environment and adjust as needed: `cp .env.example .env`
+4. Apply migrations: `alembic upgrade head`
+5. Seed the database with demo data: `python backend/scripts/seed_demo.py`
+6. Run the server: `uvicorn backend.main:app --reload`
+7. Access the API docs at `http://localhost:8000/docs`
 
 ## Monitoring & Alerts
 
