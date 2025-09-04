@@ -27,6 +27,12 @@
     <button id="historyBtn">Load</button>
     <ul id="historyList"></ul>
   </div>
+  <div id="scheduleExport">
+    <h3>Export Schedule</h3>
+    <input type="number" id="exportUserId" placeholder="User ID" />
+    <input type="date" id="exportDate" />
+    <button id="exportBtn">Download ICS</button>
+  </div>
   <div class="tabs">
     <button id="quickPlanTab" class="active">Quick Plan</button>
     <button id="advancedPlannerTab">Advanced Planner</button>
@@ -107,6 +113,12 @@
         li.textContent = `slot ${h.slot}: ${JSON.stringify(h.before)} -> ${JSON.stringify(h.after)}`;
         list.appendChild(li);
       }
+    });
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const userId = document.getElementById('exportUserId').value;
+      const date = document.getElementById('exportDate').value;
+      if (!userId || !date) return;
+      window.location = `/schedule/export/ics?user_id=${userId}&date=${date}`;
     });
   </script>
   <script src="../components/themeToggle.js"></script>

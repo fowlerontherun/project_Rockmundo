@@ -1,11 +1,13 @@
 from typing import List
 
-from fastapi import APIRouter
+from typing import List
+
+from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
-from backend.services.activity_processor import evaluate_schedule_completion
 from backend.services.plan_service import plan_service
 from backend.services.schedule_service import schedule_service
+from backend.services.calendar_export import daily_schedule_to_ics
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
@@ -97,6 +99,8 @@ def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry):
 
 @router.get("/stats/{user_id}/{date}")
 def get_schedule_stats(user_id: int, date: str):
+    from backend.services.activity_processor import evaluate_schedule_completion
+
     return evaluate_schedule_completion(user_id, date)
 
 
@@ -104,3 +108,13 @@ def get_schedule_stats(user_id: int, date: str):
 def get_schedule_history(date: str):
     history = schedule_service.get_schedule_history(date)
     return {"history": history}
+
+
+@router.get("/export/ics")
+def export_schedule_ics(user_id: int, date: str):
+    ics = daily_schedule_to_ics(user_id, date)
+    return Response(
+        content=ics,
+        media_type="text/calendar",
+        headers={"Content-Disposition": 'attachment; filename="schedule.ics"'},
+    )
