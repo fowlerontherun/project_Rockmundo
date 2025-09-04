@@ -1,3 +1,33 @@
+let plannerGrid;
+let summaryPanel;
+
+async function updateSummary() {
+  if (!summaryPanel || !plannerGrid) return;
+  const entries = [];
+  plannerGrid.querySelectorAll('.slot').forEach((s) => {
+    if (s.dataset.activityId) {
+      entries.push({ activity_id: parseInt(s.dataset.activityId, 10) });
+    }
+  });
+  if (entries.length === 0) {
+    summaryPanel.textContent = '';
+    return;
+  }
+  try {
+    const res = await fetch('/schedule/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: 1, entries })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      summaryPanel.textContent = `Projected XP: ${data.xp}, Energy: ${data.energy}`;
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function fetchSchedule() {
   const res = await fetch('/api/schedule');
   if (!res.ok) {
@@ -32,11 +62,11 @@ export function initAdvancedPlanner() {
   const container = document.getElementById('advancedPlanner');
   if (!container) return;
 
-  const grid = document.createElement('div');
-  grid.id = 'plannerGrid';
-  grid.style.display = 'grid';
-  grid.style.gridTemplateColumns = 'repeat(8, 1fr)';
-  grid.style.gap = '2px';
+  plannerGrid = document.createElement('div');
+  plannerGrid.id = 'plannerGrid';
+  plannerGrid.style.display = 'grid';
+  plannerGrid.style.gridTemplateColumns = 'repeat(8, 1fr)';
+  plannerGrid.style.gap = '2px';
 
   for (let h = 0; h < 24; h++) {
     for (let q = 0; q < 4; q++) {
@@ -59,19 +89,25 @@ export function initAdvancedPlanner() {
         await updateSlot(time, text);
       });
       slot.addEventListener('dragover', (e) => e.preventDefault());
-      grid.appendChild(slot);
+      plannerGrid.appendChild(slot);
     }
   }
 
-  container.appendChild(grid);
+  container.appendChild(plannerGrid);
+
+  summaryPanel = document.createElement('div');
+  summaryPanel.id = 'planSummary';
+  summaryPanel.style.marginTop = '1rem';
+  container.appendChild(summaryPanel);
 
   fetchSchedule()
     .then((sched) => {
       Object.entries(sched || {}).forEach(([time, val]) => {
-        const slot = grid.querySelector(`[data-time="${time}"]`);
+        const slot = plannerGrid.querySelector(`[data-time="${time}"]`);
         if (!slot) return;
         if (val && typeof val === 'object') {
           slot.textContent = val.label || val.value || '';
+          if (val.activity_id) slot.dataset.activityId = val.activity_id;
           if (val.durationDays && val.durationDays > 1) {
             slot.style.gridColumn = `span ${val.durationDays}`;
           }
@@ -79,6 +115,7 @@ export function initAdvancedPlanner() {
           slot.textContent = val;
         }
       });
+      updateSummary();
     })
     .catch(() => {});
 }
@@ -88,14 +125,18 @@ export async function updateSlot(time, value, durationDays = 1) {
   if (slot) {
     if (typeof value === 'object') {
       slot.textContent = value.label || value.value || '';
+      if (value.activity_id) slot.dataset.activityId = value.activity_id;
       if (value.durationDays && value.durationDays > 1) {
         slot.style.gridColumn = `span ${value.durationDays}`;
       }
     } else {
       slot.textContent = value;
+      delete slot.dataset.activityId;
     }
   }
-  return saveSlot(time, value, durationDays);
+  const res = await saveSlot(time, value, durationDays);
+  updateSummary();
+  return res;
 }
 
 if (typeof window !== 'undefined') {
