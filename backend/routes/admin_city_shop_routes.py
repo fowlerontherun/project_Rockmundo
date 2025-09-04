@@ -145,3 +145,23 @@ async def set_book_restock(shop_id: int, book_id: int, payload: dict, req: Reque
         schedule_restock(shop_id, "book", book_id, int(interval), int(qty))
     return {"status": "ok"}
 
+
+@router.post("/{shop_id}/bundles")
+async def add_bundle(shop_id: int, payload: dict, req: Request):
+    await _ensure_admin(req)
+    name = payload.get("name", "")
+    price = int(payload.get("price_cents", 0))
+    items = payload.get("items", [])
+    promo_starts = payload.get("promo_starts")
+    promo_ends = payload.get("promo_ends")
+    bundle_id = svc.add_bundle(
+        shop_id, name, price, items, promo_starts, promo_ends
+    )
+    return {"bundle_id": bundle_id}
+
+
+@router.get("/{shop_id}/bundles")
+async def list_bundles(shop_id: int, req: Request):
+    await _ensure_admin(req)
+    return svc.list_bundles(shop_id)
+
