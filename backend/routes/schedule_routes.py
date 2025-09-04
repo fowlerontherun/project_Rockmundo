@@ -153,6 +153,12 @@ class TemplateCreate(BaseModel):
     entries: List[TemplateEntry]
 
 
+class CopyRequest(BaseModel):
+    user_id: int
+    src_date: str
+    dest_dates: List[str]
+
+
 @router.post("/templates/{user_id}")
 def create_template(user_id: int, data: TemplateCreate):
     template_id = schedule_service.create_template(
@@ -170,4 +176,10 @@ def list_templates(user_id: int):
 @router.post("/apply-template/{user_id}/{date}/{template_id}")
 def apply_template(user_id: int, date: str, template_id: int):
     schedule_service.apply_template(user_id, date, template_id)
+    return {"status": "ok"}
+
+
+@router.post("/copy")
+def copy_schedule(data: CopyRequest):
+    schedule_service.copy_schedule(data.user_id, data.src_date, data.dest_dates)
     return {"status": "ok"}
