@@ -13,15 +13,16 @@ from routes import (
     admin_routes,
     apprenticeship_routes,
     avatar,
+    chemistry_routes,
     daily_loop_routes,
     event_routes,
     legacy_routes,
     lifestyle_routes,
     locale_routes,
     music_metrics_routes,
-    schedule_routes,
     onboarding_routes,
     playlist_routes,
+    schedule_routes,
     setlist_routes,
     social_routes,
     song_forecast_routes,
@@ -102,6 +103,7 @@ app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
 app.include_router(avatar.router, prefix="/api", tags=["Avatars"])
 app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
+app.include_router(chemistry_routes.router)
 
 
 @app.get("/metrics")

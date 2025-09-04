@@ -13,6 +13,7 @@ class GenerationMetadata:
     model: str = "unknown"
     latency_ms: Optional[int] = None
     quality_modifier: float = 1.0
+    chemistry: Optional[float] = None
 
 
 @dataclass

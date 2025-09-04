@@ -1,9 +1,8 @@
+import json
 import random
 import sqlite3
-import json
 from datetime import datetime
-
-from typing import Generator, Iterable, Optional, Dict
+from typing import Dict, Generator, Iterable, Optional
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
@@ -14,6 +13,7 @@ from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
+
 try:
     from backend.realtime.polling import poll_hub
 except Exception:  # pragma: no cover - optional realtime module
@@ -336,6 +336,7 @@ def simulate_gig(
         "revenue_earned": revenue_dist[band_id],
         "skill_gain": skill_dist[band_id],
         "merch_sold": merch_dist[band_id],
+        "chemistry_avg": avg_chem,
     }
     if len(participants) > 1:
         result["band_results"] = {
