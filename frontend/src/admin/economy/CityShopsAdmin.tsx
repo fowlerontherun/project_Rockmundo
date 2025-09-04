@@ -10,13 +10,21 @@ interface Shop {
 interface Item {
   item_id: number;
   quantity: number;
+  restock_interval?: number | null;
+  restock_quantity?: number | null;
+=======
   price_cents: number;
 }
 
 interface Book {
   book_id: number;
   quantity: number;
+
+  restock_interval?: number | null;
+  restock_quantity?: number | null;
+
   price_cents: number;
+
 }
 
 const CityShopsAdmin: React.FC = () => {
@@ -165,6 +173,42 @@ const CityShopsAdmin: React.FC = () => {
     loadInventory(shopId);
   };
 
+  const handleItemRestock = async (
+    shopId: number,
+    itemId: number,
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const interval = Number((form.elements.namedItem('interval') as HTMLInputElement).value);
+    const quantity = Number((form.elements.namedItem('quantity') as HTMLInputElement).value);
+    await fetch(`/admin/economy/city-shops/${shopId}/items/${itemId}/restock`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval, quantity }),
+    });
+    form.reset();
+    loadInventory(shopId);
+  };
+
+  const handleBookRestock = async (
+    shopId: number,
+    bookId: number,
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const interval = Number((form.elements.namedItem('interval') as HTMLInputElement).value);
+    const quantity = Number((form.elements.namedItem('quantity') as HTMLInputElement).value);
+    await fetch(`/admin/economy/city-shops/${shopId}/books/${bookId}/restock`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval, quantity }),
+    });
+    form.reset();
+    loadInventory(shopId);
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">City Shops Admin</h2>
@@ -244,6 +288,29 @@ const CityShopsAdmin: React.FC = () => {
                   </form>
                   <ul className="mt-2 space-y-1">
                     {(items[shop.id] || []).map((it) => (
+
+                      <li key={it.item_id} className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>
+                            Item {it.item_id} x {it.quantity}
+                            {it.restock_interval && it.restock_quantity && (
+                              <span className="text-sm text-gray-500 ml-1">
+                                (restock {it.restock_quantity} every {it.restock_interval}d)
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            className="text-red-500"
+                            onClick={() =>
+                              handleRemoveItem(shop.id, it.item_id, it.quantity)
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <form
+                          onSubmit={(e) => handleItemRestock(shop.id, it.item_id, e)}
+                          className="space-x-1"
                       <li
                         key={it.item_id}
                         className="flex justify-between items-center space-x-2"
@@ -277,8 +344,22 @@ const CityShopsAdmin: React.FC = () => {
                             handleRemoveItem(shop.id, it.item_id, it.quantity)
                           }
                         >
-                          Remove
-                        </button>
+                          <input
+                            name="interval"
+                            type="number"
+                            placeholder="Interval"
+                            className="border px-1"
+                          />
+                          <input
+                            name="quantity"
+                            type="number"
+                            placeholder="Qty"
+                            className="border px-1"
+                          />
+                          <button type="submit" className="text-blue-500">
+                            Set
+                          </button>
+                        </form>
                       </li>
                     ))}
                   </ul>
@@ -314,6 +395,29 @@ const CityShopsAdmin: React.FC = () => {
                   </form>
                   <ul className="mt-2 space-y-1">
                     {(books[shop.id] || []).map((b) => (
+
+                      <li key={b.book_id} className="space-y-1">
+                        <div className="flex justify-between">
+                          <span>
+                            Book {b.book_id} x {b.quantity}
+                            {b.restock_interval && b.restock_quantity && (
+                              <span className="text-sm text-gray-500 ml-1">
+                                (restock {b.restock_quantity} every {b.restock_interval}d)
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            className="text-red-500"
+                            onClick={() =>
+                              handleRemoveBook(shop.id, b.book_id, b.quantity)
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <form
+                          onSubmit={(e) => handleBookRestock(shop.id, b.book_id, e)}
+                          className="space-x-1"
                       <li
                         key={b.book_id}
                         className="flex justify-between items-center space-x-2"
@@ -346,9 +450,24 @@ const CityShopsAdmin: React.FC = () => {
                           onClick={() =>
                             handleRemoveBook(shop.id, b.book_id, b.quantity)
                           }
+
                         >
-                          Remove
-                        </button>
+                          <input
+                            name="interval"
+                            type="number"
+                            placeholder="Interval"
+                            className="border px-1"
+                          />
+                          <input
+                            name="quantity"
+                            type="number"
+                            placeholder="Qty"
+                            className="border px-1"
+                          />
+                          <button type="submit" className="text-blue-500">
+                            Set
+                          </button>
+                        </form>
                       </li>
                     ))}
                   </ul>

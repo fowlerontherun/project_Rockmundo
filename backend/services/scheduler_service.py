@@ -12,6 +12,7 @@ from backend.services.peer_learning_service import run_scheduled_session
 from backend.services.skill_service import skill_service
 from backend.services.social_sentiment_service import social_sentiment_service
 from backend.services.song_popularity_forecast import forecast_service
+from backend.services.shop_restock_service import restock_handler
 from backend.models.notification_models import (
     alert_no_plan,
     alert_pending_outcomes,
@@ -126,6 +127,7 @@ EVENT_HANDLERS = {
     "daily_loop_reset": _daily_loop_reset_wrapper,
     "plan_reminder": _plan_reminder,
     "outcome_reminder": _outcome_reminder,
+    "shop_restock": restock_handler,
     # Add more event handlers here as needed
 }
 

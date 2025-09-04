@@ -38,6 +38,8 @@ class CityShopService:
                     shop_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
+                    restock_interval INTEGER,
+                    restock_quantity INTEGER,
                     price_cents INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (shop_id, item_id),
                     FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
@@ -50,12 +52,23 @@ class CityShopService:
                     shop_id INTEGER NOT NULL,
                     book_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
+                    restock_interval INTEGER,
+                    restock_quantity INTEGER,
+
                     price_cents INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (shop_id, book_id),
                     FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
                 )
                 """,
             )
+            # ensure restock columns exist for legacy DBs
+            for tbl in ("shop_items", "shop_books"):
+                cur.execute(f"PRAGMA table_info({tbl})")
+                cols = {row[1] for row in cur.fetchall()}
+                if "restock_interval" not in cols:
+                    cur.execute(f"ALTER TABLE {tbl} ADD COLUMN restock_interval INTEGER")
+                if "restock_quantity" not in cols:
+                    cur.execute(f"ALTER TABLE {tbl} ADD COLUMN restock_quantity INTEGER")
             # ensure new columns exist if DB was created before
             cur.execute("PRAGMA table_info(shop_items)")
             cols = [row[1] for row in cur.fetchall()]
@@ -142,14 +155,32 @@ class CityShopService:
     # inventory operations - items
     # ------------------------------------------------------------------
     def add_item(
+        self,
+        shop_id: int,
+        item_id: int,
+        quantity: int = 1,
+        restock_interval: int | None = None,
+        restock_quantity: int | None = None,
+    ) -> None:
+        if quantity < 0:
+            raise ValueError("quantity must be non-negative")
         self, shop_id: int, item_id: int, quantity: int = 1, price_cents: int = 0
     ) -> None:
         if quantity <= 0:
             raise ValueError("quantity must be positive")
+
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
+                INSERT INTO shop_items (shop_id, item_id, quantity, restock_interval, restock_quantity)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(shop_id, item_id) DO UPDATE SET
+                    quantity = quantity + excluded.quantity,
+                    restock_interval = COALESCE(excluded.restock_interval, restock_interval),
+                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity)
+                """,
+                (shop_id, item_id, quantity, restock_interval, restock_quantity),
                 INSERT INTO shop_items (shop_id, item_id, quantity, price_cents)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(shop_id, item_id) DO UPDATE SET
@@ -186,6 +217,7 @@ class CityShopService:
             cur.execute(
                 f"UPDATE shop_items SET {', '.join(sets)} WHERE shop_id = ? AND item_id = ?",
                 params,
+
             )
             if cur.rowcount == 0:
                 raise ValueError("item not found")
@@ -221,6 +253,9 @@ class CityShopService:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute(
+
+                "SELECT item_id, quantity, restock_interval, restock_quantity FROM shop_items WHERE shop_id = ?",
+=======
                 "SELECT item_id, quantity, price_cents FROM shop_items WHERE shop_id = ?",
                 (shop_id,),
             )
@@ -230,14 +265,36 @@ class CityShopService:
     # inventory operations - books
     # ------------------------------------------------------------------
     def add_book(
+
+        self,
+        shop_id: int,
+        book_id: int,
+        quantity: int = 1,
+        restock_interval: int | None = None,
+        restock_quantity: int | None = None,
+    ) -> None:
+        if quantity < 0:
+            raise ValueError("quantity must be non-negative")
+=======
         self, shop_id: int, book_id: int, quantity: int = 1, price_cents: int = 0
     ) -> None:
         if quantity <= 0:
             raise ValueError("quantity must be positive")
+
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
+
+                INSERT INTO shop_books (shop_id, book_id, quantity, restock_interval, restock_quantity)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(shop_id, book_id) DO UPDATE SET
+                    quantity = quantity + excluded.quantity,
+                    restock_interval = COALESCE(excluded.restock_interval, restock_interval),
+                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity)
+                """,
+                (shop_id, book_id, quantity, restock_interval, restock_quantity),
+
                 INSERT INTO shop_books (shop_id, book_id, quantity, price_cents)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(shop_id, book_id) DO UPDATE SET
@@ -309,10 +366,34 @@ class CityShopService:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute(
+                "SELECT book_id, quantity, restock_interval, restock_quantity FROM shop_books WHERE shop_id = ?",
                 "SELECT book_id, quantity, price_cents FROM shop_books WHERE shop_id = ?",
+
                 (shop_id,),
             )
             return [dict(r) for r in cur.fetchall()]
+
+    def set_item_restock(
+        self, shop_id: int, item_id: int, interval: int | None, quantity: int | None
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE shop_items SET restock_interval = ?, restock_quantity = ? WHERE shop_id = ? AND item_id = ?",
+                (interval, quantity, shop_id, item_id),
+            )
+            conn.commit()
+
+    def set_book_restock(
+        self, shop_id: int, book_id: int, interval: int | None, quantity: int | None
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE shop_books SET restock_interval = ?, restock_quantity = ? WHERE shop_id = ? AND book_id = ?",
+                (interval, quantity, shop_id, book_id),
+            )
+            conn.commit()
 
 
 city_shop_service = CityShopService()
