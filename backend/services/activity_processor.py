@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from typing import Dict, List
 
 from backend.database import DB_PATH
+from backend.models import activity_log as activity_log_model
 
 
 def _ensure_tables(cur: sqlite3.Cursor) -> None:
@@ -18,7 +19,7 @@ def _ensure_tables(cur: sqlite3.Cursor) -> None:
             xp INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
-        """
+        """,
     )
     cur.execute(
         """
@@ -27,17 +28,7 @@ def _ensure_tables(cur: sqlite3.Cursor) -> None:
             energy INTEGER NOT NULL DEFAULT 100,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS activity_log (
-            user_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            activity_id INTEGER NOT NULL,
-            outcome_json TEXT NOT NULL
-        )
-        """
+        """,
     )
     cur.execute(
         """
@@ -47,11 +38,13 @@ def _ensure_tables(cur: sqlite3.Cursor) -> None:
             level INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY(user_id, skill)
         )
-        """
+        """,
     )
 
 
-def _apply_effects(cur: sqlite3.Cursor, user_id: int, activity_id: int) -> Dict[str, int]:
+def _apply_effects(
+    cur: sqlite3.Cursor, user_id: int, activity_id: int, slot: int
+) -> Dict[str, int]:
     cur.execute(
         "SELECT duration_hours, rewards_json FROM activities WHERE id = ?",
         (activity_id,),
@@ -101,9 +94,8 @@ def _apply_effects(cur: sqlite3.Cursor, user_id: int, activity_id: int) -> Dict[
         outcome["skills"] = skill_map
     else:
         outcome["skill_gain"] = xp_gain
-    cur.execute(
-        "INSERT INTO activity_log(user_id, date, activity_id, outcome_json) VALUES (?, ?, ?, ?)",
-        (user_id, _current_date, activity_id, json.dumps(outcome)),
+    activity_log_model.record_outcome(
+        user_id, _current_date, slot, activity_id, outcome
     )
     return outcome
 
@@ -120,13 +112,13 @@ def process_day(target_date: str) -> Dict[str, int]:
         cur = conn.cursor()
         _ensure_tables(cur)
         cur.execute(
-            "SELECT user_id, activity_id FROM daily_schedule WHERE date = ?",
+            "SELECT user_id, slot, activity_id FROM daily_schedule WHERE date = ?",
             (target_date,),
         )
-        rows: List[tuple[int, int]] = cur.fetchall()
+        rows: List[tuple[int, int, int]] = cur.fetchall()
         processed = 0
-        for user_id, activity_id in rows:
-            _apply_effects(cur, user_id, activity_id)
+        for user_id, slot, activity_id in rows:
+            _apply_effects(cur, user_id, activity_id, slot)
             processed += 1
         conn.commit()
     return {"status": "ok", "processed": processed}
@@ -138,4 +130,32 @@ def process_previous_day() -> Dict[str, int]:
     return process_day(target_date)
 
 
-__all__ = ["process_day", "process_previous_day"]
+def evaluate_schedule_completion(user_id: int, day: str) -> Dict[str, float]:
+    """Return completion percentage for ``user_id`` on ``day`` and grant bonus."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM daily_schedule WHERE user_id=? AND date=?",
+            (user_id, day),
+        )
+        total = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(*) FROM activity_log WHERE user_id=? AND date=?",
+            (user_id, day),
+        )
+        completed = cur.fetchone()[0]
+        completion = (completed / total * 100.0) if total else 0.0
+        if total and completed == total:
+            cur.execute(
+                "INSERT OR IGNORE INTO user_xp(user_id, xp) VALUES (?, 0)",
+                (user_id,),
+            )
+            cur.execute(
+                "UPDATE user_xp SET xp = xp + 50 WHERE user_id=?",
+                (user_id,),
+            )
+        conn.commit()
+    return {"completion": round(completion, 2)}
+
+
+__all__ = ["process_day", "process_previous_day", "evaluate_schedule_completion"]

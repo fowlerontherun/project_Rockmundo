@@ -14,6 +14,13 @@
 </head>
 <body>
   <h2>Schedule Planner</h2>
+  <div id="scheduleStats">
+    <h3>Daily Stats</h3>
+    <input type="number" id="statsUserId" placeholder="User ID" />
+    <input type="date" id="statsDate" />
+    <button id="statsBtn">Load</button>
+    <span id="statsOutput"></span>
+  </div>
   <div class="tabs">
     <button id="quickPlanTab" class="active">Quick Plan</button>
     <button id="advancedPlannerTab">Advanced Planner</button>
@@ -31,6 +38,7 @@
   </div>
   <script type="module" src="../components/quickPlan.js"></script>
   <script type="module" src="../components/advancedPlanner.js"></script>
+  <script type="module" src="../components/scheduleStats.js"></script>
   <script>
     const quickTab = document.getElementById('quickPlanTab');
     const advTab = document.getElementById('advancedPlannerTab');
