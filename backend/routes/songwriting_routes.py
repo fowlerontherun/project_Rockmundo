@@ -35,6 +35,17 @@ class DraftUpdate(BaseModel):
     chord_progression: str | None = None
     album_art_url: str | None = None
 
+    @validator("themes")
+    def validate_themes(cls, v: List[str] | None) -> List[str] | None:
+        if v is None:
+            return None
+        if len(v) != 3:
+            raise ValueError("exactly_three_themes_required")
+        for t in v:
+            if t not in THEMES:
+                raise ValueError("unknown_theme")
+        return v
+
 
 class CoWriterPayload(BaseModel):
     co_writer_id: int

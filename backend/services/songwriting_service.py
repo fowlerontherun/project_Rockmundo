@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
 from backend.models.song import Song
 from backend.models.song_draft_version import SongDraftVersion
 from backend.models.songwriting import GenerationMetadata, LyricDraft
+from backend.models.theme import THEMES
 from backend.services.ai_art_service import AIArtService, ai_art_service
 from backend.services.band_service import BandService
 from backend.services.chemistry_service import ChemistryService
@@ -192,6 +193,11 @@ class SongwritingService:
             draft.lyrics = lyrics
             self._songs[draft_id].lyrics = lyrics
         if themes is not None:
+            if len(themes) != 3:
+                raise ValueError("exactly_three_themes_required")
+            for t in themes:
+                if t not in THEMES:
+                    raise ValueError("unknown_theme")
             draft.themes = themes
             self._songs[draft_id].themes = themes
 
