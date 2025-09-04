@@ -27,6 +27,17 @@
     <button id="historyBtn">Load</button>
     <ul id="historyList"></ul>
   </div>
+  <div id="templateManager">
+    <h3>Templates</h3>
+    <input type="number" id="tmplUser" placeholder="User ID" />
+    <input type="text" id="tmplDay" placeholder="Day of Week" />
+    <input type="text" id="tmplName" placeholder="Template Name" />
+    <button id="saveTemplateBtn">Save Default as Template</button>
+    <br/>
+    <select id="tmplSelect"></select>
+    <input type="date" id="tmplDate" />
+    <button id="applyTemplateBtn">Apply Template</button>
+  </div>
   <div id="scheduleExport">
     <h3>Export Schedule</h3>
     <input type="number" id="exportUserId" placeholder="User ID" />
@@ -119,6 +130,45 @@
       const date = document.getElementById('exportDate').value;
       if (!userId || !date) return;
       window.location = `/schedule/export/ics?user_id=${userId}&date=${date}`;
+    });
+
+    const tmplSelect = document.getElementById('tmplSelect');
+    async function loadTemplates() {
+      const uid = document.getElementById('tmplUser').value;
+      if (!uid) return;
+      const res = await fetch(`/schedule/templates/${uid}`);
+      const data = await res.json();
+      tmplSelect.innerHTML = '';
+      for (const t of data.templates) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.name;
+        tmplSelect.appendChild(opt);
+      }
+    }
+    document.getElementById('tmplUser').addEventListener('change', loadTemplates);
+
+    document.getElementById('saveTemplateBtn').addEventListener('click', async () => {
+      const uid = document.getElementById('tmplUser').value;
+      const day = document.getElementById('tmplDay').value;
+      const name = document.getElementById('tmplName').value;
+      if (!uid || !day || !name) return;
+      const res = await fetch(`/schedule/default-plan/${uid}/${day}`);
+      const plan = await res.json();
+      await fetch(`/schedule/templates/${uid}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, entries: plan.plan})
+      });
+      await loadTemplates();
+    });
+
+    document.getElementById('applyTemplateBtn').addEventListener('click', async () => {
+      const uid = document.getElementById('tmplUser').value;
+      const date = document.getElementById('tmplDate').value;
+      const tid = tmplSelect.value;
+      if (!uid || !date || !tid) return;
+      await fetch(`/schedule/apply-template/${uid}/${date}/${tid}`, {method: 'POST'});
     });
   </script>
   <script src="../components/themeToggle.js"></script>

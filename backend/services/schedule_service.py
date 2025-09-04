@@ -79,6 +79,7 @@ from backend.models import next_day_schedule as next_day_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
 from backend.models import recurring_schedule as recurring_model
+from backend.models import default_schedule_templates as template_model
 from backend.models import user_settings
 
 
@@ -471,6 +472,30 @@ class ScheduleService:
 
     def get_default_plan(self, user_id: int, day_of_week: str) -> List[Dict]:
         return default_model.get_plan(user_id, day_of_week)
+
+    # Named template logic --------------------------------------------
+    def create_template(self, user_id: int, name: str, entries: List[Dict]) -> int:
+        entry_pairs = ((e["hour"], e["activity_id"]) for e in entries)
+        return template_model.create_template(user_id, name, entry_pairs)
+
+    def list_templates(self, user_id: int) -> List[Dict]:
+        return template_model.list_templates(user_id)
+
+    def apply_template(self, user_id: int, date: str, template_id: int) -> None:
+        entries = template_model.get_entries(template_id)
+        with sqlite3.connect(schedule_model.DB_PATH) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM daily_schedule WHERE user_id = ? AND date = ?",
+                (user_id, date),
+            )
+            for hour, activity_id in entries:
+                slot = hour * 4
+                cur.execute(
+                    "INSERT INTO daily_schedule (user_id, date, slot, hour, activity_id) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, date, slot, hour, activity_id),
+                )
+            conn.commit()
 
 
 schedule_service = ScheduleService()
