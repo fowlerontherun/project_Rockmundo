@@ -110,8 +110,11 @@ class _SyncConnection:
     def cursor(self) -> _SyncCursor:
         return _SyncCursor(self._conn.cursor())
 
-    def execute(self, sql: str, params: Tuple[Any, ...] = ()):  # pragma: no cover - passthrough
-        return asyncio.run(self._conn.execute(sql, params))
+    def execute(self, sql: str, params: Tuple[Any, ...] = ()):
+        """Execute a query and return a synchronous cursor."""
+
+        cursor = asyncio.run(self._conn.execute(sql, params))
+        return _SyncCursor(cursor)
 
     def executemany(self, sql: str, seq: List[Tuple[Any, ...]]):  # pragma: no cover - passthrough
         return asyncio.run(self._conn.executemany(sql, seq))

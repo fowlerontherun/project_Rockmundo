@@ -13,6 +13,7 @@ from middleware.observability import ObservabilityMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_routes,
+    admin_media_moderation_routes,
     apprenticeship_routes,
     avatar,
     character,
@@ -98,6 +99,11 @@ def startup() -> None:
 app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
 app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
+app.include_router(
+    admin_media_moderation_routes.router,
+    prefix="/admin",
+    tags=["Admin Media Moderation"],
+)
 app.include_router(admin_mfa_router)
 app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprenticeships"])
 
