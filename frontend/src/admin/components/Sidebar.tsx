@@ -11,6 +11,7 @@ const navItems: NavItem[] = [
   { label: 'NPC Dialogue', href: '/admin/npcs/dialogue' },
   { label: 'Quests', href: '/admin/quests' },
   { label: 'Economy', href: '/admin/economy' },
+  { label: 'City Shops', href: '/admin/economy/city-shops' },
   { label: 'XP', href: '/admin/xp' },
   { label: 'XP Events', href: '/admin/xp-events' },
   { label: 'XP Items', href: '/admin/xp-items' },
