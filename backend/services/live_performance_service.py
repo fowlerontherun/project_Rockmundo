@@ -8,15 +8,19 @@ from typing import Generator, Iterable, Optional, Dict
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
+from backend.services import live_performance_analysis
+from backend.services.chemistry_service import ChemistryService
 from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
-from backend.services import live_performance_analysis
 try:
     from backend.realtime.polling import poll_hub
 except Exception:  # pragma: no cover - optional realtime module
     poll_hub = None  # type: ignore
+
+
+chemistry_service = ChemistryService()
 
 def crowd_reaction_stream() -> Generator[Dict[str, float], None, None]:
     """Endless stream of crowd reaction metrics.
@@ -77,12 +81,30 @@ def simulate_gig(
         return {"error": "Band not found"}
     fame_map = {r[0]: r[1] for r in rows}
 
+    participant_users: list[int] = []
+    try:
+        cur.execute(
+            f"SELECT band_id, user_id FROM band_members WHERE band_id IN ({placeholders})",
+            all_band_ids,
+        )
+        participant_users = [u for _, u in cur.fetchall()]
+    except Exception:
+        participant_users = []
+
+    scores = []
+    for i, a in enumerate(participant_users):
+        for b in participant_users[i + 1 :]:
+            pair = chemistry_service.initialize_pair(a, b)
+            scores.append(pair.score)
+    avg_chem = sum(scores) / len(scores) if scores else 50.0
+    chem_mod = 1 + (avg_chem - 50.0) / 100.0
+
     # Simulate crowd size based on combined fame and randomness
     base_crowd = sum(fame_map.values()) * 2
     crowd_size = min(random.randint(base_crowd, base_crowd + 300), 2000)
     crowd_size = int(crowd_size * city_service.get_event_modifier(city))
 
-    fame_bonus = 0
+    fame_bonus = 0.0
     skill_gain = 0.0
     event_log = []
     recent_reactions: list[float] = []
@@ -109,7 +131,7 @@ def simulate_gig(
         action_bonus = 0
         fame_modifier = 0
         if a_type == "song" or a_type == "encore":
-            skill_gain += 0.3
+            skill_gain += 0.3 * chem_mod
 
             song_bonus = 2
             ref = action.get("reference")
@@ -131,7 +153,7 @@ def simulate_gig(
 
             action_bonus += song_bonus
         elif a_type == "activity":
-            skill_gain += 0.1
+            skill_gain += 0.1 * chem_mod
             action_bonus += 1
         if action.get("encore") or a_type == "encore":
             action_bonus += 3
@@ -144,7 +166,7 @@ def simulate_gig(
             elif avg_recent < 0.3:
                 fame_modifier = -1
 
-        fame_bonus += action_bonus + fame_modifier
+        fame_bonus += (action_bonus + fame_modifier) * chem_mod
 
         reaction = next(stream)
         if isinstance(reaction, dict):
@@ -152,7 +174,8 @@ def simulate_gig(
             energy = reaction.get("energy", 0)
         else:
             cheers = energy = float(reaction)
-        score = (cheers + energy) / 2
+        score = (cheers + energy) / 2 * chem_mod
+        score = max(0.0, min(1.0, score))
         recent_reactions.append(score)
         event_log.append(
             {
@@ -184,7 +207,7 @@ def simulate_gig(
 
     fame_total = crowd_size // 10 + fame_bonus
     revenue_total = crowd_size * 5
-    skill_gain += gear_service.get_band_bonus(band_id, "performance")
+    skill_gain += gear_service.get_band_bonus(band_id, "performance") * chem_mod
     performance_id = SKILL_NAME_TO_ID["performance"]
     applied_skill = 0 if is_skill_blocked(band_id, performance_id) else skill_gain
     merch_total = int(crowd_size * 0.15 * city_service.get_market_demand(city))
@@ -299,6 +322,10 @@ def simulate_gig(
 
     conn.commit()
     conn.close()
+
+    for i, a in enumerate(participant_users):
+        for b in participant_users[i + 1 :]:
+            chemistry_service.adjust_pair(a, b, 1)
 
     result = {
         "status": "ok",
