@@ -1,13 +1,9 @@
 import asyncio
 
 import pytest
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.services.songwriting_service import SongwritingService
-from backend.services.originality_service import OriginalityService
-from backend.services.skill_service import SkillService, SONGWRITING_SKILL
 from backend.services.band_service import BandService, Base
 from backend.services.originality_service import OriginalityService
 from backend.services.skill_service import SONGWRITING_SKILL, SkillService
@@ -167,12 +163,6 @@ def test_versioning_and_band_mates():
         band_service = _get_band_service()
         band = band_service.create_band(user_id=1, band_name="AI Band", genre="rock")
         svc = SongwritingService(llm_client=FakeLLM(), band_service=band_service)
-
-        class DummyBandService:
-            def share_band(self, a, b):
-                return {1: {2}, 2: {1}}.get(a, set()).__contains__(b)
-
-        svc = SongwritingService(llm_client=FakeLLM(), band_service=DummyBandService())
         draft = await svc.generate_draft(
             creator_id=band.id,
             title="collab",
@@ -196,7 +186,7 @@ def test_versioning_and_band_mates():
         svc.update_draft(draft.id, user_id=2, lyrics="co-write", chord_progression="A B")
 
         versions = svc.list_versions(draft.id)
-        assert len(versions) == 2
+        assert len(versions) == 3
         assert versions[-1].author_id == 2
 
         # cannot add non-bandmate
@@ -209,6 +199,22 @@ def test_versioning_and_band_mates():
 
     asyncio.run(run())
 
+
+def test_theme_updates_persist_and_versioned():
+    async def run():
+        svc = SongwritingService(
+            llm_client=FakeLLM(), art_service=FakeArt(), originality=OriginalityService()
+        )
+        draft = await _generate(svc)
+        new_themes = ["fire", "water", "earth"]
+        svc.update_draft(draft.id, user_id=1, themes=new_themes)
+        assert svc.get_draft(draft.id).themes == new_themes
+        assert svc.get_song(draft.id).themes == new_themes
+        versions = svc.list_versions(draft.id)
+        assert len(versions) == 2
+        assert versions[-1].themes == new_themes
+
+    asyncio.run(run())
 
 
 def test_chemistry_quality_modifier():
