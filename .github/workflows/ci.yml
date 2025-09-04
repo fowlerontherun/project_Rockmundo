@@ -35,15 +35,28 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
 
       - name: Install frontend deps
+        if: hashFiles('frontend/package.json') != ''
         working-directory: frontend
-        run: npm install
+        run: npm ci
+
+      - name: Check for frontend tests
+        id: frontend-tests
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        run: |
+          if npm run | grep -qE ' test '; then
+            echo "has_test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_test=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run frontend tests
+        if: steps.frontend-tests.outputs.has_test == 'true'
         working-directory: frontend
         run: npm test
 
