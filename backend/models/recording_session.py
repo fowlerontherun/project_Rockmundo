@@ -18,6 +18,7 @@ class RecordingSession:
     personnel: List[int] = field(default_factory=list)
     cost_cents: int = 0
     environment_quality: float = 1.0
+    chemistry_avg: float = 50.0
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
     def to_dict(self) -> dict:
@@ -31,6 +32,7 @@ class RecordingSession:
             "personnel": list(self.personnel),
             "cost_cents": self.cost_cents,
             "environment_quality": self.environment_quality,
+            "chemistry_avg": self.chemistry_avg,
             "created_at": self.created_at,
         }
 

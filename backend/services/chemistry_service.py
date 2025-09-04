@@ -84,3 +84,16 @@ class ChemistryService:
                 pair.last_updated = func.now()
             session.refresh(pair)
             return pair
+
+    def list_for_player(self, player_id: int) -> list[PlayerChemistry]:
+        """Return all chemistry records involving ``player_id``."""
+
+        with self.session_factory() as session:
+            return (
+                session.query(PlayerChemistry)
+                .filter(
+                    (PlayerChemistry.player_a_id == player_id)
+                    | (PlayerChemistry.player_b_id == player_id)
+                )
+                .all()
+            )

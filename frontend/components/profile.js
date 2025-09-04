@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bioInput = document.getElementById('bio');
   const linksInput = document.getElementById('links');
   const avatarInput = document.getElementById('avatar-input');
+  const chemTbody = document.querySelector('#chemistry-table tbody');
 
   try {
     const res = await fetch(`/api/user-settings/profile/${USER_ID}`);
@@ -15,6 +16,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (e) {
     // ignore load errors
+  }
+
+  try {
+    const chemRes = await fetch(`/chemistry/${USER_ID}`);
+    if (chemRes.ok) {
+      const pairs = await chemRes.json();
+      pairs.forEach((p) => {
+        const other = p.player_a_id === USER_ID ? p.player_b_id : p.player_a_id;
+        const tr = document.createElement('tr');
+        if (p.score >= 80) tr.classList.add('chem-high');
+        else if (p.score <= 20) tr.classList.add('chem-low');
+        tr.innerHTML = `<td>${other}</td><td>${p.score}</td>`;
+        chemTbody.appendChild(tr);
+      });
+    }
+  } catch (e) {
+    // ignore chemistry errors
   }
 
   form.addEventListener('submit', async (e) => {

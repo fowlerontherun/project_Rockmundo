@@ -8,6 +8,7 @@ from backend.models.song import Song
 from backend.models.song_draft_version import SongDraftVersion
 from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.services.ai_art_service import AIArtService, ai_art_service
+from backend.services.band_service import BandService
 from backend.services.chemistry_service import ChemistryService
 from backend.services.originality_service import (
     OriginalityService,
@@ -15,9 +16,10 @@ from backend.services.originality_service import (
 )
 from backend.services.skill_service import (
     SkillService,
+)
+from backend.services.skill_service import (
     skill_service as skill_service_instance,
 )
-from backend.services.band_service import BandService
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from backend.services.legal_service import LegalService
@@ -128,7 +130,9 @@ class SongwritingService:
             chord_progression=chord_progression,
             album_art_url=art_url,
             plagiarism_warning=warning,
-            metadata=GenerationMetadata(quality_modifier=quality_mod),
+            metadata=GenerationMetadata(
+                quality_modifier=quality_mod, chemistry=avg_chem
+            ),
         )
         self._drafts[draft.id] = draft
         song = Song(

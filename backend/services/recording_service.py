@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
+from backend.models.learning_method import LearningMethod
 from backend.models.recording_session import RecordingSession
+from backend.models.skill import Skill
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.chemistry_service import ChemistryService
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.skill_service import skill_service
-from backend.models.skill import Skill
-from backend.models.learning_method import LearningMethod
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 class RecordingService:
@@ -55,6 +55,7 @@ class RecordingService:
             cost_cents=cost_cents,
             environment_quality=environment_quality,
         )
+        avg = 50.0
         if session.personnel:
             scores = []
             for i, a in enumerate(session.personnel):
@@ -64,6 +65,7 @@ class RecordingService:
             if scores:
                 avg = sum(scores) / len(scores)
                 session.environment_quality *= 1 + (avg - 50) / 100
+        session.chemistry_avg = avg
         self.sessions[session.id] = session
         self._id_seq += 1
         return session
@@ -90,6 +92,7 @@ class RecordingService:
             if scores:
                 avg = sum(scores) / len(scores)
                 session.environment_quality *= 1 + (avg - 50) / 100
+                session.chemistry_avg = avg
 
         # Award practice XP to all personnel based on task difficulty
         difficulty = {"recorded": 1, "mixed": 2, "mastered": 3}.get(status, 1)

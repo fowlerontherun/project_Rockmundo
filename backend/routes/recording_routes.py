@@ -75,7 +75,7 @@ def assign_personnel(
     if not session or session.band_id != user_id:
         raise HTTPException(status_code=404, detail="session_not_found")
     svc.assign_personnel(session_id, payload.user_id)
-    return {"ok": True}
+    return {"ok": True, "chemistry_avg": session.chemistry_avg}
 
 
 @router.put("/sessions/{session_id}/tracks/{track_id}")
@@ -86,4 +86,8 @@ def update_track(
     if not session or session.band_id != user_id:
         raise HTTPException(status_code=404, detail="session_not_found")
     svc.update_track_status(session_id, track_id, payload.status)
-    return {"ok": True, "track_statuses": session.track_statuses}
+    return {
+        "ok": True,
+        "track_statuses": session.track_statuses,
+        "chemistry_avg": session.chemistry_avg,
+    }
