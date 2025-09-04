@@ -75,6 +75,7 @@ from typing import List, Dict, Iterable
 from backend.models import activity as activity_model
 from backend.models import band_schedule as band_schedule_model
 from backend.models import daily_schedule as schedule_model
+from backend.models import next_day_schedule as next_day_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
 from backend.models import recurring_schedule as recurring_model
@@ -369,6 +370,13 @@ class ScheduleService:
                 if local_date == date:
                     e = entry.copy()
                     e["slot"] = local_slot
+                    results.append(e)
+            for entry in next_day_model.get_schedule(user_id, d):
+                local_date, local_slot = _to_user(d, entry["slot"], tz)
+                if local_date == date:
+                    e = entry.copy()
+                    e["slot"] = local_slot
+                    e["rescheduled"] = True
                     results.append(e)
         return sorted(results, key=lambda e: e["slot"])
 

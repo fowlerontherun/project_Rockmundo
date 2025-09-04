@@ -380,7 +380,8 @@ def init_db():
             theme TEXT DEFAULT 'light',
             bio TEXT,
             links TEXT,
-            timezone TEXT DEFAULT 'UTC'
+            timezone TEXT DEFAULT 'UTC',
+            auto_reschedule INTEGER DEFAULT 1
         )
         """)
 
@@ -448,6 +449,19 @@ def init_db():
             date TEXT NOT NULL,
             slot INTEGER NOT NULL,
             hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, date, slot),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
+        # Next-day schedule holding rescheduled activities
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS next_day_schedule (
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            slot INTEGER NOT NULL,
             activity_id INTEGER NOT NULL,
             PRIMARY KEY (user_id, date, slot),
             FOREIGN KEY(user_id) REFERENCES users(id),
