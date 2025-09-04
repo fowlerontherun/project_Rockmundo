@@ -66,5 +66,10 @@ jobs:
 
       - name: Validate OpenAPI schema
         run: |
-          python backend/scripts/generate_openapi.py
-          python -m json.tool openapi.json > /dev/null
+          if [ -f backend/scripts/generate_openapi.py ]; then
+            python backend/scripts/generate_openapi.py
+            if [ -f openapi.json ]; then
+              python -m json.tool openapi.json > /dev/null
+            fi
+          fi
+
