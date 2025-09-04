@@ -102,7 +102,11 @@ app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprentic
 # Additional routers
 app.include_router(sponsorship.router, prefix="/api/sponsorships", tags=["Sponsorships"])
 app.include_router(venue_sponsorships_routes.router, prefix="/api", tags=["Venue Sponsorships"])
-app.include_router(support_slot_routes.router, prefix="/api", tags=["Support Slots"])
+app.include_router(
+    support_slot_routes.router,
+    prefix="/api/support-slots",
+    tags=["Support Slots"],
+)
 app.include_router(sales.router, prefix="/api", tags=["Sales"])
 app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
 app.include_router(video_routes.router, tags=["Videos"])

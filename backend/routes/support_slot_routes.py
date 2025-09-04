@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from itertools import count
 from typing import List, Optional
 
@@ -18,7 +19,8 @@ except Exception:  # pragma: no cover - fallback for docs builds
     async def get_current_user_id() -> int:  # type: ignore[misc]
         return 0
 
-router = APIRouter(prefix="/support/slots", tags=["Support Slots"])
+# Router managing support slot scheduling
+router = APIRouter(tags=["Support Slots"])
 
 # simple in-memory storage for demonstration and testing purposes
 _slots: dict[int, dict[str, object]] = {}
@@ -29,6 +31,8 @@ class SupportSlotIn(BaseModel):
     """Payload for creating or updating a support slot."""
 
     title: str
+    start_time: datetime
+    end_time: datetime
     description: Optional[str] = None
 
 
@@ -75,6 +79,28 @@ async def get_slot(slot_id: int) -> SupportSlotOut:
     slot = _slots.get(slot_id)
     if not slot:
         raise HTTPException(status_code=404, detail="Slot not found")
+    return SupportSlotOut(**slot)
+
+
+@router.put(
+    "/{slot_id}",
+    response_model=SupportSlotOut,
+    dependencies=[Depends(require_role(["admin", "moderator"]))],
+)
+async def update_slot(
+    slot_id: int,
+    payload: SupportSlotIn,
+    user_id: int = Depends(get_current_user_id),
+) -> SupportSlotOut:
+    """Update an existing support slot."""
+
+    slot = _slots.get(slot_id)
+    if not slot:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    if slot["owner_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    slot.update(payload.model_dump())
+    _slots[slot_id] = slot
     return SupportSlotOut(**slot)
 
 
