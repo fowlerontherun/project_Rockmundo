@@ -13,6 +13,9 @@
   <label for="themes">Themes (choose up to 3)</label>
   <select id="themes" name="themes" multiple></select>
 
+  <label for="coWriters">Invite Co-writers</label>
+  <select id="coWriters" multiple></select>
+
   <button type="button" id="generateDraft">Generate Draft</button>
 
   <label for="lyrics">Lyrics</label>
@@ -35,8 +38,15 @@
   </select>
   <button type="submit">Create Song</button>
 </form>
+<div>
+  <h3>Current Collaborators</h3>
+  <ul id="collaborators"></ul>
+</div>
 <script src="../components/notification.js"></script>
 <script>
+  let currentDraftId = null;
+  let lastCollaborators = [];
+
   function loadSkill() {
     fetch('/songwriting/skill')
       .then(r => r.json())
@@ -47,6 +57,24 @@
   }
 
   loadSkill();
+
+  function loadBandMembers() {
+    const bandId = new URLSearchParams(window.location.search).get('band_id');
+    if (!bandId) return;
+    fetch(`/bands/${bandId}`)
+      .then(r => r.json())
+      .then(b => {
+        const sel = document.getElementById('coWriters');
+        (b.members || []).forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.user_id;
+          opt.textContent = `${m.user_id} (${m.role})`;
+          sel.appendChild(opt);
+        });
+      });
+  }
+
+  loadBandMembers();
 
   fetch('/songwriting/themes')
     .then(r => r.json())
@@ -67,8 +95,90 @@
     }
   });
 
-  document.getElementById('generateDraft').addEventListener('click', function() {
-    // Draft generation happens elsewhere; refresh skill progress afterwards
+  async function inviteCowriters(draftId) {
+    const ids = Array.from(document.getElementById('coWriters').selectedOptions).map(o => Number(o.value));
+    let list = lastCollaborators;
+    for (const id of ids) {
+      try {
+        const res = await fetch(`/songwriting/drafts/${draftId}/co_writers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ co_writer_id: id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          list = data.co_writers;
+          showNotification(`Invitation sent to ${id}`, 'success');
+        } else {
+          showNotification(data.message || data.error || `Failed to invite ${id}`, 'error');
+        }
+      } catch {
+        showNotification('Network error', 'error');
+      }
+    }
+    renderCollaborators(list);
+  }
+
+  function renderCollaborators(list) {
+    const ul = document.getElementById('collaborators');
+    ul.innerHTML = '';
+    list.forEach(id => {
+      const li = document.createElement('li');
+      li.textContent = id;
+      ul.appendChild(li);
+    });
+    lastCollaborators = list.slice();
+  }
+
+  function pollCollaborators(draftId) {
+    setInterval(async () => {
+      try {
+        const res = await fetch(`/songwriting/drafts/${draftId}/co_writers`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.co_writers || [];
+        const newOnes = list.filter(id => !lastCollaborators.includes(id));
+        if (newOnes.length) {
+          newOnes.forEach(id => showNotification(`Collaborator accepted: ${id}`, 'success'));
+        }
+        if (newOnes.length || list.length !== lastCollaborators.length) {
+          renderCollaborators(list);
+        }
+      } catch {}
+    }, 5000);
+  }
+
+  document.getElementById('generateDraft').addEventListener('click', async function() {
+    const form = document.getElementById('songForm');
+    const themes = Array.from(document.getElementById('themes').selectedOptions).map(o => o.value);
+    if (themes.length !== 3) {
+      showNotification('Select exactly 3 themes', 'error');
+      return;
+    }
+    const payload = {
+      title: form.title.value.trim(),
+      genre: form.genre.value.trim(),
+      themes
+    };
+    try {
+      const res = await fetch('/songwriting/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        currentDraftId = data.id;
+        showNotification('Draft generated', 'success');
+        renderCollaborators([]);
+        await inviteCowriters(currentDraftId);
+        pollCollaborators(currentDraftId);
+      } else {
+        showNotification(data.message || data.error || 'Failed to generate draft', 'error');
+      }
+    } catch {
+      showNotification('Network error', 'error');
+    }
     loadSkill();
   });
 
