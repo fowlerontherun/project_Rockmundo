@@ -1,7 +1,9 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
 from typing import List
 
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from backend.services.activity_processor import evaluate_schedule_completion
 from backend.services.plan_service import plan_service
 from backend.services.schedule_service import schedule_service
 
@@ -91,3 +93,8 @@ def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry):
         return {"status": "partial", "conflicts": conflicts}
 
     return {"status": "ok"}
+
+
+@router.get("/stats/{user_id}/{date}")
+def get_schedule_stats(user_id: int, date: str):
+    return evaluate_schedule_completion(user_id, date)
