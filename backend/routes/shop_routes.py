@@ -5,6 +5,7 @@ from backend.auth.dependencies import get_current_user_id, require_role
 from backend.services.economy_service import EconomyService, EconomyError
 from backend.services.item_service import item_service
 from backend.services.books_service import books_service
+from backend.services.loyalty_service import loyalty_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
 
@@ -30,14 +31,24 @@ def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         raise HTTPException(status_code=404, detail="Item not found")
     if item.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
-    total = item.price_cents * payload.quantity
+    base_total = item.price_cents * payload.quantity
+    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    discount_cents = int(base_total * discount_pct / 100)
+    total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
     except EconomyError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     item_service.decrement_stock(item_id, payload.quantity)
     item_service.add_to_inventory(user_id, item_id, payload.quantity)
-    return {"status": "ok", "total_cents": total}
+    earned = loyalty_service.points_for_purchase(total)
+    loyalty_service.add_points(user_id, payload.owner_user_id, earned)
+    return {
+        "status": "ok",
+        "total_cents": total,
+        "discount_cents": discount_cents,
+        "earned_points": earned,
+    }
 
 
 @router.post("/books/{book_id}/purchase")
@@ -48,7 +59,10 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         raise HTTPException(status_code=404, detail="Book not found")
     if book.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
-    total = book.price_cents * payload.quantity
+    base_total = book.price_cents * payload.quantity
+    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    discount_cents = int(base_total * discount_pct / 100)
+    total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
     except EconomyError as exc:
@@ -56,4 +70,11 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
     books_service.decrement_stock(book_id, payload.quantity)
     for _ in range(payload.quantity):
         books_service.add_to_inventory(user_id, book_id)
-    return {"status": "ok", "total_cents": total}
+    earned = loyalty_service.points_for_purchase(total)
+    loyalty_service.add_points(user_id, payload.owner_user_id, earned)
+    return {
+        "status": "ok",
+        "total_cents": total,
+        "discount_cents": discount_cents,
+        "earned_points": earned,
+    }
