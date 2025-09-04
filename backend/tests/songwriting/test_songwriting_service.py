@@ -1,10 +1,10 @@
 import asyncio
+
 import pytest
 
-from backend.services.songwriting_service import SongwritingService
 from backend.services.originality_service import OriginalityService
-from backend.services.skill_service import SkillService, SONGWRITING_SKILL
-
+from backend.services.skill_service import SONGWRITING_SKILL, SkillService
+from backend.services.songwriting_service import SongwritingService
 
 
 class FakeLLM:
@@ -157,7 +157,7 @@ def test_versioning_and_co_writers():
 
         # add a co-writer and allow edits
         svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
-        svc.update_draft(draft.id, user_id=2, lyrics="co-write", chords="A B")
+        svc.update_draft(draft.id, user_id=2, lyrics="co-write", chord_progression="A B")
         versions = svc.list_versions(draft.id)
         assert len(versions) == 2
         assert versions[-1].author_id == 2

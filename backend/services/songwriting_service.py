@@ -1,26 +1,19 @@
 """Service for AI-assisted songwriting generation and storage."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
-
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
 
 from backend.models.song import Song
-from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.models.song_draft_version import SongDraftVersion
+from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.services.ai_art_service import AIArtService, ai_art_service
-from backend.services.originality_service import (
-    OriginalityService,
-    originality_service,
-)
-from backend.services.skill_service import (
-    SkillService,
-    skill_service as skill_service_instance,
-)
+from backend.services.originality_service import OriginalityService, originality_service
+from backend.services.skill_service import SkillService
+from backend.services.skill_service import skill_service as skill_service_instance
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
-    from backend.services.legal_service import LegalService
     from backend.services.band_service import BandService
+    from backend.services.legal_service import LegalService
 
 
 class _Message:
@@ -75,7 +68,7 @@ class SongwritingService:
         *,
         register_copyright: bool = False,
     ) -> LyricDraft:
-        """Generate lyrics, chords and album art for a song idea."""
+        """Generate lyrics, chord progression and album art for a song idea."""
 
         if len(themes) != 3:
             raise ValueError("exactly_three_themes_required")
@@ -121,15 +114,15 @@ class SongwritingService:
         )
         self._drafts[draft.id] = draft
         song = Song(
-            id=draft.id,
-            title=title,
-            duration_sec=0,
-            genre_id=None,
-            lyrics=lyrics,
+            draft.id,
+            title,
+            0,
+            None,
+            lyrics,
+            creator_id,
             themes=themes,
             chord_progression=chord_progression,
             album_art_url=art_url,
-            owner_band_id=creator_id,
             plagiarism_warning=warning,
         )
         self._songs[draft.id] = song
@@ -155,9 +148,7 @@ class SongwritingService:
         user_id: int,
         *,
         lyrics: Optional[str] = None,
-        chords: Optional[str] = None,
         themes: Optional[List[str]] = None,
-
         chord_progression: Optional[str] = None,
         album_art_url: Optional[str] = None,
 
@@ -171,17 +162,15 @@ class SongwritingService:
             draft.lyrics = lyrics
             self._songs[draft_id].lyrics = lyrics
 
-        if chords is not None:
-            draft.chords = chords
-        # save snapshot of current state
-        self.save_version(draft_id, user_id, draft.lyrics, draft.chords, themes)
-
         if chord_progression is not None:
             draft.chord_progression = chord_progression
             self._songs[draft_id].chord_progression = chord_progression
         if album_art_url is not None:
             draft.album_art_url = album_art_url
             self._songs[draft_id].album_art_url = album_art_url
+
+        # save snapshot of updated state
+        self.save_version(draft_id, user_id, draft.lyrics, draft.chord_progression, themes)
         self.skill_service.add_songwriting_xp(user_id, revised=True)
 
         return draft
@@ -199,13 +188,13 @@ class SongwritingService:
         draft_id: int,
         author_id: int,
         lyrics: str,
-        chords: Optional[str] = None,
+        chord_progression: Optional[str] = None,
         themes: Optional[List[str]] = None,
     ) -> SongDraftVersion:
         version = SongDraftVersion(
             author_id=author_id,
             lyrics=lyrics,
-            chords=chords,
+            chord_progression=chord_progression,
             themes=themes or [],
         )
         self._versions.setdefault(draft_id, []).append(version)
