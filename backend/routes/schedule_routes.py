@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
+from backend.services.analytics_service import schedule_analytics_service
 from backend.services.calendar_export import daily_schedule_to_ics
 from backend.services.plan_service import plan_service
 from backend.services.schedule_service import schedule_service
@@ -84,6 +85,12 @@ def set_weekly_schedule(user_id: int, week_start: str, entries: List[WeeklyEntry
 def get_weekly_schedule(user_id: int, week_start: str):
     schedule = schedule_service.get_weekly_schedule(user_id, week_start)
     return {"schedule": schedule}
+
+
+@router.get("/analytics/{user_id}/{week_start}")
+def get_schedule_analytics(user_id: int, week_start: str):
+    data = schedule_analytics_service.weekly_totals(user_id, week_start)
+    return data
 
 
 class DailyEntry(BaseModel):

@@ -9,6 +9,7 @@ section is simply skipped so the API still returns useful data.
 
 import sqlite3
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
@@ -16,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from utils.db import get_conn
 
+from backend import database
 from backend.models.analytics import AggregatedMetrics, MetricPoint
 from backend.utils.metrics import _REGISTRY, Histogram
 
@@ -367,3 +369,53 @@ def _skill_series(db_path: str, start: str, end: str) -> List[MetricPoint]:
         )
         rows = {r["d"]: int(r["a"] or 0) for r in cur.fetchall()}
     return _build_series(rows, start, end)
+
+
+class ScheduleAnalyticsService:
+    """Aggregate scheduled hours and rest compliance."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = db_path
+
+    def weekly_totals(self, user_id: int, week_start: str) -> Dict[str, Any]:
+        """Return per-category totals and daily rest compliance for a week."""
+        db_path = self.db_path or database.DB_PATH
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT ds.date, a.category, a.duration_hours
+                FROM daily_schedule ds
+                JOIN activities a ON ds.activity_id = a.id
+                WHERE ds.user_id = ?
+                  AND ds.date BETWEEN ? AND date(?, '+6 days')
+                """,
+                (user_id, week_start, week_start),
+            )
+            rows = cur.fetchall()
+
+        totals: Dict[str, float] = defaultdict(float)
+        rest_by_day: Dict[str, float] = defaultdict(float)
+        for day, category, hours in rows:
+            cat = category or "other"
+            totals[cat] += float(hours)
+            if cat in {"rest", "sleep"}:
+                rest_by_day[day] += float(hours)
+
+        start_date = datetime.fromisoformat(week_start)
+        rest_stats: List[Dict[str, Any]] = []
+        for i in range(7):
+            d = (start_date + timedelta(days=i)).date().isoformat()
+            h = rest_by_day.get(d, 0.0)
+            rest_stats.append({"date": d, "rest_hours": h, "compliant": h >= 5})
+
+        return {"totals": dict(totals), "rest": rest_stats}
+
+
+schedule_analytics_service = ScheduleAnalyticsService()
+
+__all__ = [
+    "AnalyticsService",
+    "ScheduleAnalyticsService",
+    "schedule_analytics_service",
+]
