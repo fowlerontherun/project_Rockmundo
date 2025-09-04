@@ -29,6 +29,7 @@ from routes import (
     schedule_routes,
     setlist_routes,
     shipping_routes,
+    world_pulse_routes,
     social_routes,
     song_forecast_routes,
     sponsorship,
@@ -107,6 +108,7 @@ app.include_router(
 )
 app.include_router(setlist_routes.router, prefix="/api", tags=["Setlists"])
 app.include_router(music_metrics_routes.router)
+app.include_router(world_pulse_routes.router, prefix="/api", tags=["World Pulse"])
 app.include_router(schedule_routes.router, prefix="/api", tags=["Schedule"])
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
