@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from backend.auth.dependencies import get_current_user_id, require_role
-from backend.services.economy_service import EconomyService, EconomyError
-from backend.services.item_service import item_service
 from backend.services.books_service import books_service
-from backend.services.loyalty_service import loyalty_service
 from backend.services.city_shop_service import city_shop_service
+from backend.services.economy_service import EconomyError, EconomyService
+from backend.services.item_service import item_service
+from backend.services.loyalty_service import loyalty_service
+from backend.services.shop_npc_service import shop_npc_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
 
@@ -101,3 +102,21 @@ def sell_book(shop_id: int, book_id: int, payload: SellIn, user_id: int = Depend
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "payout_cents": payout}
+
+
+@router.get("/npc/dialogue")
+def get_shop_dialogue(choices: str = ""):
+    """Return dialogue lines and possible responses for the shop NPC."""
+
+    try:
+        parsed = [int(c) for c in choices.split(",") if c]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid choices")
+    return shop_npc_service.get_dialogue(parsed)
+
+
+@router.get("/daily-special")
+def get_daily_special():
+    """Return today's rotating promotion."""
+
+    return shop_npc_service.get_daily_special()
