@@ -249,9 +249,9 @@ def test_update_draft_invalid_themes():
             llm_client=FakeLLM(), art_service=FakeArt(), originality=OriginalityService()
         )
         draft = await _generate(svc)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="exactly_three_themes_required"):
             svc.update_draft(draft.id, user_id=1, themes=["only", "two"])
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="unknown_theme"):
             svc.update_draft(
                 draft.id,
                 user_id=1,

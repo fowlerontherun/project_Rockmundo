@@ -195,9 +195,8 @@ class SongwritingService:
         if themes is not None:
             if len(themes) != 3:
                 raise ValueError("exactly_three_themes_required")
-            for t in themes:
-                if t not in THEMES:
-                    raise ValueError("unknown_theme")
+            if any(t not in THEMES for t in themes):
+                raise ValueError("unknown_theme")
             draft.themes = themes
             self._songs[draft_id].themes = themes
 
