@@ -1,0 +1,19 @@
+#mobilePlanner form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 320px;
+}
+
+#mobilePlanner input,
+#mobilePlanner button {
+  font-size: 1.1rem;
+  padding: 0.5rem;
+}
+
+@media (min-width: 600px) {
+  #mobilePlanner form {
+    flex-direction: row;
+    align-items: center;
+  }
+}
