@@ -5,21 +5,12 @@ from pydantic import BaseModel
 
 from backend.services.apprenticeship_service import ApprenticeshipService
 from backend.services.karma_service import KarmaService
+from backend.services.karma_db import KarmaDB
 
-
-class _KarmaDB:
-    def insert_karma_event(self, event):
-        pass
-
-    def update_user_karma(self, user_id, amount):
-        pass
-
-    def get_user_karma_total(self, user_id):
-        return 0
 
 
 router = APIRouter(prefix="/apprenticeships", tags=["Apprenticeships"])
-svc = ApprenticeshipService(karma=KarmaService(_KarmaDB()))
+svc = ApprenticeshipService(karma=KarmaService(KarmaDB()))
 
 
 class RequestIn(BaseModel):
