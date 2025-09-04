@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 interface Special {
   item: string;
   description: string;
+  price_cents: number;
+  trend: 'up' | 'down' | 'stable';
 }
 
 const DailySpecial: React.FC = () => {
@@ -16,10 +18,15 @@ const DailySpecial: React.FC = () => {
 
   if (!special) return null;
 
+  const symbolMap = { up: '▲', down: '▼', stable: '→' };
+
   return (
     <div className="p-2 bg-yellow-100">
       <strong>{special.item}: </strong>
       <span>{special.description}</span>
+      <span className="ml-2">
+        {special.price_cents}¢ {symbolMap[special.trend]}
+      </span>
     </div>
   );
 };

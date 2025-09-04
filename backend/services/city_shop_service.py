@@ -15,6 +15,14 @@ DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 _economy = EconomyService()
 _economy.ensure_schema()
 
+# pricing configuration
+LOW_STOCK_THRESHOLD = 5
+HIGH_STOCK_THRESHOLD = 20
+SALES_WINDOW_HOURS = 24
+HIGH_SALES_THRESHOLD = 10
+LOW_SALES_THRESHOLD = 2
+PRICE_ADJUST_RATE = 0.1
+
 
 class CityShopService:
     """Persistent store for shops per city with item and book inventories."""
@@ -68,6 +76,32 @@ class CityShopService:
                 )
                 """,
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS shop_item_price_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    shop_id INTEGER NOT NULL,
+                    item_id INTEGER NOT NULL,
+                    price_cents INTEGER NOT NULL,
+                    quantity_sold INTEGER DEFAULT 0,
+                    recorded_at TEXT DEFAULT (datetime('now')),
+                    FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS shop_book_price_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    shop_id INTEGER NOT NULL,
+                    book_id INTEGER NOT NULL,
+                    price_cents INTEGER NOT NULL,
+                    quantity_sold INTEGER DEFAULT 0,
+                    recorded_at TEXT DEFAULT (datetime('now')),
+                    FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
+                )
+                """,
+            )
             # ensure legacy DBs have needed columns
             for tbl in ("shop_items", "shop_books"):
                 cur.execute(f"PRAGMA table_info({tbl})")
@@ -92,6 +126,104 @@ class CityShopService:
             cur.execute("SELECT * FROM city_shops WHERE id = ?", (shop_id,))
             row = cur.fetchone()
             return dict(row) if row else None
+
+    def _log_item_price(
+        self, shop_id: int, item_id: int, price_cents: int, quantity: int
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO shop_item_price_history (shop_id, item_id, price_cents, quantity_sold) VALUES (?, ?, ?, ?)",
+                (shop_id, item_id, price_cents, quantity),
+            )
+            conn.commit()
+
+    def _log_book_price(
+        self, shop_id: int, book_id: int, price_cents: int, quantity: int
+    ) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO shop_book_price_history (shop_id, book_id, price_cents, quantity_sold) VALUES (?, ?, ?, ?)",
+                (shop_id, book_id, price_cents, quantity),
+            )
+            conn.commit()
+
+    def _adjust_item_price(self, shop_id: int, item_id: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT quantity, price_cents FROM shop_items WHERE shop_id = ? AND item_id = ?",
+                (shop_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return
+            qty, price = row
+            cur.execute(
+                "SELECT IFNULL(SUM(quantity_sold),0) FROM shop_item_price_history WHERE shop_id = ? AND item_id = ? AND recorded_at >= datetime('now', ?)",
+                (shop_id, item_id, f'-{SALES_WINDOW_HOURS} hours'),
+            )
+            sales = int(cur.fetchone()[0])
+            new_price = price
+            if qty < LOW_STOCK_THRESHOLD:
+                new_price = int(round(new_price * (1 + PRICE_ADJUST_RATE)))
+            elif qty > HIGH_STOCK_THRESHOLD:
+                new_price = int(round(new_price * (1 - PRICE_ADJUST_RATE)))
+            if sales > HIGH_SALES_THRESHOLD:
+                new_price = int(round(new_price * (1 + PRICE_ADJUST_RATE)))
+            elif sales < LOW_SALES_THRESHOLD:
+                new_price = int(round(new_price * (1 - PRICE_ADJUST_RATE)))
+            if new_price < 1:
+                new_price = 1
+            if new_price != price:
+                cur.execute(
+                    "UPDATE shop_items SET price_cents = ? WHERE shop_id = ? AND item_id = ?",
+                    (new_price, shop_id, item_id),
+                )
+                cur.execute(
+                    "INSERT INTO shop_item_price_history (shop_id, item_id, price_cents, quantity_sold) VALUES (?, ?, ?, 0)",
+                    (shop_id, item_id, new_price),
+                )
+            conn.commit()
+
+    def _adjust_book_price(self, shop_id: int, book_id: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT quantity, price_cents FROM shop_books WHERE shop_id = ? AND book_id = ?",
+                (shop_id, book_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                return
+            qty, price = row
+            cur.execute(
+                "SELECT IFNULL(SUM(quantity_sold),0) FROM shop_book_price_history WHERE shop_id = ? AND book_id = ? AND recorded_at >= datetime('now', ?)",
+                (shop_id, book_id, f'-{SALES_WINDOW_HOURS} hours'),
+            )
+            sales = int(cur.fetchone()[0])
+            new_price = price
+            if qty < LOW_STOCK_THRESHOLD:
+                new_price = int(round(new_price * (1 + PRICE_ADJUST_RATE)))
+            elif qty > HIGH_STOCK_THRESHOLD:
+                new_price = int(round(new_price * (1 - PRICE_ADJUST_RATE)))
+            if sales > HIGH_SALES_THRESHOLD:
+                new_price = int(round(new_price * (1 + PRICE_ADJUST_RATE)))
+            elif sales < LOW_SALES_THRESHOLD:
+                new_price = int(round(new_price * (1 - PRICE_ADJUST_RATE)))
+            if new_price < 1:
+                new_price = 1
+            if new_price != price:
+                cur.execute(
+                    "UPDATE shop_books SET price_cents = ? WHERE shop_id = ? AND book_id = ?",
+                    (new_price, shop_id, book_id),
+                )
+                cur.execute(
+                    "INSERT INTO shop_book_price_history (shop_id, book_id, price_cents, quantity_sold) VALUES (?, ?, ?, 0)",
+                    (shop_id, book_id, new_price),
+                )
+            conn.commit()
 
     # ------------------------------------------------------------------
     # CRUD operations
@@ -178,6 +310,7 @@ class CityShopService:
                 (shop_id, item_id, quantity, restock_interval, restock_quantity, price_cents),
             )
             conn.commit()
+        self._adjust_item_price(shop_id, item_id)
 
     def update_item(
         self,
@@ -209,6 +342,8 @@ class CityShopService:
             if cur.rowcount == 0:
                 raise ValueError("item not found")
             conn.commit()
+        if price_cents is not None:
+            self._log_item_price(shop_id, item_id, price_cents, 0)
 
     def remove_item(self, shop_id: int, item_id: int, quantity: int = 1) -> None:
         if quantity <= 0:
@@ -234,6 +369,7 @@ class CityShopService:
                     (shop_id, item_id),
                 )
             conn.commit()
+        self._adjust_item_price(shop_id, item_id)
 
     def list_items(self, shop_id: int) -> List[Dict[str, int]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -274,6 +410,7 @@ class CityShopService:
                 (shop_id, book_id, quantity, restock_interval, restock_quantity, price_cents),
             )
             conn.commit()
+        self._adjust_book_price(shop_id, book_id)
 
     def update_book(
         self,
@@ -305,6 +442,8 @@ class CityShopService:
             if cur.rowcount == 0:
                 raise ValueError("book not found")
             conn.commit()
+        if price_cents is not None:
+            self._log_book_price(shop_id, book_id, price_cents, 0)
 
     def remove_book(self, shop_id: int, book_id: int, quantity: int = 1) -> None:
         if quantity <= 0:
@@ -330,6 +469,7 @@ class CityShopService:
                     (shop_id, book_id),
                 )
             conn.commit()
+        self._adjust_book_price(shop_id, book_id)
 
     def list_books(self, shop_id: int) -> List[Dict[str, int]]:
         with sqlite3.connect(self.db_path) as conn:
@@ -358,6 +498,7 @@ class CityShopService:
             if not row:
                 raise ValueError("item not accepted here")
             price = int(row[0])
+        self._log_item_price(shop_id, item_id, price, quantity)
         # adjust inventories
         item_service.remove_from_inventory(user_id, item_id, quantity)
         self.add_item(shop_id, item_id, quantity, price)
@@ -379,6 +520,7 @@ class CityShopService:
             if not row:
                 raise ValueError("book not accepted here")
             price = int(row[0])
+        self._log_book_price(shop_id, book_id, price, quantity)
         # remove from user inventory
         inv = books_service._inventories.get(user_id, [])
         if inv.count(book_id) < quantity:
