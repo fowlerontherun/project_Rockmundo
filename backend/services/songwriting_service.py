@@ -1,4 +1,5 @@
 """Service for AI-assisted songwriting generation and storage."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
@@ -7,6 +8,7 @@ from backend.models.song import Song
 from backend.models.song_draft_version import SongDraftVersion
 from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.services.ai_art_service import AIArtService, ai_art_service
+from backend.services.chemistry_service import ChemistryService
 from backend.services.originality_service import (
     OriginalityService,
     originality_service,
@@ -18,13 +20,6 @@ from backend.services.skill_service import (
 from backend.services.band_service import BandService
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
-=======
-from backend.services.originality_service import OriginalityService, originality_service
-from backend.services.skill_service import SkillService
-from backend.services.skill_service import skill_service as skill_service_instance
-
-if TYPE_CHECKING:  # pragma: no cover - type checking only
-    from backend.services.band_service import BandService
     from backend.services.legal_service import LegalService
 
 
@@ -58,6 +53,7 @@ class SongwritingService:
         legal: Optional[LegalService] = None,
         skill_service: SkillService | None = None,
         band_service: BandService | None = None,
+        chemistry_service: ChemistryService | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
         self.art_service = art_service or ai_art_service
@@ -65,6 +61,7 @@ class SongwritingService:
         self.legal = legal
         self.skill_service = skill_service or skill_service_instance
         self.band_service = band_service
+        self.chemistry_service = chemistry_service or ChemistryService()
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
@@ -87,7 +84,16 @@ class SongwritingService:
 
         theme_str = ", ".join(themes)
         skill = self.skill_service.get_songwriting_skill(creator_id)
-        quality_mod = 1.0 + 0.1 * (skill.level - 1)
+
+        participants = [creator_id] + list(self._co_writers.get(self._counter, set()))
+        scores: list[float] = []
+        for i, a in enumerate(participants):
+            for b in participants[i + 1 :]:
+                pair = self.chemistry_service.initialize_pair(a, b)
+                scores.append(pair.score)
+        avg_chem = sum(scores) / len(scores) if scores else 50.0
+        chemistry_mod = (avg_chem - 50.0) / 100.0
+        quality_mod = (1.0 + 0.1 * (skill.level - 1)) * (1 + chemistry_mod)
         lyric_prompt = (
             f"Write {genre} song lyrics titled '{title}' focusing on themes: {theme_str}."
             f" Aim for quality modifier {quality_mod:.1f}."
@@ -146,6 +152,9 @@ class SongwritingService:
         self.save_version(draft.id, creator_id, lyrics, chord_progression)
         self._counter += 1
         self.skill_service.add_songwriting_xp(creator_id)
+        for i, a in enumerate(participants):
+            for b in participants[i + 1 :]:
+                self.chemistry_service.adjust_pair(a, b, 1)
         return draft
 
     def get_draft(self, draft_id: int) -> Optional[LyricDraft]:

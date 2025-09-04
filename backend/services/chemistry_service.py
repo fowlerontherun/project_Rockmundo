@@ -27,6 +27,10 @@ class ChemistryService:
         self, session_factory: Callable[[], Session] | sessionmaker = SessionLocal
     ) -> None:
         self.session_factory = session_factory
+        try:
+            Base.metadata.create_all(bind=self.session_factory().get_bind())
+        except Exception:
+            pass
 
     @staticmethod
     def _normalize(a_id: int, b_id: int) -> tuple[int, int]:
