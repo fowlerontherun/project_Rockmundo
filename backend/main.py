@@ -14,6 +14,7 @@ from routes import (
     apprenticeship_routes,
     avatar,
     chemistry_routes,
+    crafting_routes,
     daily_loop_routes,
     event_routes,
     legacy_routes,
@@ -22,18 +23,18 @@ from routes import (
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
-    crafting_routes,
     schedule_routes,
     setlist_routes,
+    shipping_routes,
     social_routes,
     song_forecast_routes,
     sponsorship,
     tour_collab_routes,
     tour_planner_routes,
+    trade_routes,
     university_routes,
     user_settings_routes,
     video_routes,
-    shipping_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -108,6 +109,7 @@ app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 app.include_router(chemistry_routes.router)
 app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
+app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
 
 
 
