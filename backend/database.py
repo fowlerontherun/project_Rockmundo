@@ -550,4 +550,20 @@ def init_db():
             """
         )
 
+        # Support tickets allow players to file issues and admins to resolve them
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                body TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT DEFAULT (datetime('now')),
+                resolved_at TEXT,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+
         conn.commit()
