@@ -38,6 +38,10 @@ class DraftUpdate(BaseModel):
     album_art_url: str | None = None
 
 
+class CoWriterPayload(BaseModel):
+    co_writer_id: int
+
+
 @router.post("/prompt")
 async def submit_prompt(payload: PromptPayload, user_id: int = Depends(get_current_user_id)):
     draft = await songwriting_service.generate_draft(
@@ -59,6 +63,11 @@ def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
 
 @router.put("/drafts/{draft_id}")
 def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_current_user_id)):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
     draft = songwriting_service.update_draft(
         draft_id,
         user_id,
@@ -82,6 +91,31 @@ def list_versions(draft_id: int, user_id: int = Depends(get_current_user_id)):
     if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
         raise HTTPException(status_code=403, detail="forbidden")
     return songwriting_service.list_versions(draft_id)
+
+
+@router.get("/drafts/{draft_id}/co_writers")
+def get_co_writers(draft_id: int, user_id: int = Depends(get_current_user_id)):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
+
+
+@router.post("/drafts/{draft_id}/co_writers")
+def add_co_writer(
+    draft_id: int,
+    payload: CoWriterPayload,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        songwriting_service.add_co_writer(draft_id, user_id, payload.co_writer_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
 @router.get("/themes")
 def list_themes():
     return THEMES
