@@ -1,13 +1,31 @@
 import sqlite3
-from typing import List, Dict
+from typing import Dict, List
 
-from backend.database import DB_PATH
+from backend import database
+
+
+def _ensure_table(cur: sqlite3.Cursor) -> None:
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS recurring_schedule (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            pattern TEXT NOT NULL,
+            hour INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """,
+    )
 
 
 def add_template(user_id: int, pattern: str, hour: int, activity_id: int, active: bool = True) -> int:
     """Create a recurring schedule template."""
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(database.DB_PATH) as conn:
         cur = conn.cursor()
+        _ensure_table(cur)
         cur.execute(
             """
             INSERT INTO recurring_schedule (user_id, pattern, hour, activity_id, active)
@@ -20,8 +38,9 @@ def add_template(user_id: int, pattern: str, hour: int, activity_id: int, active
 
 
 def update_template(template_id: int, pattern: str, hour: int, activity_id: int, active: bool = True) -> None:
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(database.DB_PATH) as conn:
         cur = conn.cursor()
+        _ensure_table(cur)
         cur.execute(
             """
             UPDATE recurring_schedule
@@ -34,15 +53,17 @@ def update_template(template_id: int, pattern: str, hour: int, activity_id: int,
 
 
 def remove_template(template_id: int) -> None:
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(database.DB_PATH) as conn:
         cur = conn.cursor()
+        _ensure_table(cur)
         cur.execute("DELETE FROM recurring_schedule WHERE id = ?", (template_id,))
         conn.commit()
 
 
 def get_templates(user_id: int) -> List[Dict]:
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(database.DB_PATH) as conn:
         cur = conn.cursor()
+
         # Ensure table exists before querying
         cur.execute(
             """

@@ -11,37 +11,15 @@ def _ensure_table(cur: sqlite3.Cursor) -> None:
         CREATE TABLE IF NOT EXISTS activity_log (
             user_id INTEGER NOT NULL,
             date TEXT NOT NULL,
-            slot INTEGER NOT NULL,
+            slot INTEGER NOT NULL DEFAULT 0,
             activity_id INTEGER NOT NULL,
             outcome_json TEXT NOT NULL,
             PRIMARY KEY (user_id, date, slot),
             FOREIGN KEY(user_id, date, slot) REFERENCES daily_schedule(user_id, date, slot),
             FOREIGN KEY(activity_id) REFERENCES activities(id)
         )
-        """
+        """,
     )
-    cur.execute("PRAGMA table_info(activity_log)")
-    columns = [row[1] for row in cur.fetchall()]
-    if "slot" not in columns:
-        cur.execute("ALTER TABLE activity_log RENAME TO activity_log_old")
-        cur.execute(
-            """
-            CREATE TABLE activity_log (
-                user_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                slot INTEGER NOT NULL,
-                activity_id INTEGER NOT NULL,
-                outcome_json TEXT NOT NULL,
-                PRIMARY KEY (user_id, date, slot),
-                FOREIGN KEY(user_id, date, slot) REFERENCES daily_schedule(user_id, date, slot),
-                FOREIGN KEY(activity_id) REFERENCES activities(id)
-            )
-            """
-        )
-        cur.execute(
-            "INSERT INTO activity_log (user_id, date, slot, activity_id, outcome_json) SELECT user_id, date, 0, activity_id, outcome_json FROM activity_log_old"
-        )
-        cur.execute("DROP TABLE activity_log_old")
 
 
 def record_outcome(

@@ -9,6 +9,7 @@ import sqlite3
 import json
 from pathlib import Path
 from typing import Iterable, Mapping
+from datetime import datetime, timedelta
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
@@ -110,9 +111,16 @@ class ScheduleService:
         required_skill: str | None = None,
         energy_cost: int = 0,
         rewards_json: str | None = None,
+        duration_days: int = 1,
     ) -> int:
         return activity_model.create_activity(
-            name, duration_hours, category, required_skill, energy_cost, rewards_json
+            name,
+            duration_hours,
+            category,
+            required_skill,
+            energy_cost,
+            rewards_json,
+            duration_days,
         )
 
     def get_activity(self, activity_id: int) -> Dict | None:
@@ -127,6 +135,7 @@ class ScheduleService:
         required_skill: str | None = None,
         energy_cost: int = 0,
         rewards_json: str | None = None,
+        duration_days: int = 1,
     ) -> None:
         activity_model.update_activity(
             activity_id,
@@ -136,6 +145,7 @@ class ScheduleService:
             required_skill,
             energy_cost,
             rewards_json,
+            duration_days,
         )
 
     def delete_activity(self, activity_id: int) -> None:
@@ -181,13 +191,14 @@ class ScheduleService:
                 """
             )
             cur.execute(
-                "SELECT required_skill, energy_cost, duration_hours FROM activities WHERE id = ?",
+                "SELECT required_skill, energy_cost, duration_hours, duration_days FROM activities WHERE id = ?",
                 (activity_id,),
             )
             row = cur.fetchone()
             req_skill = row[0] if row else None
             energy_cost = row[1] if row else 0
             duration_hours = row[2] if row else 0
+            duration_days = row[3] if row else 1
             if req_skill:
                 cur.execute(
                     "SELECT level FROM user_skills WHERE user_id = ? AND skill = ?",
@@ -229,21 +240,34 @@ class ScheduleService:
             conn.commit()
 
         slots_needed = max(1, int(duration_hours * 4))
-        conflicts = schedule_model.find_conflicts(user_id, date, slot, slots_needed)
-        original_conflicts = list(conflicts)
-        if conflicts:
+        dates = [
+            (
+                datetime.fromisoformat(date) + timedelta(days=i)
+            ).strftime("%Y-%m-%d")
+            for i in range(duration_days)
+        ]
+        conflicts_set: set[int] = set()
+        for d in dates:
+            conflicts_set.update(
+                schedule_model.find_conflicts(user_id, d, slot, slots_needed)
+            )
+        original_conflicts = sorted(conflicts_set)
+        if conflicts_set:
             if auto_split:
-                # shift start until a free window is found
                 new_slot = slot
-                while conflicts:
-                    new_slot = max(conflicts) + 1
-                    conflicts = schedule_model.find_conflicts(
-                        user_id, date, new_slot, slots_needed
-                    )
+                while conflicts_set:
+                    new_slot = max(conflicts_set) + 1
+                    conflicts_set = set()
+                    for d in dates:
+                        conflicts_set.update(
+                            schedule_model.find_conflicts(
+                                user_id, d, new_slot, slots_needed
+                            )
+                        )
                 slot = new_slot
             else:
                 err = ValueError("Schedule conflict")
-                err.conflicts = conflicts
+                err.conflicts = sorted(conflicts_set)
                 raise err
 
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
@@ -259,6 +283,9 @@ class ScheduleService:
         _log_schedule_change(
             user_id, date, slot, before, {"activity_id": activity_id}
         )
+
+        for d in dates:
+            schedule_model.add_entry(user_id, d, slot, activity_id)
         return original_conflicts if auto_split else None
 
     def update_schedule_entry(

@@ -389,6 +389,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             duration_hours REAL NOT NULL,
+            duration_days INTEGER NOT NULL DEFAULT 1,
             category TEXT,
             required_skill TEXT,
             energy_cost INTEGER NOT NULL DEFAULT 0,
@@ -430,7 +431,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 week_start TEXT NOT NULL,
                 day TEXT NOT NULL,
-                slot INTEGER NOT NULL,
+                slot INTEGER NOT NULL DEFAULT 0,
                 activity_id INTEGER NOT NULL,
                 PRIMARY KEY (user_id, week_start, day, slot),
                 FOREIGN KEY(user_id) REFERENCES users(id),
@@ -486,8 +487,12 @@ def init_db():
             CREATE TABLE IF NOT EXISTS activity_log (
                 user_id INTEGER NOT NULL,
                 date TEXT NOT NULL,
+                slot INTEGER NOT NULL DEFAULT 0,
                 activity_id INTEGER NOT NULL,
-                outcome_json TEXT NOT NULL
+                outcome_json TEXT NOT NULL,
+                PRIMARY KEY (user_id, date, slot),
+                FOREIGN KEY(user_id, date, slot) REFERENCES daily_schedule(user_id, date, slot),
+                FOREIGN KEY(activity_id) REFERENCES activities(id)
             )
             """
         )
