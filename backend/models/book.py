@@ -22,6 +22,8 @@ class Book:
     genre: str
     rarity: str
     max_skill_level: int
+    price_cents: int = 0
+    stock: int = 0
 
 
 __all__ = ["Book"]
