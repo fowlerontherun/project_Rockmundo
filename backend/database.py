@@ -439,6 +439,18 @@ def init_db():
         )
         """)
 
+        # Band schedule entries linking bands to activities
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS band_schedule (
+            band_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            slot INTEGER NOT NULL,
+            activity_id INTEGER NOT NULL,
+            PRIMARY KEY (band_id, date, slot),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """)
+
         # Logs and progression for scheduled activities
         cur.execute(
             """
