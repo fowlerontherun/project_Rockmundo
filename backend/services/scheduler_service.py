@@ -12,6 +12,49 @@ from backend.services.peer_learning_service import run_scheduled_session
 from backend.services.skill_service import skill_service
 from backend.services.social_sentiment_service import social_sentiment_service
 from backend.services.song_popularity_forecast import forecast_service
+from backend.models.notification_models import (
+    alert_no_plan,
+    alert_pending_outcomes,
+)
+
+
+def _plan_reminder(user_id: int, day: str) -> dict:
+    """Send a reminder if the user lacks a schedule for ``day``."""
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT 1 FROM daily_schedule WHERE user_id = ? AND date = ? LIMIT 1",
+        (user_id, day),
+    )
+    has_plan = cur.fetchone() is not None
+    conn.close()
+    if not has_plan:
+        alert_no_plan(user_id, day)
+        return {"status": "sent"}
+    return {"status": "skipped"}
+
+
+def _outcome_reminder(user_id: int, day: str) -> dict:
+    """Notify if scheduled activities for ``day`` lack outcomes."""
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT COUNT(*) FROM daily_schedule WHERE user_id = ? AND date = ?",
+        (user_id, day),
+    )
+    scheduled = cur.fetchone()[0]
+    cur.execute(
+        "SELECT COUNT(*) FROM activity_log WHERE user_id = ? AND date = ?",
+        (user_id, day),
+    )
+    processed = cur.fetchone()[0]
+    conn.close()
+    if scheduled > processed:
+        alert_pending_outcomes(user_id, day)
+        return {"status": "sent"}
+    return {"status": "skipped"}
 
 # Map event_type to handler functions
 def _daily_loop_reset_wrapper() -> None:
@@ -45,6 +88,8 @@ EVENT_HANDLERS = {
     "daily_loop_reset": daily_loop.rotate_daily_challenge,
     "daily_activity_resolution": process_previous_day,
     "daily_loop_reset": _daily_loop_reset_wrapper,
+    "plan_reminder": _plan_reminder,
+    "outcome_reminder": _outcome_reminder,
     # Add more event handlers here as needed
 }
 
@@ -177,4 +222,24 @@ def schedule_daily_activity_resolution() -> dict:
         next_run.isoformat(),
         recurring=True,
         interval_days=1,
+    )
+
+
+def schedule_plan_reminder(user_id: int, day: str, run_at: str) -> dict:
+    """Schedule a one-off reminder to plan the day."""
+
+    return schedule_task(
+        "plan_reminder",
+        {"user_id": user_id, "day": day},
+        run_at,
+    )
+
+
+def schedule_outcome_reminder(user_id: int, day: str, run_at: str) -> dict:
+    """Schedule a reminder to process pending outcomes."""
+
+    return schedule_task(
+        "outcome_reminder",
+        {"user_id": user_id, "day": day},
+        run_at,
     )
