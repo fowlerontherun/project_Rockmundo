@@ -1,13 +1,11 @@
 from typing import List
 
-from typing import List
-
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
+from backend.services.calendar_export import daily_schedule_to_ics
 from backend.services.plan_service import plan_service
 from backend.services.schedule_service import schedule_service
-from backend.services.calendar_export import daily_schedule_to_ics
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
@@ -35,6 +33,22 @@ def generate_plan(data: PlanSelections):
 def recommend_activities(data: RecommendationRequest):
     suggestions = plan_service.recommend_activities(data.user_id, data.goals)
     return {"recommendations": suggestions}
+
+
+class SimulationEntry(BaseModel):
+    activity_id: int
+
+
+class PlanSimulation(BaseModel):
+    user_id: int
+    entries: List[SimulationEntry]
+
+
+@router.post("/simulate")
+def simulate_schedule(data: PlanSimulation):
+    from backend.services.activity_processor import simulate_plan
+
+    return simulate_plan(data.user_id, [e.model_dump() for e in data.entries])
 
 
 class DefaultEntry(BaseModel):

@@ -138,6 +138,34 @@ def _apply_effects(
     return outcome
 
 
+def simulate_plan(user_id: int, entries: List[Dict[str, int]]) -> Dict[str, int]:
+    """Return predicted total XP and energy for a proposed schedule."""
+
+    del user_id  # reserved for potential future use
+
+    total_xp = 0
+    total_energy = 0
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        for entry in entries:
+            cur.execute(
+                "SELECT duration_hours, rewards_json FROM activities WHERE id = ?",
+                (entry["activity_id"],),
+            )
+            row = cur.fetchone()
+            duration = row[0] if row else 1
+            rewards = json.loads(row[1]) if row and row[1] else None
+            if rewards:
+                xp_gain = int(rewards.get("xp", 0))
+                energy_change = int(rewards.get("energy", 0))
+            else:
+                xp_gain = int(duration * 10)
+                energy_change = int(-duration * 5)
+            total_xp += xp_gain
+            total_energy += energy_change
+    return {"xp": total_xp, "energy": total_energy}
+
+
 # Helper variable used inside _apply_effects
 _current_date: str
 
@@ -214,4 +242,9 @@ def evaluate_schedule_completion(user_id: int, day: str) -> Dict[str, float]:
     return {"completion": round(completion, 2)}
 
 
-__all__ = ["process_day", "process_previous_day", "evaluate_schedule_completion"]
+__all__ = [
+    "process_day",
+    "process_previous_day",
+    "evaluate_schedule_completion",
+    "simulate_plan",
+]
