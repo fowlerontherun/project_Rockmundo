@@ -7,6 +7,7 @@ from backend.services.city_shop_service import city_shop_service
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.item_service import item_service
 from backend.services.loyalty_service import loyalty_service
+from backend.services.membership_service import membership_service
 from backend.services.shop_npc_service import shop_npc_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
@@ -42,8 +43,10 @@ def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
     if item.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
     base_total = item.price_cents * payload.quantity
-    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
-    discount_cents = int(base_total * discount_pct / 100)
+    loyalty_discount = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    membership_discount = membership_service.get_discount(user_id)
+    total_discount = loyalty_discount + membership_discount
+    discount_cents = int(base_total * total_discount / 100)
     total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
@@ -97,8 +100,10 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
     if book.stock < payload.quantity:
         raise HTTPException(status_code=400, detail="Insufficient stock")
     base_total = book.price_cents * payload.quantity
-    discount_pct = loyalty_service.get_discount(user_id, payload.owner_user_id)
-    discount_cents = int(base_total * discount_pct / 100)
+    loyalty_discount = loyalty_service.get_discount(user_id, payload.owner_user_id)
+    membership_discount = membership_service.get_discount(user_id)
+    total_discount = loyalty_discount + membership_discount
+    discount_cents = int(base_total * total_discount / 100)
     total = base_total - discount_cents
     try:
         _economy.transfer(user_id, payload.owner_user_id, total)
