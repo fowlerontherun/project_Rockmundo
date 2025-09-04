@@ -41,6 +41,12 @@ class ItemService:
         self._id_seq += 1
         return item
 
+    def get_item(self, item_id: int) -> Item:
+        itm = self._items.get(item_id)
+        if not itm:
+            raise ValueError("Item not found")
+        return itm
+
     def update_item(self, item_id: int, **changes) -> Item:
         itm = self._items.get(item_id)
         if not itm:
@@ -54,6 +60,12 @@ class ItemService:
         self._items.pop(item_id, None)
         for inv in self._inventories.values():
             inv.pop(item_id, None)
+
+    def decrement_stock(self, item_id: int, quantity: int = 1) -> None:
+        itm = self.get_item(item_id)
+        if itm.stock < quantity:
+            raise ValueError("not enough stock")
+        itm.stock -= quantity
 
     # ------------------------------------------------------------------
     # Inventory management

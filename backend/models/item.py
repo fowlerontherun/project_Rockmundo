@@ -20,6 +20,8 @@ class Item:
     name: str
     category: str
     stats: Dict[str, float] = field(default_factory=dict)
+    price_cents: int = 0
+    stock: int = 0
 
 
 __all__ = ["ItemCategory", "Item"]
