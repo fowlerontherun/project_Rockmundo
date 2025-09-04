@@ -8,7 +8,6 @@ from datetime import date, timedelta
 from typing import Dict, List
 
 from backend.database import DB_PATH
-from backend.models import activity_log as activity_log_model
 
 
 def _ensure_tables(cur: sqlite3.Cursor) -> None:
@@ -94,8 +93,27 @@ def _apply_effects(
         outcome["skills"] = skill_map
     else:
         outcome["skill_gain"] = xp_gain
-    activity_log_model.record_outcome(
-        user_id, _current_date, slot, activity_id, outcome
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS activity_log (
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            slot INTEGER NOT NULL DEFAULT 0,
+            activity_id INTEGER NOT NULL,
+            outcome_json TEXT NOT NULL,
+            PRIMARY KEY (user_id, date, slot),
+            FOREIGN KEY(user_id, date, slot) REFERENCES daily_schedule(user_id, date, slot),
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+        """,
+    )
+    cur.execute(
+        """
+        INSERT OR REPLACE INTO activity_log
+            (user_id, date, slot, activity_id, outcome_json)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user_id, _current_date, slot, activity_id, json.dumps(outcome)),
     )
     return outcome
 
