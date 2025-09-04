@@ -3,25 +3,24 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Set
 
-from typing import Protocol
+from typing import Protocol, TYPE_CHECKING
 
 from backend.models.song import Song
-
 from backend.models.songwriting import GenerationMetadata, LyricDraft
-from backend.models.songwriting import LyricDraft
 from backend.models.song_draft_version import SongDraftVersion
 from backend.services.ai_art_service import AIArtService, ai_art_service
-
 from backend.services.originality_service import (
     OriginalityService,
     originality_service,
 )
-from typing import TYPE_CHECKING
+from backend.services.skill_service import (
+    SkillService,
+    skill_service as skill_service_instance,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - type checking only
     from backend.services.legal_service import LegalService
-
-from backend.services.skill_service import SkillService, skill_service as skill_service_instance
+    from backend.services.band_service import BandService
 
 
 class _Message:
@@ -52,16 +51,15 @@ class SongwritingService:
         art_service: Optional[AIArtService] = None,
         originality: Optional[OriginalityService] = None,
         legal: Optional[LegalService] = None,
+        skill_service: SkillService | None = None,
+        band_service: BandService | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
         self.art_service = art_service or ai_art_service
         self.originality = originality or originality_service
         self.legal = legal
-        skill_service: SkillService | None = None,
-    ) -> None:
-        self.llm = llm_client or EchoLLM()
-        self.art_service = art_service or ai_art_service
         self.skill_service = skill_service or skill_service_instance
+        self.band_service = band_service
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
@@ -126,9 +124,7 @@ class SongwritingService:
             id=draft.id,
             title=title,
             duration_sec=0,
-            genre_id=0,
             genre_id=None,
-
             lyrics=lyrics,
             themes=themes,
             chord_progression=chord_progression,
@@ -142,7 +138,7 @@ class SongwritingService:
 
 
         # record initial version
-        self.save_version(draft.id, creator_id, lyrics, chords)
+        self.save_version(draft.id, creator_id, lyrics, chord_progression)
         self._counter += 1
         self.skill_service.add_songwriting_xp(creator_id)
         return draft

@@ -146,7 +146,12 @@ def test_xp_gain_and_quality_modifier():
 def test_versioning_and_co_writers():
     async def run():
         svc = SongwritingService(llm_client=FakeLLM())
-        draft = await svc.generate_draft(creator_id=1, prompt="collab", style="rock")
+        draft = await svc.generate_draft(
+            creator_id=1,
+            title="collab",
+            genre="rock",
+            themes=["a", "b", "c"],
+        )
         # initial version saved
         assert len(svc.list_versions(draft.id)) == 1
 
