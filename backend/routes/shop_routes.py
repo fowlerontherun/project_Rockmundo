@@ -29,6 +29,10 @@ class SellIn(BaseModel):
     quantity: int = 1
 
 
+class RepairIn(BaseModel):
+    owner_user_id: int
+
+
 @router.post("/items/{item_id}/purchase")
 def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_current_user)):
     try:
@@ -55,6 +59,24 @@ def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         "discount_cents": discount_cents,
         "earned_points": earned,
     }
+
+
+@router.post("/items/{item_id}/repair")
+def repair_item(item_id: int, payload: RepairIn, user_id: int = Depends(_current_user)):
+    try:
+        item_record = item_service.get_inventory_item(user_id, item_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Item not owned")
+    missing = 100 - item_record["durability"]
+    if missing <= 0:
+        return {"status": "ok", "maintenance_cents": 0, "new_durability": item_record["durability"]}
+    fee = missing  # 1 cent per durability point
+    try:
+        _economy.transfer(user_id, payload.owner_user_id, fee)
+    except EconomyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    new_dur = item_service.repair_item(user_id, item_id)
+    return {"status": "ok", "maintenance_cents": fee, "new_durability": new_dur}
 
 
 @router.post("/city/{shop_id}/items/{item_id}/sell")
