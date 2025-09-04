@@ -4,13 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from backend.auth.dependencies import get_current_user_id, require_role
 from backend.models.item import Item
 from backend.services.admin_audit_service import audit_dependency
-from backend.services.item_service import ItemService, item_service
+from backend.services.item_service import ItemService
 from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/items", tags=["AdminItems"], dependencies=[Depends(audit_dependency)]
 )
-svc: ItemService = item_service
+svc = ItemService()
 
 
 class ItemIn(BaseModel):

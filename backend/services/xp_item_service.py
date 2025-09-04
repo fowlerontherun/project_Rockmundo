@@ -1,58 +1,164 @@
-"""Service layer for managing XP modifying items."""
+"""Service layer for managing XP modifying items backed by SQLite."""
 from __future__ import annotations
-
+"""Service layer for managing XP modifying items backed by SQLite."""
+import sqlite3
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 from backend.models.xp_item import XPItem
 
 
+DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
+
+
 class XPItemService:
-    def __init__(self) -> None:
-        self._items: Dict[int, XPItem] = {}
-        self._inventories: Dict[int, List[int]] = {}
+    """Persistence-backed XP item management and user inventories."""
+
+    def __init__(self, db_path: str | None = None) -> None:
+        self.db_path = str(db_path or DB_PATH)
+        self.ensure_schema()
         self._active_boosts: Dict[int, List[Tuple[float, datetime]]] = {}
-        self._id_seq = 1
+
+    # ------------------------------------------------------------------
+    # schema helpers
+    # ------------------------------------------------------------------
+    def ensure_schema(self) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS xp_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    effect_type TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    duration INTEGER NOT NULL
+                )
+                """,
+            )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_xp_items (
+                    user_id INTEGER NOT NULL,
+                    item_id INTEGER NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    PRIMARY KEY (user_id, item_id),
+                    FOREIGN KEY (item_id) REFERENCES xp_items(id)
+                )
+                """,
+            )
+            conn.commit()
 
     # ------------------------------------------------------------------
     # CRUD operations
     # ------------------------------------------------------------------
+    def _row_to_item(self, row: sqlite3.Row) -> XPItem:
+        return XPItem(**dict(row))
+
     def list_items(self) -> List[XPItem]:
-        return list(self._items.values())
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT id, name, effect_type, amount, duration FROM xp_items")
+            return [self._row_to_item(r) for r in cur.fetchall()]
 
     def create_item(self, item: XPItem) -> XPItem:
-        item.id = self._id_seq
-        self._items[item.id] = item
-        self._id_seq += 1
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO xp_items (name, effect_type, amount, duration)
+                VALUES (?, ?, ?, ?)
+                """,
+                (item.name, item.effect_type, item.amount, item.duration),
+            )
+            item.id = int(cur.lastrowid or 0)
+            conn.commit()
         return item
 
-    def update_item(self, item_id: int, **changes) -> XPItem:
-        itm = self._items.get(item_id)
-        if not itm:
+    def _get_item(self, item_id: int) -> XPItem:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id, name, effect_type, amount, duration FROM xp_items WHERE id = ?",
+                (item_id,),
+            )
+            row = cur.fetchone()
+        if not row:
             raise ValueError("Item not found")
-        for k, v in changes.items():
-            if hasattr(itm, k) and v is not None:
-                setattr(itm, k, v)
-        return itm
+        return self._row_to_item(row)
+
+    def update_item(self, item_id: int, **changes) -> XPItem:
+        if not changes:
+            return self._get_item(item_id)
+        updates = {k: v for k, v in changes.items() if v is not None}
+        if not updates:
+            return self._get_item(item_id)
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        params = list(updates.values()) + [item_id]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                f"UPDATE xp_items SET {set_clause} WHERE id = ?",
+                params,
+            )
+            if cur.rowcount == 0:
+                raise ValueError("Item not found")
+            conn.commit()
+        return self._get_item(item_id)
 
     def delete_item(self, item_id: int) -> None:
-        if item_id in self._items:
-            del self._items[item_id]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM xp_items WHERE id = ?", (item_id,))
+            cur.execute("DELETE FROM user_xp_items WHERE item_id = ?", (item_id,))
+            conn.commit()
 
     # ------------------------------------------------------------------
     # Inventory management
     # ------------------------------------------------------------------
     def assign_to_user(self, user_id: int, item_id: int) -> None:
-        if item_id not in self._items:
-            raise ValueError("invalid item")
-        self._inventories.setdefault(user_id, []).append(item_id)
+        # ensure item exists
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM xp_items WHERE id = ?", (item_id,))
+            if not cur.fetchone():
+                raise ValueError("invalid item")
+            cur.execute(
+                """
+                INSERT INTO user_xp_items (user_id, item_id, quantity)
+                VALUES (?, ?, 1)
+                ON CONFLICT(user_id, item_id) DO UPDATE SET quantity = quantity + 1
+                """,
+                (user_id, item_id),
+            )
+            conn.commit()
 
     def _pop_from_inventory(self, user_id: int, item_id: int) -> XPItem:
-        inv = self._inventories.get(user_id, [])
-        if item_id not in inv:
-            raise ValueError("item not in inventory")
-        inv.remove(item_id)
-        return self._items[item_id]
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT quantity FROM user_xp_items WHERE user_id = ? AND item_id = ?",
+                (user_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row or row[0] <= 0:
+                raise ValueError("item not in inventory")
+            new_qty = row[0] - 1
+            if new_qty > 0:
+                cur.execute(
+                    "UPDATE user_xp_items SET quantity = ? WHERE user_id = ? AND item_id = ?",
+                    (new_qty, user_id, item_id),
+                )
+            else:
+                cur.execute(
+                    "DELETE FROM user_xp_items WHERE user_id = ? AND item_id = ?",
+                    (user_id, item_id),
+                )
+            conn.commit()
+        return self._get_item(item_id)
 
     # ------------------------------------------------------------------
     # Effect application
@@ -78,6 +184,8 @@ class XPItemService:
         return mult
 
 
+# default shared instance
 xp_item_service = XPItemService()
 
 __all__ = ["XPItemService", "xp_item_service"]
+
