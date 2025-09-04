@@ -51,6 +51,11 @@ async def submit_prompt(payload: PromptPayload, user_id: int = Depends(get_curre
     return draft
 
 
+@router.get("/drafts")
+def list_drafts(user_id: int = Depends(get_current_user_id)):
+    return songwriting_service.list_drafts(user_id)
+
+
 @router.get("/drafts/{draft_id}")
 def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
     draft = songwriting_service.get_draft(draft_id)

@@ -164,8 +164,12 @@ class SongwritingService:
     def get_draft(self, draft_id: int) -> Optional[LyricDraft]:
         return self._drafts.get(draft_id)
 
-    def list_drafts(self, creator_id: int) -> List[LyricDraft]:
-        return [d for d in self._drafts.values() if d.creator_id == creator_id]
+    def list_drafts(self, user_id: int) -> List[LyricDraft]:
+        return [
+            d
+            for d in self._drafts.values()
+            if d.creator_id == user_id or user_id in self._co_writers.get(d.id, set())
+        ]
 
     def update_draft(
         self,
