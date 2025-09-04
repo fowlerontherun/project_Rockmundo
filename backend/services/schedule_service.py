@@ -74,6 +74,7 @@ from backend.models import band_schedule as band_schedule_model
 from backend.models import daily_schedule as schedule_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
+from backend.models import recurring_schedule as recurring_model
 
 
 class ScheduleService:
@@ -262,6 +263,30 @@ class ScheduleService:
         self, user_id: int, week_start: str, day: str, slot: int
     ) -> None:
         weekly_model.remove_entry(user_id, week_start, day, slot)
+
+    # Recurring templates ---------------------------------------------
+    def add_recurring_template(
+        self, user_id: int, pattern: str, hour: int, activity_id: int, active: bool = True
+    ) -> int:
+        return recurring_model.add_template(user_id, pattern, hour, activity_id, active)
+
+    def update_recurring_template(
+        self,
+        template_id: int,
+        pattern: str,
+        hour: int,
+        activity_id: int,
+        active: bool = True,
+    ) -> None:
+        recurring_model.update_template(
+            template_id, pattern, hour, activity_id, active
+        )
+
+    def remove_recurring_template(self, template_id: int) -> None:
+        recurring_model.remove_template(template_id)
+
+    def get_recurring_templates(self, user_id: int) -> List[Dict]:
+        return recurring_model.get_templates(user_id)
 
     # Default plan logic ----------------------------------------------
     def set_default_plan(self, user_id: int, day_of_week: str, plan: List[Dict]) -> None:
