@@ -41,6 +41,29 @@ async def _generate(svc: SongwritingService):
     )
 
 
+def test_list_drafts_includes_co_writers():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        d1 = await svc.generate_draft(
+            creator_id=1,
+            title="A",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+        svc.add_co_writer(d1.id, user_id=1, co_writer_id=2)
+        d2 = await svc.generate_draft(
+            creator_id=3,
+            title="B",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+        assert {d.id for d in svc.list_drafts(1)} == {d1.id}
+        assert {d.id for d in svc.list_drafts(2)} == {d1.id}
+        assert {d.id for d in svc.list_drafts(3)} == {d2.id}
+
+    asyncio.run(run())
+
+
 def test_theme_validation():
     async def run():
         svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
