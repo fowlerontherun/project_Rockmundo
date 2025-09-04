@@ -53,6 +53,15 @@ def apply_lifestyle_decay_and_xp_effects():
             )
             """
         )
+        # Ensure user_energy table exists for recovery
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_energy (
+                user_id INTEGER PRIMARY KEY,
+                energy INTEGER NOT NULL DEFAULT 100
+            )
+            """
+        )
 
         for row in rows:
             user_id = row[1]
@@ -87,6 +96,23 @@ def apply_lifestyle_decay_and_xp_effects():
                     datetime.utcnow().isoformat(),
                     user_id,
                 ),
+            )
+
+            # Recover energy based on sleep, capped at 100
+            cur.execute(
+                "INSERT OR IGNORE INTO user_energy(user_id, energy) VALUES (?, 100)",
+                (user_id,),
+            )
+            cur.execute(
+                "SELECT energy FROM user_energy WHERE user_id = ?",
+                (user_id,),
+            )
+            current_energy = cur.fetchone()[0]
+            recovered = int(sleep * 10)
+            new_energy = min(100, current_energy + recovered)
+            cur.execute(
+                "UPDATE user_energy SET energy = ? WHERE user_id = ?",
+                (new_energy, user_id),
             )
 
             modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental)

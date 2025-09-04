@@ -197,6 +197,20 @@ class ScheduleService:
             energy = cur.fetchone()[0]
             if energy < energy_cost:
                 raise ValueError("Insufficient energy")
+
+            # Ensure the user does not exceed 24 hours of scheduled time
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(a.duration_hours), 0)
+                FROM daily_schedule ds
+                JOIN activities a ON ds.activity_id = a.id
+                WHERE ds.user_id = ? AND ds.date = ?
+                """,
+                (user_id, date),
+            )
+            day_hours = cur.fetchone()[0]
+            if day_hours + duration_hours > 24:
+                raise ValueError("Day exceeds 24 hours")
             if energy_cost:
                 cur.execute(
                     "UPDATE user_energy SET energy = energy - ? WHERE user_id = ?",
