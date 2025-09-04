@@ -12,13 +12,19 @@ interface Item {
   quantity: number;
   restock_interval?: number | null;
   restock_quantity?: number | null;
+=======
+  price_cents: number;
 }
 
 interface Book {
   book_id: number;
   quantity: number;
+
   restock_interval?: number | null;
   restock_quantity?: number | null;
+
+  price_cents: number;
+
 }
 
 const CityShopsAdmin: React.FC = () => {
@@ -59,14 +65,42 @@ const CityShopsAdmin: React.FC = () => {
   ) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
-    const itemId = Number((form.elements.namedItem('itemId') as HTMLInputElement).value);
-    const quantity = Number((form.elements.namedItem('quantity') as HTMLInputElement).value);
+    const itemId = Number(
+      (form.elements.namedItem('itemId') as HTMLInputElement).value,
+    );
+    const quantity = Number(
+      (form.elements.namedItem('quantity') as HTMLInputElement).value,
+    );
+    const price = Number(
+      (form.elements.namedItem('priceCents') as HTMLInputElement).value,
+    );
     await fetch(`/admin/economy/city-shops/${shopId}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item_id: itemId, quantity }),
+      body: JSON.stringify({ item_id: itemId, quantity, price_cents: price }),
     });
     form.reset();
+    loadInventory(shopId);
+  };
+
+  const handleUpdateItem = async (
+    shopId: number,
+    itemId: number,
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const quantity = Number(
+      (form.elements.namedItem('quantity') as HTMLInputElement).value,
+    );
+    const price = Number(
+      (form.elements.namedItem('priceCents') as HTMLInputElement).value,
+    );
+    await fetch(`/admin/economy/city-shops/${shopId}/items/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity, price_cents: price }),
+    });
     loadInventory(shopId);
   };
 
@@ -88,14 +122,42 @@ const CityShopsAdmin: React.FC = () => {
   ) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
-    const bookId = Number((form.elements.namedItem('bookId') as HTMLInputElement).value);
-    const quantity = Number((form.elements.namedItem('quantity') as HTMLInputElement).value);
+    const bookId = Number(
+      (form.elements.namedItem('bookId') as HTMLInputElement).value,
+    );
+    const quantity = Number(
+      (form.elements.namedItem('quantity') as HTMLInputElement).value,
+    );
+    const price = Number(
+      (form.elements.namedItem('priceCents') as HTMLInputElement).value,
+    );
     await fetch(`/admin/economy/city-shops/${shopId}/books`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ book_id: bookId, quantity }),
+      body: JSON.stringify({ book_id: bookId, quantity, price_cents: price }),
     });
     form.reset();
+    loadInventory(shopId);
+  };
+
+  const handleUpdateBook = async (
+    shopId: number,
+    bookId: number,
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const quantity = Number(
+      (form.elements.namedItem('quantity') as HTMLInputElement).value,
+    );
+    const price = Number(
+      (form.elements.namedItem('priceCents') as HTMLInputElement).value,
+    );
+    await fetch(`/admin/economy/city-shops/${shopId}/books/${bookId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity, price_cents: price }),
+    });
     loadInventory(shopId);
   };
 
@@ -214,12 +276,19 @@ const CityShopsAdmin: React.FC = () => {
                       defaultValue={1}
                       className="border px-1"
                     />
+                    <input
+                      name="priceCents"
+                      type="number"
+                      placeholder="Price (¢)"
+                      className="border px-1"
+                    />
                     <button type="submit" className="text-green-500">
                       Add
                     </button>
                   </form>
                   <ul className="mt-2 space-y-1">
                     {(items[shop.id] || []).map((it) => (
+
                       <li key={it.item_id} className="space-y-1">
                         <div className="flex justify-between">
                           <span>
@@ -242,6 +311,38 @@ const CityShopsAdmin: React.FC = () => {
                         <form
                           onSubmit={(e) => handleItemRestock(shop.id, it.item_id, e)}
                           className="space-x-1"
+                      <li
+                        key={it.item_id}
+                        className="flex justify-between items-center space-x-2"
+                      >
+                        <form
+                          onSubmit={(e) =>
+                            handleUpdateItem(shop.id, it.item_id, e)
+                          }
+                          className="flex space-x-2 items-center"
+                        >
+                          <span>Item {it.item_id}</span>
+                          <input
+                            name="quantity"
+                            type="number"
+                            defaultValue={it.quantity}
+                            className="border px-1 w-16"
+                          />
+                          <input
+                            name="priceCents"
+                            type="number"
+                            defaultValue={it.price_cents}
+                            className="border px-1 w-24"
+                          />
+                          <button type="submit" className="text-blue-500">
+                            Update
+                          </button>
+                        </form>
+                        <button
+                          className="text-red-500"
+                          onClick={() =>
+                            handleRemoveItem(shop.id, it.item_id, it.quantity)
+                          }
                         >
                           <input
                             name="interval"
@@ -282,12 +383,19 @@ const CityShopsAdmin: React.FC = () => {
                       defaultValue={1}
                       className="border px-1"
                     />
+                    <input
+                      name="priceCents"
+                      type="number"
+                      placeholder="Price (¢)"
+                      className="border px-1"
+                    />
                     <button type="submit" className="text-green-500">
                       Add
                     </button>
                   </form>
                   <ul className="mt-2 space-y-1">
                     {(books[shop.id] || []).map((b) => (
+
                       <li key={b.book_id} className="space-y-1">
                         <div className="flex justify-between">
                           <span>
@@ -310,6 +418,39 @@ const CityShopsAdmin: React.FC = () => {
                         <form
                           onSubmit={(e) => handleBookRestock(shop.id, b.book_id, e)}
                           className="space-x-1"
+                      <li
+                        key={b.book_id}
+                        className="flex justify-between items-center space-x-2"
+                      >
+                        <form
+                          onSubmit={(e) =>
+                            handleUpdateBook(shop.id, b.book_id, e)
+                          }
+                          className="flex space-x-2 items-center"
+                        >
+                          <span>Book {b.book_id}</span>
+                          <input
+                            name="quantity"
+                            type="number"
+                            defaultValue={b.quantity}
+                            className="border px-1 w-16"
+                          />
+                          <input
+                            name="priceCents"
+                            type="number"
+                            defaultValue={b.price_cents}
+                            className="border px-1 w-24"
+                          />
+                          <button type="submit" className="text-blue-500">
+                            Update
+                          </button>
+                        </form>
+                        <button
+                          className="text-red-500"
+                          onClick={() =>
+                            handleRemoveBook(shop.id, b.book_id, b.quantity)
+                          }
+
                         >
                           <input
                             name="interval"

@@ -52,7 +52,20 @@ async def add_item(shop_id: int, payload: dict, req: Request):
     await _ensure_admin(req)
     item_id = int(payload.get("item_id"))
     qty = int(payload.get("quantity", 1))
-    svc.add_item(shop_id, item_id, qty)
+    price = int(payload.get("price_cents", 0))
+    svc.add_item(shop_id, item_id, qty, price)
+    return {"status": "ok"}
+
+
+@router.put("/{shop_id}/items/{item_id}")
+async def update_item(shop_id: int, item_id: int, payload: dict, req: Request):
+    await _ensure_admin(req)
+    qty = payload.get("quantity")
+    price = payload.get("price_cents")
+    try:
+        svc.update_item(shop_id, item_id, quantity=qty, price_cents=price)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok"}
 
 
@@ -88,7 +101,20 @@ async def add_book(shop_id: int, payload: dict, req: Request):
     await _ensure_admin(req)
     book_id = int(payload.get("book_id"))
     qty = int(payload.get("quantity", 1))
-    svc.add_book(shop_id, book_id, qty)
+    price = int(payload.get("price_cents", 0))
+    svc.add_book(shop_id, book_id, qty, price)
+    return {"status": "ok"}
+
+
+@router.put("/{shop_id}/books/{book_id}")
+async def update_book(shop_id: int, book_id: int, payload: dict, req: Request):
+    await _ensure_admin(req)
+    qty = payload.get("quantity")
+    price = payload.get("price_cents")
+    try:
+        svc.update_book(shop_id, book_id, quantity=qty, price_cents=price)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok"}
 
 
