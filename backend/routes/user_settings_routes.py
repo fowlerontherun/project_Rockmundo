@@ -23,7 +23,13 @@ def get_theme(user_id: int) -> dict[str, str]:
 @router.post("/theme/{user_id}")
 def set_theme(user_id: int, pref: ThemePref) -> dict[str, str]:
     settings = user_settings.get_settings(user_id)
-    user_settings.set_settings(user_id, pref.theme, settings["bio"], settings["links"])
+    user_settings.set_settings(
+        user_id,
+        pref.theme,
+        settings["bio"],
+        settings["links"],
+        settings["timezone"],
+    )
     return {"theme": pref.theme}
 
 
@@ -36,5 +42,11 @@ def get_profile(user_id: int) -> dict:
 @router.post("/profile/{user_id}")
 def set_profile(user_id: int, pref: ProfilePref) -> dict:
     settings = user_settings.get_settings(user_id)
-    user_settings.set_settings(user_id, settings["theme"], pref.bio, pref.links)
+    user_settings.set_settings(
+        user_id,
+        settings["theme"],
+        pref.bio,
+        pref.links,
+        settings["timezone"],
+    )
     return {"bio": pref.bio, "links": pref.links}

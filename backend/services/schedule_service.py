@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from typing import Iterable, Mapping
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
@@ -77,6 +78,7 @@ from backend.models import daily_schedule as schedule_model
 from backend.models import default_schedule as default_model
 from backend.models import weekly_schedule as weekly_model
 from backend.models import recurring_schedule as recurring_model
+from backend.models import user_settings
 
 
 def _log_schedule_change(user_id: int, date: str, slot: int, before, after) -> None:
@@ -97,6 +99,30 @@ def _log_schedule_change(user_id: int, date: str, slot: int, before, after) -> N
             ),
         )
         conn.commit()
+
+
+def _get_user_tz(user_id: int) -> ZoneInfo:
+    tz_name = user_settings.get_settings(user_id).get("timezone", "UTC")
+    try:
+        return ZoneInfo(tz_name)
+    except Exception:
+        return ZoneInfo("UTC")
+
+
+def _to_server(date: str, slot: int, tz: ZoneInfo) -> tuple[str, int]:
+    dt_local = datetime.fromisoformat(date).replace(tzinfo=tz) + timedelta(
+        minutes=slot * 15
+    )
+    dt_utc = dt_local.astimezone(ZoneInfo("UTC"))
+    return dt_utc.strftime("%Y-%m-%d"), dt_utc.hour * 4 + dt_utc.minute // 15
+
+
+def _to_user(date: str, slot: int, tz: ZoneInfo) -> tuple[str, int]:
+    dt_utc = datetime.fromisoformat(date).replace(tzinfo=ZoneInfo("UTC")) + timedelta(
+        minutes=slot * 15
+    )
+    dt_local = dt_utc.astimezone(tz)
+    return dt_local.strftime("%Y-%m-%d"), dt_local.hour * 4 + dt_local.minute // 15
 
 
 class ScheduleService:
@@ -169,6 +195,10 @@ class ScheduleService:
         duration is found and the originally conflicting slots are returned.
         """
 
+        tz = _get_user_tz(user_id)
+
+        server_date, server_slot = _to_server(date, slot, tz)
+
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
             cur = conn.cursor()
             # Ensure helper tables
@@ -227,7 +257,7 @@ class ScheduleService:
                 JOIN activities a ON ds.activity_id = a.id
                 WHERE ds.user_id = ? AND ds.date = ?
                 """,
-                (user_id, date),
+                (user_id, server_date),
             )
             day_hours = cur.fetchone()[0]
             if day_hours + duration_hours > 24:
@@ -240,31 +270,33 @@ class ScheduleService:
             conn.commit()
 
         slots_needed = max(1, int(duration_hours * 4))
-        dates = [
+        dates_local = [
             (
                 datetime.fromisoformat(date) + timedelta(days=i)
             ).strftime("%Y-%m-%d")
             for i in range(duration_days)
         ]
+        server_dates_slots = [_to_server(d, slot, tz) for d in dates_local]
         conflicts_set: set[int] = set()
-        for d in dates:
+        for d_s, s_s in server_dates_slots:
             conflicts_set.update(
-                schedule_model.find_conflicts(user_id, d, slot, slots_needed)
+                schedule_model.find_conflicts(user_id, d_s, s_s, slots_needed)
             )
         original_conflicts = sorted(conflicts_set)
         if conflicts_set:
             if auto_split:
-                new_slot = slot
+                new_slot = server_slot
                 while conflicts_set:
                     new_slot = max(conflicts_set) + 1
                     conflicts_set = set()
-                    for d in dates:
+                    for d_s, _ in server_dates_slots:
                         conflicts_set.update(
                             schedule_model.find_conflicts(
-                                user_id, d, new_slot, slots_needed
+                                user_id, d_s, new_slot, slots_needed
                             )
                         )
-                slot = new_slot
+                server_slot = new_slot
+                server_dates_slots = [(d_s, server_slot) for d_s, _ in server_dates_slots]
             else:
                 err = ValueError("Schedule conflict")
                 err.conflicts = sorted(conflicts_set)
@@ -274,52 +306,71 @@ class ScheduleService:
             cur = conn.cursor()
             cur.execute(
                 "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
-                (user_id, date, slot),
+                (user_id, server_dates_slots[0][0], server_slot),
             )
             row = cur.fetchone()
             before = {"activity_id": row[0]} if row else None
 
-        schedule_model.add_entry(user_id, date, slot, activity_id)
+        schedule_model.add_entry(user_id, server_dates_slots[0][0], server_slot, activity_id)
         _log_schedule_change(
-            user_id, date, slot, before, {"activity_id": activity_id}
+            user_id, server_dates_slots[0][0], server_slot, before, {"activity_id": activity_id}
         )
 
-        for d in dates:
-            schedule_model.add_entry(user_id, d, slot, activity_id)
+        for d_s, s_s in server_dates_slots:
+            schedule_model.add_entry(user_id, d_s, s_s, activity_id)
         return original_conflicts if auto_split else None
 
     def update_schedule_entry(
         self, user_id: int, date: str, slot: int, activity_id: int
     ) -> None:
+        tz = _get_user_tz(user_id)
+        server_date, server_slot = _to_server(date, slot, tz)
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
             cur = conn.cursor()
             cur.execute(
                 "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
-                (user_id, date, slot),
+                (user_id, server_date, server_slot),
             )
             row = cur.fetchone()
             before = {"activity_id": row[0]} if row else None
 
-        schedule_model.update_entry(user_id, date, slot, activity_id)
+        schedule_model.update_entry(user_id, server_date, server_slot, activity_id)
         _log_schedule_change(
-            user_id, date, slot, before, {"activity_id": activity_id}
+            user_id, server_date, server_slot, before, {"activity_id": activity_id}
         )
 
     def remove_schedule_entry(self, user_id: int, date: str, slot: int) -> None:
+        tz = _get_user_tz(user_id)
+        server_date, server_slot = _to_server(date, slot, tz)
         with sqlite3.connect(schedule_model.DB_PATH) as conn:
             cur = conn.cursor()
             cur.execute(
                 "SELECT activity_id FROM daily_schedule WHERE user_id=? AND date=? AND slot=?",
-                (user_id, date, slot),
+                (user_id, server_date, server_slot),
             )
             row = cur.fetchone()
             before = {"activity_id": row[0]} if row else None
 
-        schedule_model.remove_entry(user_id, date, slot)
-        _log_schedule_change(user_id, date, slot, before, None)
+        schedule_model.remove_entry(user_id, server_date, server_slot)
+        _log_schedule_change(user_id, server_date, server_slot, before, None)
 
     def get_daily_schedule(self, user_id: int, date: str) -> List[Dict]:
-        return schedule_model.get_schedule(user_id, date)
+        tz = _get_user_tz(user_id)
+        server_start, _ = _to_server(date, 0, tz)
+        next_day = (
+            datetime.fromisoformat(date) + timedelta(days=1)
+        ).strftime("%Y-%m-%d")
+        server_end, _ = _to_server(next_day, 0, tz)
+        candidates = {server_start, server_end}
+        results: List[Dict] = []
+        for d in candidates:
+            for entry in schedule_model.get_schedule(user_id, d):
+                local_date, local_slot = _to_user(d, entry["slot"], tz)
+                if local_date == date:
+                    e = entry.copy()
+                    e["slot"] = local_slot
+                    results.append(e)
+        return sorted(results, key=lambda e: e["slot"])
 
     def get_schedule_history(self, date: str) -> List[Dict]:
         with sqlite3.connect(schedule_model.DB_PATH) as conn:

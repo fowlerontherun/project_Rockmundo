@@ -43,10 +43,13 @@ export function initAdvancedPlanner() {
       const slot = document.createElement('div');
       const minutes = q * 15;
       const time = `${String(h).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+      const d = new Date();
+      d.setHours(h, minutes, 0, 0);
+      const label = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       slot.className = 'slot';
       slot.draggable = true;
       slot.dataset.time = time;
-      slot.textContent = time;
+      slot.textContent = label;
       slot.addEventListener('dragstart', (e) => {
         e.dataTransfer.setData('text/plain', time);
       });
