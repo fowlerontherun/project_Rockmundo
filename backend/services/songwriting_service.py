@@ -218,7 +218,12 @@ class SongwritingService:
             raise PermissionError("forbidden")
         if self.band_service and not self.band_service.share_band(user_id, co_writer_id):
             raise PermissionError("forbidden")
-        self._co_writers.setdefault(draft_id, set()).add(co_writer_id)
+        if co_writer_id == user_id:
+            raise ValueError("cannot_invite_self")
+        co_writers = self._co_writers.setdefault(draft_id, set())
+        if co_writer_id in co_writers:
+            raise ValueError("already_invited")
+        co_writers.add(co_writer_id)
 
     def save_version(
         self,

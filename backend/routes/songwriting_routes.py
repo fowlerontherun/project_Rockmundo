@@ -116,6 +116,12 @@ def add_co_writer(
         raise HTTPException(status_code=404, detail="draft_not_found")
     except PermissionError:
         raise HTTPException(status_code=403, detail="forbidden")
+    except ValueError as exc:
+        if str(exc) == "cannot_invite_self":
+            raise HTTPException(status_code=400, detail=str(exc))
+        if str(exc) == "already_invited":
+            raise HTTPException(status_code=409, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc))
     return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
 @router.get("/themes")
 def list_themes():

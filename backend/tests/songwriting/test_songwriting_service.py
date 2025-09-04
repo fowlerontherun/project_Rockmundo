@@ -1,13 +1,16 @@
 import asyncio
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.services.band_service import BandService, Base
-from backend.services.originality_service import OriginalityService
-from backend.services.skill_service import SONGWRITING_SKILL, SkillService
-from backend.services.songwriting_service import SongwritingService
+Path(__file__).resolve().parents[2].joinpath("database").mkdir(exist_ok=True)
+
+from backend.services.band_service import BandService, Base  # noqa: E402
+from backend.services.originality_service import OriginalityService  # noqa: E402
+from backend.services.skill_service import SONGWRITING_SKILL, SkillService  # noqa: E402
+from backend.services.songwriting_service import SongwritingService  # noqa: E402
 
 
 class FakeLLM:
@@ -262,5 +265,28 @@ def test_chemistry_quality_modifier():
         assert draft_low.metadata.quality_modifier == pytest.approx(0.6)
         assert draft_high.metadata.chemistry == 90
         assert draft_low.metadata.chemistry == 10
+
+    asyncio.run(run())
+
+
+def test_add_co_writer_self_invite():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+        with pytest.raises(ValueError):
+            svc.add_co_writer(draft.id, user_id=1, co_writer_id=1)
+        assert not svc.get_co_writers(draft.id)
+
+    asyncio.run(run())
+
+
+def test_add_co_writer_duplicate_invite():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+        svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+        with pytest.raises(ValueError):
+            svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+        assert svc.get_co_writers(draft.id) == {2}
 
     asyncio.run(run())
