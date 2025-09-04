@@ -189,7 +189,7 @@ def test_versioning_and_band_mates():
 
         # add a band member and allow edits
         band_service.add_member(band.id, user_id=2)
-        svc.update_draft(draft.id, user_id=2, lyrics="co-write", chords="A B")
+        svc.update_draft(draft.id, user_id=2, lyrics="co-write", chord_progression="A B")
 
         # add a co-writer and allow edits
         svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
@@ -209,3 +209,29 @@ def test_versioning_and_band_mates():
 
     asyncio.run(run())
 
+
+
+def test_chemistry_quality_modifier():
+    class StubChem:
+        def __init__(self, score):
+            self.score = score
+
+        def initialize_pair(self, a, b):
+            return type("P", (), {"score": self.score})()
+
+        def adjust_pair(self, a, b, d):
+            return self.initialize_pair(a, b)
+
+    async def run():
+        high = SongwritingService(llm_client=FakeLLM(), chemistry_service=StubChem(90))
+        low = SongwritingService(llm_client=FakeLLM(), chemistry_service=StubChem(10))
+        high._co_writers[high._counter] = {2}
+        low._co_writers[low._counter] = {2}
+        draft_high = await _generate(high)
+        draft_low = await _generate(low)
+        assert draft_high.metadata.quality_modifier == pytest.approx(1.4)
+        assert draft_low.metadata.quality_modifier == pytest.approx(0.6)
+        assert draft_high.metadata.chemistry == 90
+        assert draft_low.metadata.chemistry == 10
+
+    asyncio.run(run())

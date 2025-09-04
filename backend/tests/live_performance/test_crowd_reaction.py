@@ -35,10 +35,19 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
         "CREATE TABLE setlist_summaries (id INTEGER PRIMARY KEY AUTOINCREMENT, performance_id INTEGER, summary TEXT, created_at TEXT)"
     )
     cur.execute(
+        "CREATE TABLE band_members (band_id INTEGER, user_id INTEGER)"
+    )
+    cur.execute(
         "CREATE TABLE setlist_revisions (id INTEGER PRIMARY KEY AUTOINCREMENT, setlist_id INTEGER NOT NULL, setlist TEXT NOT NULL, author TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, approved INTEGER DEFAULT 0)"
     )
     cur.execute("INSERT INTO bands (id, fame, skill, revenue) VALUES (1, 100, 0, 0)")
-    cur.execute("INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id, legacy_state) VALUES (1, 1, 'Song A', 0, '', 0, NULL, 'new')")
+    cur.executemany(
+        "INSERT INTO band_members (band_id, user_id) VALUES (?, ?)",
+        [(1, 1), (1, 2)],
+    )
+    cur.execute(
+        "INSERT INTO songs (id, band_id, title, duration_sec, genre, play_count, original_song_id, legacy_state) VALUES (1, 1, 'Song A', 0, '', 0, NULL, 'new')"
+    )
     conn.commit()
     conn.close()
 
@@ -48,6 +57,11 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
     monkeypatch.setattr(live_performance_service.random, "randint", lambda a, b: a)
     monkeypatch.setattr(live_performance_service.gear_service, "get_band_bonus", lambda band_id, name: 0)
     monkeypatch.setattr(live_performance_service, "is_skill_blocked", lambda band_id, skill_id: False)
+    monkeypatch.setattr(
+        live_performance_service.chemistry_service,
+        "initialize_pair",
+        lambda a, b: type("P", (), {"score": 90})(),
+    )
 
     setlist = [
         {"type": "song", "reference": "1"},
@@ -74,16 +88,16 @@ def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):
     result = live_performance_service.simulate_gig(1, "Metro", "The Spot", setlist, reaction_stream=reaction)
 
 
-    assert result["fame_earned"] == 25
+    assert result["fame_earned"] == 27
 
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     cur.execute("SELECT action, crowd_reaction, fame_modifier FROM performance_events ORDER BY id")
     rows = cur.fetchall()
-    assert rows == [("song", 0.9, 0), ("song", 0.9, 1)]
+    assert rows == [("song", 1.0, 0), ("song", 1.0, 1)]
     cur.execute("SELECT summary FROM setlist_summaries")
     summary = json.loads(cur.fetchone()[0])
-    assert summary["average_reaction"] == 0.9
+    assert summary["average_reaction"] == 1.0
     assert summary["actions"][0]["cheers"] == 0.9
     conn.close()
 
