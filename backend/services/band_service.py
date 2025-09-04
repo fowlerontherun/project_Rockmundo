@@ -10,11 +10,12 @@ are executed atomically.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Iterable, Optional
+from typing import Callable, Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_engine, func
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+from backend.services.chemistry_service import ChemistryService
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -75,8 +76,13 @@ Base.metadata.create_all(bind=engine)
 class BandService:
     """Service layer providing band management helpers."""
 
-    def __init__(self, session_factory: Callable[[], Session] | sessionmaker = SessionLocal):
+    def __init__(
+        self,
+        session_factory: Callable[[], Session] | sessionmaker = SessionLocal,
+        chemistry_service: ChemistryService | None = None,
+    ):
         self.session_factory = session_factory
+        self.chemistry_service = chemistry_service or ChemistryService(session_factory)
 
     # ------------------------------------------------------------------
     def create_band(self, user_id: int, band_name: str, genre: str) -> Band:
@@ -102,8 +108,18 @@ class BandService:
                     .filter_by(band_id=band_id, user_id=user_id)
                     .first()
                 )
-                if not exists:
-                    session.add(BandMember(band_id=band_id, user_id=user_id, role=role))
+                if exists:
+                    return
+                existing_members = [
+                    uid
+                    for (uid,) in session.query(BandMember.user_id).filter_by(
+                        band_id=band_id
+                    )
+                ]
+                session.add(BandMember(band_id=band_id, user_id=user_id, role=role))
+
+        for uid in existing_members:
+            self.chemistry_service.initialize_pair(user_id, uid)
 
     # ------------------------------------------------------------------
     def remove_member(self, band_id: int, user_id: int) -> None:
