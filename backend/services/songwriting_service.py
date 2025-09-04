@@ -7,6 +7,18 @@ from backend.models.song import Song
 from backend.models.song_draft_version import SongDraftVersion
 from backend.models.songwriting import GenerationMetadata, LyricDraft
 from backend.services.ai_art_service import AIArtService, ai_art_service
+from backend.services.originality_service import (
+    OriginalityService,
+    originality_service,
+)
+from backend.services.skill_service import (
+    SkillService,
+    skill_service as skill_service_instance,
+)
+from backend.services.band_service import BandService
+
+if TYPE_CHECKING:  # pragma: no cover - type checking only
+=======
 from backend.services.originality_service import OriginalityService, originality_service
 from backend.services.skill_service import SkillService
 from backend.services.skill_service import skill_service as skill_service_instance
@@ -181,6 +193,8 @@ class SongwritingService:
             raise KeyError("draft_not_found")
         if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
             raise PermissionError("forbidden")
+        if self.band_service and not self.band_service.share_band(user_id, co_writer_id):
+            raise PermissionError("forbidden")
         self._co_writers.setdefault(draft_id, set()).add(co_writer_id)
 
     def save_version(
@@ -210,4 +224,4 @@ class SongwritingService:
         return self._songs.get(draft_id)
 
 
-songwriting_service = SongwritingService()
+songwriting_service = SongwritingService(band_service=BandService())

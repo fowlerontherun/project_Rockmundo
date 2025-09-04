@@ -145,7 +145,11 @@ def test_xp_gain_and_quality_modifier():
 
 def test_versioning_and_co_writers():
     async def run():
-        svc = SongwritingService(llm_client=FakeLLM())
+        class DummyBandService:
+            def share_band(self, a, b):
+                return {1: {2}, 2: {1}}.get(a, set()).__contains__(b)
+
+        svc = SongwritingService(llm_client=FakeLLM(), band_service=DummyBandService())
         draft = await svc.generate_draft(
             creator_id=1,
             title="collab",
@@ -161,6 +165,10 @@ def test_versioning_and_co_writers():
         versions = svc.list_versions(draft.id)
         assert len(versions) == 2
         assert versions[-1].author_id == 2
+
+        # cannot add non-bandmate
+        with pytest.raises(PermissionError):
+            svc.add_co_writer(draft.id, user_id=1, co_writer_id=3)
 
         # unauthorized user
         with pytest.raises(PermissionError):

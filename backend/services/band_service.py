@@ -170,6 +170,23 @@ class BandService:
         return {"total": amount, "per_member": share, "payouts": payouts}
 
     # ------------------------------------------------------------------
+    def share_band(self, user_a: int, user_b: int) -> bool:
+        """Return True if two users are members of the same band."""
+
+        with self.session_factory() as session:
+            bands_a = (
+                session.query(BandMember.band_id)
+                .filter_by(user_id=user_a)
+                .subquery()
+            )
+            return (
+                session.query(BandMember)
+                .filter(BandMember.user_id == user_b, BandMember.band_id.in_(bands_a))
+                .first()
+                is not None
+            )
+
+    # ------------------------------------------------------------------
     def create_collaboration(
         self, band_1_id: int, band_2_id: int, project_type: str, title: str
     ) -> BandCollaboration:
@@ -268,6 +285,10 @@ def get_band_collaborations(band_id: int) -> list[dict]:
     return _service.get_band_collaborations(band_id)
 
 
+def share_band(user_a: int, user_b: int) -> bool:
+    return _service.share_band(user_a, user_b)
+
+
 __all__ = [
     "BandService",
     "Band",
@@ -279,5 +300,6 @@ __all__ = [
     "get_band_info",
     "split_earnings",
     "get_band_collaborations",
+    "share_band",
 ]
 
