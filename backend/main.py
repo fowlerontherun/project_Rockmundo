@@ -12,6 +12,7 @@ from middleware.locale import LocaleMiddleware
 from middleware.observability import ObservabilityMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from routes import (
+    admin_analytics_routes,
     admin_routes,
     admin_media_moderation_routes,
     apprenticeship_routes,
@@ -27,6 +28,7 @@ from routes import (
     media_routes,
     membership_routes,
     mail_routes,
+    membership_routes,
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
@@ -100,10 +102,12 @@ app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
 app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
 app.include_router(
+
     admin_media_moderation_routes.router,
     prefix="/admin",
     tags=["Admin Media Moderation"],
-)
+    admin_analytics_routes.router, prefix="/api", tags=["Admin Analytics"]
+
 app.include_router(admin_mfa_router)
 app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprenticeships"])
 
