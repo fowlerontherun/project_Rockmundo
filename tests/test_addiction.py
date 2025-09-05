@@ -47,14 +47,7 @@ def test_negative_event_trigger(tmp_path, monkeypatch):
     svc = _service(tmp_path, monkeypatch)
     monkeypatch.setattr(random_event_module, "addiction_service", svc)
     monkeypatch.setattr(random_event_service, "db", None)
-    called = []
-
-    def fake_clear(user_id, day):
-        called.append((user_id, day))
-
-    monkeypatch.setattr(random_event_module, "clear_day", fake_clear)
 
     svc.use(1, "drug", amount=80)
     event = random_event_service.trigger_addiction_event(1, date="2024-01-01")
     assert event["type"] == "police_intervention"
-    assert called == [(1, "2024-01-01")]

@@ -1,11 +1,9 @@
 import random
-from datetime import datetime
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.models.random_event import RandomEvent
 from backend.models.skill import Skill
-from backend.models.daily_schedule import clear_day
 from backend.models.random_events import ADDICTION_EVENTS
 from backend.services.addiction_service import addiction_service
 from backend.services.notifications_service import NotificationsService
@@ -159,10 +157,16 @@ class RandomEventService:
     # ------------------------------------------------------------------
     # Addiction-related events
     # ------------------------------------------------------------------
-    def trigger_addiction_event(self, user_id: int, *, date: str | None = None):
-        """Trigger negative events based on user's addiction level."""
+    def trigger_addiction_event(
+        self, user_id: int, *, level: int | None = None, date: str | None = None
+    ):
+        """Trigger negative events based on the user's addiction level.
 
-        level = addiction_service.get_highest_level(user_id)
+        The caller may provide ``level`` to avoid an extra lookup.  The schedule
+        is not modified here; callers decide how to handle any cancelled events.
+        """
+
+        level = level if level is not None else addiction_service.get_highest_level(user_id)
         if level < 50:
             return None
         if level >= 100:
@@ -187,9 +191,6 @@ class RandomEventService:
         if self.db:
             self.db.insert_random_event(event)
         self._apply_impact(event)
-
-        # Skip conflicting appointments for the day
-        clear_day(user_id, date or datetime.utcnow().date().isoformat())
         return event.to_dict()
 
     # ------------------------------------------------------------------
