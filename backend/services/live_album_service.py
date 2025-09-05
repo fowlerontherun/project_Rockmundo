@@ -6,6 +6,7 @@ from typing import Dict, List
 from models.album import Album
 
 from backend.database import DB_PATH
+from backend.services import audio_mixing_service
 from backend.services.ai_art_service import ai_art_service
 
 
@@ -102,6 +103,14 @@ class LiveAlbumService:
                     "performance_score": score,
                 }
             )
+
+        # Mix the selected performances to produce final track identifiers
+        mixed_ids = audio_mixing_service.mix_tracks(
+            [t["performance_id"] for t in tracks]
+        )
+        for track, mixed_id in zip(tracks, mixed_ids):
+            track["track_id"] = mixed_id
+            del track["performance_id"]
 
         themes = list(cities | venues)
         try:

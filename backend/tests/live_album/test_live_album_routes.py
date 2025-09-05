@@ -4,6 +4,7 @@ import sqlite3
 from fastapi import FastAPI
 
 from backend.routes import live_album_routes
+from backend.services import audio_mixing_service
 
 
 def _insert_performance(cur, band_id, setlist, skill_gain, perf_score, city="", venue=""):
@@ -28,7 +29,7 @@ def _insert_performance(cur, band_id, setlist, skill_gain, perf_score, city="", 
     )
 
 
-def test_compile_route(tmp_path, client_factory):
+def test_compile_route(tmp_path, client_factory, monkeypatch):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -68,6 +69,14 @@ def test_compile_route(tmp_path, client_factory):
     conn.commit()
     conn.close()
 
+    called = {}
+
+    def fake_mix(ids):
+        called["ids"] = ids
+        return [pid + 1000 for pid in ids]
+
+    monkeypatch.setattr(audio_mixing_service, "mix_tracks", fake_mix)
+
     live_album_routes.service.db_path = str(db_file)
     app = FastAPI()
     app.include_router(live_album_routes.router, prefix="/api")
@@ -78,7 +87,8 @@ def test_compile_route(tmp_path, client_factory):
     data = resp.json()
 
     assert data["song_ids"] == [1, 2]
-    assert all(t["performance_id"] == 5 for t in data["tracks"])
+    assert called["ids"] == [5, 5]
+    assert all(t["track_id"] == 1005 for t in data["tracks"])
     assert data["cover_art"]
 
 

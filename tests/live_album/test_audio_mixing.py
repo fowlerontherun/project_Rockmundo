@@ -1,0 +1,88 @@
+import json
+import sqlite3
+
+import pytest
+
+from backend.services import audio_mixing_service
+from backend.services.live_album_service import LiveAlbumService
+
+
+def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
+    cur.execute(
+        """
+        INSERT INTO live_performances (
+            band_id, city, venue, date, setlist, crowd_size, fame_earned,
+            revenue_earned, skill_gain, merch_sold
+        ) VALUES (?, ?, ?, '', ?, 0, 0, 0, ?, 0)
+        """,
+        (band_id, city, venue, json.dumps(setlist), skill_gain),
+    )
+
+
+def test_mixing_invoked_and_tracks_stored(tmp_path, monkeypatch):
+    db_file = tmp_path / "perf.db"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE live_performances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            band_id INTEGER,
+            city TEXT,
+            venue TEXT,
+            date TEXT,
+            setlist TEXT,
+            crowd_size INTEGER,
+            fame_earned INTEGER,
+            revenue_earned INTEGER,
+            skill_gain REAL,
+            merch_sold INTEGER
+        )
+        """,
+    )
+    cur.execute(
+        """
+        CREATE TABLE recorded_tracks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            song_id INTEGER,
+            performance_score REAL,
+            created_at TEXT
+        )
+        """,
+    )
+    setlist = {
+        "setlist": [
+            {"type": "song", "reference": "1"},
+            {"type": "song", "reference": "2"},
+        ],
+        "encore": [],
+    }
+    scores = [10, 20, 30, 40, 50]
+    for idx, score in enumerate(scores, start=1):
+        _insert_performance(cur, 1, setlist, 0.0, f"City {idx}", f"Venue {idx}")
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
+            (idx, score),
+        )
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 2, ?, '')",
+            (idx, score),
+        )
+    conn.commit()
+    conn.close()
+
+    called = {}
+
+    def fake_mix(ids):
+        called["ids"] = ids
+        return [pid + 500 for pid in ids]
+
+    monkeypatch.setattr(audio_mixing_service, "mix_tracks", fake_mix)
+
+    service = LiveAlbumService(str(db_file))
+    album = service.compile_live_album([1, 2, 3, 4, 5], "Live")
+
+    assert called["ids"] == [5, 5]
+    assert [t["track_id"] for t in album["tracks"]] == [505, 505]
+    assert all("performance_id" not in t for t in album["tracks"])
