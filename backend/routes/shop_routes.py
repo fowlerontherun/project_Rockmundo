@@ -10,6 +10,7 @@ from backend.services.item_service import item_service
 from backend.services.loyalty_service import loyalty_service
 from backend.services.membership_service import membership_service
 from backend.services.shop_npc_service import shop_npc_service
+from backend.services.city_shop_service import city_shop_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
 
@@ -121,6 +122,22 @@ def sell_item(shop_id: int, item_id: int, payload: SellIn, user_id: int = Depend
     return {"status": "ok", "payout_cents": payout}
 
 
+@router.post("/city/{shop_id}/drugs/{drug_id}/purchase")
+def purchase_drug(
+    shop_id: int,
+    drug_id: int,
+    payload: PurchaseIn,
+    user_id: int = Depends(_current_user),
+):
+    try:
+        total = shop_npc_service.purchase_drug(
+            shop_id, user_id, drug_id, payload.quantity
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "total_cents": total}
+
+
 @router.post("/city/{shop_id}/bundles/{bundle_id}/purchase")
 def purchase_bundle(
     shop_id: int,
@@ -170,6 +187,15 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
 def sell_book(shop_id: int, book_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
     try:
         payout = city_shop_service.sell_book(shop_id, user_id, book_id, payload.quantity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "payout_cents": payout}
+
+
+@router.post("/city/{shop_id}/drugs/{drug_id}/sell")
+def sell_drug(shop_id: int, drug_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
+    try:
+        payout = city_shop_service.sell_drug(shop_id, user_id, drug_id, payload.quantity)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "payout_cents": payout}
