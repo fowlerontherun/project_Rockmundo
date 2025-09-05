@@ -13,8 +13,8 @@ from middleware.observability import ObservabilityMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_analytics_routes,
-    admin_routes,
     admin_media_moderation_routes,
+    admin_routes,
     apprenticeship_routes,
     avatar,
     character,
@@ -23,6 +23,7 @@ from routes import (
     daily_loop_routes,
     event_routes,
     gifting_routes,
+    jobs_routes,
     legacy_routes,
     lifestyle_routes,
     locale_routes,
@@ -102,12 +103,14 @@ app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
 app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
 app.include_router(
-
     admin_media_moderation_routes.router,
     prefix="/admin",
     tags=["Admin Media Moderation"],
+)
+app.include_router(
     admin_analytics_routes.router, prefix="/api", tags=["Admin Analytics"]
-
+)
+app.include_router(jobs_routes.router, prefix="/api", tags=["Admin Jobs"])
 app.include_router(admin_mfa_router)
 app.include_router(apprenticeship_routes.router, prefix="/api", tags=["Apprenticeships"])
 
