@@ -36,9 +36,12 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
 
 def apply_lifestyle_decay_and_xp_effects() -> int:
     from .skill_service import skill_service  # local import to avoid cycle
-    from .lifestyle_service import grant_daily_xp
+    from .lifestyle_service import grant_daily_xp, log_exercise_session
     from .addiction_service import addiction_service
-    from .random_event_service import random_event_service
+    try:
+        from .random_event_service import random_event_service
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency
+        random_event_service = None
 
     event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
@@ -90,11 +93,25 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             discipline = max(0, row[5] - DECAY["training_discipline"])
             mental = max(0, row[6] - DECAY["mental_health"])
 
+            # Process scheduled exercise and apply cooldown-based benefits
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(hours), 0)
+                FROM schedule
+                WHERE user_id = ? AND day = ? AND tag = 'exercise'
+                """,
+                (user_id, today),
+            )
+            exercise_hours = cur.fetchone()[0]
+            if exercise_hours > 0:
+                # Convert to minutes for the service call
+                log_exercise_session(user_id, int(exercise_hours * 60), conn)
+
             # Additional penalties from addictions
             addiction_level = addiction_service.get_highest_level(user_id)
             if addiction_level > 0:
                 mental = max(0, mental - addiction_level * 0.1)
-                if addiction_level >= 50:
+                if addiction_level >= 50 and random_event_service:
                     random_event_service.trigger_addiction_event(user_id)
 
             cur.execute(

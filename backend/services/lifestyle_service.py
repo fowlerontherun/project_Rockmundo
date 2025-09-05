@@ -1,11 +1,79 @@
 # services/lifestyle_service.py
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import sqlite3
 
+from backend.database import DB_PATH
+
 from .skill_service import skill_service
 from .xp_reward_service import xp_reward_service
+
+# ---------------------------------------------------------------------------
+# Exercise handling
+
+# Minimum time between exercise sessions to receive full benefits.
+EXERCISE_COOLDOWN = timedelta(hours=6)
+# Fitness bonus granted when exercising outside the cooldown window.
+EXERCISE_FITNESS_BONUS = 5
+
+
+def log_exercise_session(
+    user_id: int, minutes: int, conn: sqlite3.Connection | None = None
+) -> bool:
+    """Record an exercise session and apply fitness gains with cooldown.
+
+    Parameters
+    ----------
+    user_id: int
+        The id of the exercising user.
+    minutes: int
+        Duration of the session in minutes.
+    conn: sqlite3.Connection | None
+        Optional existing connection to reuse.
+
+    Returns
+    -------
+    bool
+        ``True`` if the session granted full benefits, ``False`` otherwise.
+    """
+
+    now = datetime.utcnow()
+    own_conn = conn is None
+    if own_conn:
+        conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT fitness, exercise_minutes, last_exercise FROM lifestyle WHERE user_id = ?",
+        (user_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        if own_conn:
+            conn.close()
+        return False
+
+    fitness, total_minutes, last = row
+    full_benefit = True
+    if last:
+        last_dt = datetime.fromisoformat(last)
+        if now - last_dt < EXERCISE_COOLDOWN:
+            full_benefit = False
+
+    gain = EXERCISE_FITNESS_BONUS if full_benefit else 0
+    new_fitness = min(100, fitness + gain)
+    cur.execute(
+        """
+        UPDATE lifestyle
+        SET fitness = ?, exercise_minutes = ?, last_exercise = ?
+        WHERE user_id = ?
+        """,
+        (new_fitness, total_minutes + minutes, now.isoformat(), user_id),
+    )
+    conn.commit()
+    if own_conn:
+        conn.close()
+    return full_benefit
 
 def calculate_lifestyle_score(data):
     # Composite score from normalized attributes
@@ -113,4 +181,5 @@ __all__ = [
     "evaluate_lifestyle_risks",
     "apply_recovery_action",
     "grant_daily_xp",
+    "log_exercise_session",
 ]
