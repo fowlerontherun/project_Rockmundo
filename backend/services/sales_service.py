@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from backend.services.song_popularity_service import add_event
+from backend.services.economy_service import EconomyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -18,8 +19,10 @@ class SalesError(Exception):
     pass
 
 class SalesService:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, economy: Optional[EconomyService] = None):
         self.db_path = str(db_path or DB_PATH)
+        # Allow injecting a custom economy instance for tests
+        self.economy = economy or EconomyService(self.db_path)
 
     def ensure_schema(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
@@ -92,23 +95,68 @@ class SalesService:
     def _now(self) -> str:
         return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    def record_digital_sale(self, buyer_user_id: int, work_type: str, work_id: int, price_cents: int, currency: str = "USD", source: Optional[str] = "store") -> int:
+    def record_digital_sale(
+        self,
+        buyer_user_id: int,
+        work_type: str,
+        work_id: int,
+        price_cents: int,
+        currency: str = "USD",
+        source: Optional[str] = "store",
+        album_type: Optional[str] = None,
+    ) -> int:
+        """Record a digital sale and deposit earnings to the owning band.
+
+        Parameters
+        ----------
+        album_type:
+            Only relevant when ``work_type`` is ``"album"``. Accepts
+            ``"studio"`` or ``"live"``. Defaults to ``"studio"``.
+        """
+
         work_type = work_type.lower()
         if work_type not in ("song", "album"):
             raise SalesError("work_type must be 'song' or 'album'")
+
+        band_id: Optional[int] = None
+        if work_type == "album":
+            album_type = (album_type or "studio").lower()
+            if album_type not in ("studio", "live"):
+                raise SalesError("album_type must be 'studio' or 'live'")
+
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO digital_sales (buyer_user_id, work_type, work_id, price_cents, currency, source)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (buyer_user_id, work_type, work_id, price_cents, currency, source))
+                """,
+                (buyer_user_id, work_type, work_id, price_cents, currency, source),
+            )
+
+            if work_type == "album":
+                try:
+                    cur.execute("SELECT band_id FROM releases WHERE id = ?", (work_id,))
+                    row = cur.fetchone()
+                    if row and row[0] is not None:
+                        band_id = int(row[0])
+                except sqlite3.OperationalError:
+                    band_id = None
+
             conn.commit()
 
-            # Boost popularity for song sales
-            if work_type == "song":
-                add_event(work_id, price_cents / 100.0, "sale")
+        # Boost popularity for song sales
+        if work_type == "song":
+            add_event(work_id, price_cents / 100.0, "sale")
 
-            return cur.lastrowid
+        # Deposit revenue for album sales
+        if work_type == "album" and band_id is not None:
+            try:
+                self.economy.deposit(band_id, price_cents, currency)
+            except Exception:
+                pass
+
+        return cur.lastrowid
 
     def list_digital_sales_for_work(self, work_type: str, work_id: int) -> List[Dict[str, Any]]:
         work_type = work_type.lower()

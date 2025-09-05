@@ -151,3 +151,82 @@ def get_historical_charts(chart_type: str, region: str, weeks: int = 4) -> dict:
 
     conn.close()
     return history
+
+
+def calculate_album_chart(
+    album_type: str = "studio", start_date: str | None = None, fame_service=None
+) -> dict:
+    """Generate a simple album chart based on digital sales revenue.
+
+    Parameters
+    ----------
+    album_type:
+        Filter releases by album type (``"studio"`` or ``"live"``).
+    fame_service:
+        Optional service providing ``award_fame`` used to grant fame to the
+        chart topper.
+    """
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    if not start_date:
+        today = datetime.utcnow().date()
+        start_date = (today - timedelta(days=today.weekday())).isoformat()
+
+    cur.execute(
+        """
+        SELECT r.id, r.title, b.id, b.name, SUM(d.price_cents) as revenue
+        FROM digital_sales d
+        JOIN releases r ON r.id = d.work_id
+        JOIN bands b ON b.id = r.band_id
+        WHERE d.work_type = 'album'
+          AND r.album_type = ?
+          AND d.created_at BETWEEN ? AND ?
+        GROUP BY r.id, r.title, b.id, b.name
+        """,
+        (album_type, start_date, datetime.utcnow().isoformat()),
+    )
+
+    rows = cur.fetchall()
+    rows.sort(key=lambda x: x[4], reverse=True)
+    top = rows[:100]
+
+    for position, (album_id, title, band_id, band_name, revenue) in enumerate(
+        top, start=1
+    ):
+        cur.execute(
+            """
+            INSERT INTO chart_entries
+            (chart_type, region, week_start, position, song_id, band_name, score, generated_at)
+            VALUES (?, 'global', ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f"{album_type.title()} Album Chart",
+                start_date,
+                position,
+                album_id,
+                band_name,
+                revenue,
+                datetime.utcnow().isoformat(),
+            ),
+        )
+
+    conn.commit()
+    conn.close()
+
+    if fame_service and top:
+        try:
+            fame_service.award_fame(
+                top[0][2], "album_chart", 100, f"{album_type} album #1"
+            )
+        except Exception:
+            pass
+
+    entries = [(a, t, b, r) for (a, t, _, b, r) in top]
+    return {
+        "chart_type": f"{album_type.title()} Album Chart",
+        "region": "global",
+        "week_start": start_date,
+        "entries": entries,
+    }
