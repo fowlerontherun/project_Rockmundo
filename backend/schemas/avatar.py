@@ -1,6 +1,7 @@
 from datetime import datetime
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class AvatarBase(BaseModel):
@@ -23,6 +24,7 @@ class AvatarBase(BaseModel):
     level: int = 1
     experience: int = 0
     health: int = 100
+    mood: int = 50
 
 
 class AvatarCreate(AvatarBase):
@@ -47,6 +49,7 @@ class AvatarUpdate(BaseModel):
     level: Optional[int] = None
     experience: Optional[int] = None
     health: Optional[int] = None
+    mood: Optional[int] = None
 
 
 class AvatarResponse(AvatarBase):
