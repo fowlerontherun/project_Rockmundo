@@ -4,7 +4,7 @@ from typing import List, Optional
 from auth import jwt as jwt_helper
 from core.config import settings
 from fastapi import Depends, HTTPException, Request, status
-from services.rbac_service import get_roles_for_user
+from services.rbac_service import has_permission
 from utils.db import aget_conn
 
 
@@ -48,12 +48,19 @@ async def get_current_user_id(req: Request) -> int:
         )
     return user_id
 
-async def require_role(roles: List[str], user_id: int = Depends(get_current_user_id)) -> bool:
-    """Ensure ``user_id`` has at least one of the required roles."""
-    user_roles = get_roles_for_user(user_id)
-    if any(r in user_roles for r in roles):
+
+async def require_permission(
+    permissions: List[str], user_id: int = Depends(get_current_user_id)
+) -> bool:
+    """Ensure ``user_id`` has at least one of the required permissions."""
+    if any(has_permission(user_id, p) for p in permissions):
         return True
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail={'code': 'FORBIDDEN', 'message': 'Insufficient role'},
+        detail={'code': 'FORBIDDEN', 'message': 'Insufficient permission'},
     )
+
+
+async def require_role(roles: List[str], user_id: int = Depends(get_current_user_id)) -> bool:
+    """Backward compatible wrapper around :func:`require_permission`."""
+    return await require_permission(roles, user_id)

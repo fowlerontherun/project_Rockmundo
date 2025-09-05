@@ -42,14 +42,14 @@ def test_admin_quest_create_and_update(monkeypatch):
     async def fake_current_user(req):
         return 1
 
-    async def fake_require_role(roles, user_id):
+    async def fake_require_permission(roles, user_id):
         return True
 
     monkeypatch.setattr(
         "backend.routes.admin_quest_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_quest_routes.require_role", fake_require_role
+        "backend.routes.admin_quest_routes.require_permission", fake_require_permission
     )
 
     req = Request({})
@@ -84,14 +84,14 @@ def test_preview_and_validate_graph(monkeypatch):
     async def fake_current_user(req):
         return 1
 
-    async def fake_require_role(roles, user_id):
+    async def fake_require_permission(roles, user_id):
         return True
 
     monkeypatch.setattr(
         "backend.routes.admin_quest_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_quest_routes.require_role", fake_require_role
+        "backend.routes.admin_quest_routes.require_permission", fake_require_permission
     )
 
     req = Request({})

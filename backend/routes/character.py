@@ -1,6 +1,6 @@
 """Character API routes."""
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.character import CharacterCreate, CharacterResponse
 from services.character_service import character_service
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/characters", tags=["Characters"])
 @router.post(
     "/",
     response_model=CharacterResponse,
-    dependencies=[Depends(require_role(["admin", "player"]))],
+    dependencies=[Depends(require_permission(["admin", "player"]))],
 )
 def create_character(
     character: CharacterCreate, user_id: int = Depends(get_current_user_id)
@@ -24,7 +24,7 @@ def create_character(
 @router.get(
     "/{character_id}",
     response_model=CharacterResponse,
-    dependencies=[Depends(require_role(["admin", "player"]))],
+    dependencies=[Depends(require_permission(["admin", "player"]))],
 )
 def read_character(
     character_id: int, user_id: int = Depends(get_current_user_id)
@@ -39,7 +39,7 @@ def read_character(
 @router.get(
     "/",
     response_model=list[CharacterResponse],
-    dependencies=[Depends(require_role(["admin", "player"]))],
+    dependencies=[Depends(require_permission(["admin", "player"]))],
 )
 def list_characters(user_id: int = Depends(get_current_user_id)):
     """List all characters."""
@@ -49,7 +49,7 @@ def list_characters(user_id: int = Depends(get_current_user_id)):
 @router.put(
     "/{character_id}",
     response_model=CharacterResponse,
-    dependencies=[Depends(require_role(["admin", "player"]))],
+    dependencies=[Depends(require_permission(["admin", "player"]))],
 )
 def update_character(
     character_id: int,
@@ -65,7 +65,7 @@ def update_character(
 
 @router.delete(
     "/{character_id}",
-    dependencies=[Depends(require_role(["admin", "player"]))],
+    dependencies=[Depends(require_permission(["admin", "player"]))],
 )
 def delete_character(
     character_id: int, user_id: int = Depends(get_current_user_id)

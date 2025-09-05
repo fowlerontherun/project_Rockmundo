@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from auth.service import AuthService
 from fastapi import APIRouter, Depends, HTTPException, Request
 from models.admin import AdminSession, admin_sessions
@@ -96,7 +96,7 @@ async def logout(payload: LogoutIn):
     return await svc.logout(refresh_token=payload.refresh_token)
 
 
-@router.post("/tokens/revoke", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/tokens/revoke", dependencies=[Depends(require_permission(["admin"]))])
 async def revoke_token(payload: RevokeTokenIn):
     if not await svc.revoke_access_token(payload.jti):
         raise HTTPException(
@@ -130,7 +130,7 @@ class RoleAssignIn(BaseModel):
     user_id: int
     role: str
 
-@router.post("/roles/assign", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/roles/assign", dependencies=[Depends(require_permission(["admin"]))])
 async def assign_role(payload: RoleAssignIn):
     async with aget_conn() as conn:
         cur = await conn.execute("SELECT id FROM roles WHERE name=?", (payload.role,))
@@ -146,7 +146,7 @@ async def assign_role(payload: RoleAssignIn):
         )
         return {"ok": True}
 
-@router.post("/roles/revoke", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/roles/revoke", dependencies=[Depends(require_permission(["admin"]))])
 async def revoke_role(payload: RoleAssignIn):
     async with aget_conn() as conn:
         cur = await conn.execute("SELECT id FROM roles WHERE name=?", (payload.role,))

@@ -2,15 +2,15 @@
 from services.admin_audit_service import audit_dependency
 from services.admin_service import AdminService, AdminActionRepository
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.analytics_service import AnalyticsService
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 # Auth middleware / role dependency hook
 try:
-    from backend.auth.dependencies import require_role
+    from backend.auth.dependencies import require_permission
 except Exception:
-    def require_role(roles):
+    def require_permission(roles):
         async def _noop():
             return True
         return _noop
@@ -29,7 +29,7 @@ async def kpis(req: Request, period_start: str, period_end: str):
     """KPIs for streams, digital, vinyl, and tickets between [period_start, period_end]."""
     try:
         admin_id = await get_current_user_id(req)
-        await require_role(["admin", "moderator"], admin_id)
+        await require_permission(["admin", "moderator"], admin_id)
         result = svc.kpis(period_start, period_end)
         admin_logger.log_action(
             admin_id,
@@ -50,7 +50,7 @@ async def top_songs(
     """Top songs by streams and by digital revenue."""
     try:
         admin_id = await get_current_user_id(req)
-        await require_role(["admin", "moderator"], admin_id)
+        await require_permission(["admin", "moderator"], admin_id)
         result = svc.top_songs(period_start, period_end, limit)
         admin_logger.log_action(
             admin_id,
@@ -75,7 +75,7 @@ async def top_albums(
     """Top albums by digital revenue and by vinyl revenue."""
     try:
         admin_id = await get_current_user_id(req)
-        await require_role(["admin", "moderator"], admin_id)
+        await require_permission(["admin", "moderator"], admin_id)
         result = svc.top_albums(period_start, period_end, limit)
         admin_logger.log_action(
             admin_id,
@@ -95,7 +95,7 @@ async def recent_royalty_runs(req: Request, limit: int = 20):
     """Recent royalty runs."""
     try:
         admin_id = await get_current_user_id(req)
-        await require_role(["admin", "moderator"], admin_id)
+        await require_permission(["admin", "moderator"], admin_id)
         result = svc.recent_royalty_runs(limit)
         admin_logger.log_action(
             admin_id,
@@ -111,7 +111,7 @@ async def royalties_by_band(req: Request, run_id: int):
     """Sum of royalty amounts by band for a specific run."""
     try:
         admin_id = await get_current_user_id(req)
-        await require_role(["admin", "moderator"], admin_id)
+        await require_permission(["admin", "moderator"], admin_id)
         result = svc.royalties_summary_by_band(run_id)
         admin_logger.log_action(
             admin_id,

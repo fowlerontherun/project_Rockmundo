@@ -1,6 +1,6 @@
 from schemas.chat_schemas import GroupMessageSchema, MessageSchema
 
-from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
+from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from backend.services.chat_service import (
     get_user_chat_history,
     send_group_chat,
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post(
     "/chat/send_direct",
-    dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))],
+    dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))],
 )
 def send_direct_message(payload: MessageSchema):
     return send_message(payload.dict())

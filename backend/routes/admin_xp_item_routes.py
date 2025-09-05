@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.xp_item import XPItem
 from backend.services.admin_audit_service import audit_dependency
 from backend.services.xp_item_service import XPItemService
@@ -24,14 +24,14 @@ class XPItemIn(BaseModel):
 @router.get("/")
 async def list_items(req: Request) -> list[XPItem]:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return svc.list_items()
 
 
 @router.post("/")
 async def create_item(payload: XPItemIn, req: Request) -> XPItem:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     item = XPItem(id=None, **payload.dict())
     return svc.create_item(item)
 
@@ -39,7 +39,7 @@ async def create_item(payload: XPItemIn, req: Request) -> XPItem:
 @router.put("/{item_id}")
 async def update_item(item_id: int, payload: XPItemIn, req: Request) -> XPItem:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     try:
         return svc.update_item(item_id, **payload.dict())
     except ValueError as exc:
@@ -49,6 +49,6 @@ async def update_item(item_id: int, payload: XPItemIn, req: Request) -> XPItem:
 @router.delete("/{item_id}")
 async def delete_item(item_id: int, req: Request) -> dict[str, str]:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     svc.delete_item(item_id)
     return {"status": "deleted"}

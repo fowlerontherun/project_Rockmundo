@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.merchandise_schema import MerchandiseCreate, MerchandiseResponse
 from typing import List
@@ -7,7 +7,7 @@ router = APIRouter()
 merch_db = []
 merch_id_counter = 1
 
-@router.post("/merchandise/", response_model=MerchandiseResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/merchandise/", response_model=MerchandiseResponse, dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def create_merch(merch: MerchandiseCreate):
     global merch_id_counter
     new_merch = merch.dict()

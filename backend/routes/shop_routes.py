@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.books_service import books_service
 from backend.services.city_shop_service import city_shop_service
 from backend.services.economy_service import EconomyError, EconomyService
@@ -18,7 +18,7 @@ _economy.ensure_schema()
 
 
 async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
-    await require_role(["user", "band_member", "moderator", "admin"], user_id)
+    await require_permission(["user", "band_member", "moderator", "admin"], user_id)
     return user_id
 
 

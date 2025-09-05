@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models.gig import Gig
@@ -21,7 +21,7 @@ router = APIRouter()
 @router.post(
     "/gigs/book",
     response_model=GigOut,
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 def book_gig(
     gig: GigCreate,

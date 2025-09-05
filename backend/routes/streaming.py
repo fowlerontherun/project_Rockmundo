@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
@@ -10,7 +10,7 @@ from schemas.streaming import (
 
 router = APIRouter()
 
-@router.post("/sales/digital", response_model=DigitalSaleOut, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
+@router.post("/sales/digital", response_model=DigitalSaleOut, dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))])
 def record_digital_sale(sale: DigitalSaleCreate, db: Session = Depends(get_db)):
     new_sale = DigitalSale(**sale.dict())
     db.add(new_sale)

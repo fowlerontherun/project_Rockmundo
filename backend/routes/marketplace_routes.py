@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.economy_service import EconomyService, EconomyError
 from backend.services.marketplace_service import MarketplaceService, MarketplaceError
 
@@ -12,7 +12,7 @@ _market = MarketplaceService(economy=_economy)
 _market.ensure_schema()
 
 async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
-    await require_role(["user", "band_member", "moderator", "admin"], user_id)
+    await require_permission(["user", "band_member", "moderator", "admin"], user_id)
     return user_id
 
 class ListingIn(BaseModel):

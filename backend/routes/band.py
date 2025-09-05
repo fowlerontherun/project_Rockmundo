@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 
 from schemas.band import (
@@ -19,7 +19,7 @@ tour_service = TourService()
 @router.post(
     "/",
     response_model=BandResponse,
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 def create_band(band: BandCreate):
     created = band_service.create_band(band.founder_id, band.name, band.genre)

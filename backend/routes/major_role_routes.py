@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.major_role_schema import MajorCreate, RoleAssignmentCreate
 from models.major_role import Major, RoleAssignment
@@ -9,7 +9,7 @@ majors: List[Major] = []
 roles: List[RoleAssignment] = []
 major_id = 1
 
-@router.post("/majors/", response_model=Major, dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/majors/", response_model=Major, dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def create_major(data: MajorCreate):
     global major_id
     new_major = Major(

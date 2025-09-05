@@ -4,7 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services import name_dataset_service as dataset_service
 from backend.services.admin_audit_service import audit_dependency
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ class SurnameIn(BaseModel):
 @router.post("/first")
 async def add_first_name(payload: FirstNameIn, req: Request) -> dict[str, str]:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     if not dataset_service.add_first_name(payload.name, payload.gender):
         raise HTTPException(status_code=409, detail="Name already exists")
     return {"status": "ok"}
@@ -35,7 +35,7 @@ async def add_first_name(payload: FirstNameIn, req: Request) -> dict[str, str]:
 @router.post("/surname")
 async def add_surname(payload: SurnameIn, req: Request) -> dict[str, str]:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     if not dataset_service.add_surname(payload.name):
         raise HTTPException(status_code=409, detail="Name already exists")
     return {"status": "ok"}

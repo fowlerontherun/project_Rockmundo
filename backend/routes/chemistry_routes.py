@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.chemistry_service import ChemistryService
 
 router = APIRouter(prefix="/chemistry", tags=["chemistry"])
@@ -25,7 +25,7 @@ def list_chemistry(player_id: int, _uid: int = Depends(get_current_user_id)):
 
 @router.post(
     "/{player_a_id}/{player_b_id}/adjust",
-    dependencies=[Depends(require_role(["admin"]))],
+    dependencies=[Depends(require_permission(["admin"]))],
 )
 def adjust_pair(
     player_a_id: int,

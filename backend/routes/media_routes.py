@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import List, Optional
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from services.media_event_service import media_event_service
 from services.media_moderation_service import media_moderation_service
@@ -23,7 +23,7 @@ _media_store: List[dict] = []
 async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
     """Ensure the caller is an authenticated user."""
 
-    await require_role(["user", "band_member", "moderator", "admin"], user_id)
+    await require_permission(["user", "band_member", "moderator", "admin"], user_id)
     return user_id
 
 

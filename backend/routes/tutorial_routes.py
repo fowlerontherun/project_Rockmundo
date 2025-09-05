@@ -1,10 +1,10 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from services.tutorial_service import *
 
 router = APIRouter()
 
-@router.post("/tutorial/start", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/tutorial/start", dependencies=[Depends(require_permission(["admin"]))])
 def start_tutorial(user_id: int):
     return start_user_tutorial(user_id)
 

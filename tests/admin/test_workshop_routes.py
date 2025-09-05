@@ -44,7 +44,7 @@ def test_workshop_routes_crud(monkeypatch, tmp_path):
     async def fake_current_user(req):
         return 1
 
-    async def fake_require_role(roles, user_id):
+    async def fake_require_permission(roles, user_id):
         return True
 
     monkeypatch.setattr(
@@ -52,8 +52,8 @@ def test_workshop_routes_crud(monkeypatch, tmp_path):
         fake_current_user,
     )
     monkeypatch.setattr(
-        "backend.routes.admin_workshop_routes.require_role",
-        fake_require_role,
+        "backend.routes.admin_workshop_routes.require_permission",
+        fake_require_permission,
     )
 
     svc.db_path = str(tmp_path / "workshops.db")

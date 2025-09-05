@@ -1,11 +1,11 @@
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.karma_extras import add_karma_vote, get_karma_leaderboard, get_karma_score
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 router = APIRouter(prefix="/karma", tags=["Karma"])
 
 
-@router.get("/score/{user_id}", dependencies=[Depends(require_role(["admin"]))])
+@router.get("/score/{user_id}", dependencies=[Depends(require_permission(["admin"]))])
 def read_karma_score(
     user_id: int, _req: Request, _: int = Depends(get_current_user_id)
 ):

@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover - fallback for stubs
     def Depends(dependency: Any) -> Any:  # type: ignore[misc]
         return dependency
 
-from auth.dependencies import require_role
+from auth.dependencies import require_permission
 from utils.db import get_conn
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.get("/health")
 def health(
-    _: bool = Depends(require_role(["admin"])),
+    _: bool = Depends(require_permission(["admin"])),
     conn: Any = Depends(get_conn),
 ) -> Dict[str, Any]:
     """Return basic application health information.
@@ -36,7 +36,7 @@ def health(
 
 
 @router.get("/performance")
-def performance(_: bool = Depends(require_role(["admin"]))) -> Dict[str, Any]:
+def performance(_: bool = Depends(require_permission(["admin"]))) -> Dict[str, Any]:
     """Return lightweight process performance metrics."""
     load1, load5, load15 = os.getloadavg()
     usage = resource.getrusage(resource.RUSAGE_SELF)

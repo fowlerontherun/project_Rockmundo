@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 
 from flask import Blueprint, request, jsonify
 from services.tour_logistics_service import TourLogisticsService

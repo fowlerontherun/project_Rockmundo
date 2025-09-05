@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.quest_admin_service import QuestAdminService
 from backend.services.admin_audit_service import audit_dependency
 
@@ -12,7 +12,7 @@ svc = QuestAdminService()
 
 async def _require_admin(req: Request) -> int:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return admin_id
 
 

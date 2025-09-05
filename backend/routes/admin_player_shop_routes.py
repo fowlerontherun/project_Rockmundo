@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.admin_audit_service import audit_dependency
 from backend.services.city_shop_service import CityShopService
 
@@ -14,7 +14,7 @@ svc = CityShopService()
 
 async def _current_user(req: Request) -> int:
     uid = await get_current_user_id(req)
-    await require_role(["user", "band_member", "moderator", "admin"], uid)
+    await require_permission(["user", "band_member", "moderator", "admin"], uid)
     return uid
 
 
@@ -28,7 +28,7 @@ async def _ensure_owner(shop_id: int, req: Request) -> int:
 
 async def _ensure_admin(req: Request) -> None:
     uid = await get_current_user_id(req)
-    await require_role(["admin"], uid)
+    await require_permission(["admin"], uid)
 
 
 @router.get("/")
