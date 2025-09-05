@@ -1,10 +1,13 @@
 import sqlite3
 from datetime import datetime, timedelta
 
+import pytest
+
+from backend.models.activity import gym, running, yoga
 from backend.services import lifestyle_service
 
 
-def test_exercise_cooldown(monkeypatch, tmp_path):
+def _setup_db(monkeypatch, tmp_path):
     db_path = tmp_path / "test.db"
     monkeypatch.setattr(lifestyle_service, "DB_PATH", db_path)
 
@@ -16,16 +19,22 @@ def test_exercise_cooldown(monkeypatch, tmp_path):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE NOT NULL,
             fitness REAL DEFAULT 50.0,
+            appearance_score REAL DEFAULT 50.0,
             exercise_minutes REAL DEFAULT 0.0,
             last_exercise TEXT
         )
         """
     )
     cur.execute(
-        "INSERT INTO lifestyle (user_id, fitness, exercise_minutes) VALUES (1, 50, 0)"
+        "INSERT INTO lifestyle (user_id, fitness, appearance_score, exercise_minutes) VALUES (1, 50, 50, 0)"
     )
     conn.commit()
     conn.close()
+    return db_path
+
+
+def test_exercise_cooldown(monkeypatch, tmp_path):
+    db_path = _setup_db(monkeypatch, tmp_path)
 
     base = datetime(2024, 1, 1, 8, 0, 0)
 
@@ -63,5 +72,17 @@ def test_exercise_cooldown(monkeypatch, tmp_path):
     cur = conn.cursor()
     cur.execute("SELECT fitness FROM lifestyle WHERE user_id = 1")
     assert cur.fetchone()[0] == 50 + lifestyle_service.EXERCISE_FITNESS_BONUS
+    conn.close()
+
+
+@pytest.mark.parametrize("activity", [gym, running, yoga])
+def test_appearance_bonus(monkeypatch, tmp_path, activity):
+    db_path = _setup_db(monkeypatch, tmp_path)
+    assert lifestyle_service.log_exercise_session(1, 30, activity=activity) is True
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("SELECT appearance_score FROM lifestyle WHERE user_id = 1")
+    assert cur.fetchone()[0] == 50 + activity.appearance_bonus
     conn.close()
 

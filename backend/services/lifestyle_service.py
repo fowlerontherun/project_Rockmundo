@@ -5,6 +5,7 @@ import random
 import sqlite3
 
 from backend.database import DB_PATH
+from backend.models.activity import ExerciseActivity
 
 from .skill_service import skill_service
 from .xp_reward_service import xp_reward_service
@@ -19,7 +20,10 @@ EXERCISE_FITNESS_BONUS = 5
 
 
 def log_exercise_session(
-    user_id: int, minutes: int, conn: sqlite3.Connection | None = None
+    user_id: int,
+    minutes: int,
+    conn: sqlite3.Connection | None = None,
+    activity: ExerciseActivity | None = None,
 ) -> bool:
     """Record an exercise session and apply fitness gains with cooldown.
 
@@ -44,7 +48,7 @@ def log_exercise_session(
         conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "SELECT fitness, exercise_minutes, last_exercise FROM lifestyle WHERE user_id = ?",
+        "SELECT fitness, exercise_minutes, last_exercise, appearance_score FROM lifestyle WHERE user_id = ?",
         (user_id,),
     )
     row = cur.fetchone()
@@ -53,7 +57,7 @@ def log_exercise_session(
             conn.close()
         return False
 
-    fitness, total_minutes, last = row
+    fitness, total_minutes, last, appearance = row
     full_benefit = True
     if last:
         last_dt = datetime.fromisoformat(last)
@@ -62,13 +66,21 @@ def log_exercise_session(
 
     gain = EXERCISE_FITNESS_BONUS if full_benefit else 0
     new_fitness = min(100, fitness + gain)
+    bonus = activity.appearance_bonus if activity else 0
+    new_appearance = min(100, appearance + bonus)
     cur.execute(
         """
         UPDATE lifestyle
-        SET fitness = ?, exercise_minutes = ?, last_exercise = ?
+        SET fitness = ?, exercise_minutes = ?, last_exercise = ?, appearance_score = ?
         WHERE user_id = ?
         """,
-        (new_fitness, total_minutes + minutes, now.isoformat(), user_id),
+        (
+            new_fitness,
+            total_minutes + minutes,
+            now.isoformat(),
+            new_appearance,
+            user_id,
+        ),
     )
     conn.commit()
     if own_conn:

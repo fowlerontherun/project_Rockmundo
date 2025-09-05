@@ -1,7 +1,22 @@
 import sqlite3
-from typing import List, Optional, Dict
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 from backend.database import DB_PATH
+
+
+@dataclass(frozen=True)
+class ExerciseActivity:
+    """Lightweight representation of an exercise type."""
+
+    name: str
+    appearance_bonus: int = 0
+
+
+# Predefined exercise activities used throughout the app.
+gym = ExerciseActivity("gym", appearance_bonus=5)
+running = ExerciseActivity("running", appearance_bonus=3)
+yoga = ExerciseActivity("yoga", appearance_bonus=4)
 
 
 def create_activity(
@@ -132,4 +147,8 @@ __all__ = [
     "list_activities",
     "update_activity",
     "delete_activity",
+    "ExerciseActivity",
+    "gym",
+    "running",
+    "yoga",
 ]

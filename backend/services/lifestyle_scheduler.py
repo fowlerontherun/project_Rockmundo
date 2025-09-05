@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from backend.models.activity import gym, running, yoga
 from .xp_event_service import XPEventService
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
@@ -94,6 +95,21 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             mental = max(0, row[6] - DECAY["mental_health"])
 
             # Process scheduled exercise and apply cooldown-based benefits
+            for tag, act in (("gym", gym), ("running", running), ("yoga", yoga)):
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(hours), 0)
+                    FROM schedule
+                    WHERE user_id = ? AND day = ? AND tag = ?
+                    """,
+                    (user_id, today, tag),
+                )
+                hours = cur.fetchone()[0]
+                if hours > 0:
+                    # Convert to minutes for the service call
+                    log_exercise_session(user_id, int(hours * 60), conn, act)
+
+            # Backward compatibility for generic exercise tag
             cur.execute(
                 """
                 SELECT COALESCE(SUM(hours), 0)
@@ -104,7 +120,6 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             )
             exercise_hours = cur.fetchone()[0]
             if exercise_hours > 0:
-                # Convert to minutes for the service call
                 log_exercise_session(user_id, int(exercise_hours * 60), conn)
 
             # Additional penalties from addictions
