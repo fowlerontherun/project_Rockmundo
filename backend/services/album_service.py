@@ -19,7 +19,7 @@ from services.band_service import (  # noqa: F401
     BandCollaboration,
     BandService,
 )
-from sqlalchemy import create_engine, or_
+from sqlalchemy import create_engine, or_, func
 from sqlalchemy.orm import Session, sessionmaker
 
 # ---------------------------------------------------------------------------
@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session, sessionmaker
 DB_PATH = Path(__file__).resolve().parents[1] / "database" / "rockmundo.db"
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -58,6 +59,7 @@ class AlbumService:
         """Create a new music release along with its tracks."""
 
         release_format = data.get("format")
+        album_type = data.get("album_type", "studio")
         tracks: Iterable[dict] = data.get("tracks", [])
 
         # ``tracks`` may be provided as an iterator; materialize it once so we
@@ -65,17 +67,37 @@ class AlbumService:
         tracks = list(tracks)
         if release_format == "ep" and len(tracks) > 4:
             raise ValueError("EPs cannot contain more than 4 tracks")
+        if album_type == "live" and release_format in {"single", "ep"}:
+            raise ValueError("Live recordings can only be released as full albums")
 
         total_runtime = sum(t.get("duration", 0) for t in tracks)
         distribution_channels = ",".join(data.get("distribution_channels", []))
 
         with self.session_factory() as session:
             with session.begin():
+                if album_type == "live":
+                    existing_live = (
+                        session.query(Release)
+                        .filter(
+                            Release.band_id == data.get("band_id"),
+                            Release.album_type == "live",
+                            Release.release_date.isnot(None),
+                            func.strftime("%Y", Release.release_date)
+                            == str(datetime.utcnow().year),
+                        )
+                        .first()
+                    )
+                    if existing_live:
+                        raise ValueError(
+                            "Band already released a live album this year"
+                        )
+
                 release = Release(
                     band_id=data.get("band_id"),
                     collaboration_id=data.get("collaboration_id"),
                     title=data.get("title"),
                     format=release_format,
+                    album_type=album_type,
                     total_runtime=total_runtime,
                     distribution_channels=distribution_channels,
                 )
@@ -134,6 +156,7 @@ class AlbumService:
                         "release_id": r.id,
                         "title": r.title,
                         "format": r.format,
+                        "album_type": r.album_type,
                         "release_date": r.release_date.isoformat()
                         if r.release_date
                         else None,
@@ -182,6 +205,10 @@ class AlbumService:
                 release = session.get(Release, release_id)
                 if not release:
                     return {"error": "Release not found"}
+                if release.album_type == "live" and release.format in {"single", "ep"}:
+                    return {
+                        "error": "Live recordings can only be released as full albums"
+                    }
 
                 release_date = datetime.utcnow()
                 release.release_date = release_date

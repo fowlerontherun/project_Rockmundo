@@ -36,5 +36,8 @@ def update_release(release_id):
 @album_routes.route("/albums/<int:release_id>/publish", methods=["POST"])
 def publish_release(release_id):
     result = album_service.publish_release(release_id)
-    status = 404 if "error" in result else 200
+    if "error" in result:
+        status = 404 if result.get("error") == "Release not found" else 400
+    else:
+        status = 200
     return jsonify(result), status
