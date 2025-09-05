@@ -71,3 +71,31 @@ def test_collaboration_publish_split():
     assert result["earnings"]["band_1_share"] == 500
     assert result["earnings"]["band_2_share"] == 500
 
+
+def test_live_album_yearly_limit_and_format_restriction():
+    album_svc, band_svc, _ = get_services()
+    band = band_svc.create_band(user_id=1, band_name="Band", genre="rock")
+
+    data = {
+        "band_id": band.id,
+        "title": "Live One",
+        "format": "lp",
+        "album_type": "live",
+        "tracks": [{"title": "Jam", "duration": 120}],
+    }
+    res = album_svc.create_release(data)
+    album_svc.publish_release(res["release_id"])
+
+    with pytest.raises(ValueError):
+        album_svc.create_release(data)
+
+    bad = {
+        "band_id": band.id,
+        "title": "Live EP",
+        "format": "ep",
+        "album_type": "live",
+        "tracks": [{"title": "Jam", "duration": 120}],
+    }
+    with pytest.raises(ValueError):
+        album_svc.create_release(bad)
+
