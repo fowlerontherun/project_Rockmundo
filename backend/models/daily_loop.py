@@ -4,6 +4,7 @@ from datetime import date
 from typing import Dict
 
 from backend.database import DB_PATH
+from backend.services.xp_reward_service import xp_reward_service
 
 CHALLENGES = [
     "Practice scales",
@@ -11,12 +12,26 @@ CHALLENGES = [
     "Listen to a new song",
 ]
 
+CHALLENGE_TIERS = [1, 2, 3]
+
 
 def _ensure_row(cur: sqlite3.Cursor, user_id: int) -> None:
-    cur.execute("""
-        INSERT OR IGNORE INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed)
-        VALUES (?, 0, NULL, '', 0, 0)
-    """, (user_id,))
+    cur.execute(
+        """
+        INSERT OR IGNORE INTO daily_loop (
+            user_id,
+            login_streak,
+            last_login,
+            current_challenge,
+            challenge_progress,
+            reward_claimed,
+            catch_up_tokens,
+            challenge_tier
+        )
+        VALUES (?, 0, NULL, '', 0, 0, 0, 1)
+        """,
+        (user_id,),
+    )
 
 
 def get_status(user_id: int) -> Dict:
@@ -26,7 +41,14 @@ def get_status(user_id: int) -> Dict:
     _ensure_row(cur, user_id)
     cur.execute(
         """
-        SELECT login_streak, last_login, current_challenge, challenge_progress, reward_claimed
+        SELECT
+            login_streak,
+            last_login,
+            current_challenge,
+            challenge_progress,
+            reward_claimed,
+            catch_up_tokens,
+            challenge_tier
         FROM daily_loop
         WHERE user_id = ?
     """,
@@ -40,6 +62,8 @@ def get_status(user_id: int) -> Dict:
         "current_challenge": row[2],
         "challenge_progress": row[3],
         "reward_claimed": bool(row[4]),
+        "catch_up_tokens": row[5],
+        "challenge_tier": row[6],
     }
 
 
@@ -74,9 +98,26 @@ def claim_reward(user_id: int) -> Dict:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     _ensure_row(cur, user_id)
+    cur.execute("SELECT challenge_tier FROM daily_loop WHERE user_id = ?", (user_id,))
+    tier = cur.fetchone()[0]
     cur.execute(
         "UPDATE daily_loop SET reward_claimed = 1 WHERE user_id = ?",
         (user_id,),
+    )
+    conn.commit()
+    conn.close()
+    # Award XP based on challenge tier
+    xp_reward_service.grant_daily_reward(user_id, tier)
+    return get_status(user_id)
+
+
+def grant_catch_up_tokens(user_id: int, amount: int = 1) -> Dict:
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    _ensure_row(cur, user_id)
+    cur.execute(
+        "UPDATE daily_loop SET catch_up_tokens = catch_up_tokens + ? WHERE user_id = ?",
+        (amount, user_id),
     )
     conn.commit()
     conn.close()
@@ -85,14 +126,15 @@ def claim_reward(user_id: int) -> Dict:
 
 def rotate_daily_challenge() -> None:
     challenge = random.choice(CHALLENGES)
+    tier = random.choice(CHALLENGE_TIERS)
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
         """
         UPDATE daily_loop
-        SET current_challenge = ?, challenge_progress = 0, reward_claimed = 0
+        SET current_challenge = ?, challenge_progress = 0, reward_claimed = 0, challenge_tier = ?
     """,
-        (challenge,),
+        (challenge, tier),
     )
     conn.commit()
     conn.close()
