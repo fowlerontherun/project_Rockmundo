@@ -173,6 +173,7 @@ class TourService:
 
         if is_recorded:
             self._assert_recording_allowed(tour["band_id"], date_start)
+            self.economy.charge_recording_fee(tour["band_id"])
 
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
@@ -209,8 +210,9 @@ class TourService:
 
         stop = self.get_stop(stop_id)
         tour = self.get_tour(stop["tour_id"])
-        if is_recorded:
+        if is_recorded and not stop["is_recorded"]:
             self._assert_recording_allowed(tour["band_id"], stop["date_start"])
+            self.economy.charge_recording_fee(tour["band_id"])
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
