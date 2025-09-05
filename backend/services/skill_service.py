@@ -21,8 +21,8 @@ from backend.models.learning_style import LEARNING_STYLE_BONUS, LearningStyle
 from backend.models.skill import Skill
 from backend.models.xp_config import get_config
 from backend.services.item_service import item_service
-from backend.services.xp_event_service import XPEventService
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
+from backend.services.xp_event_service import XPEventService
 
 INTERNET_DEVICE_NAME = "internet device"
 
@@ -46,6 +46,9 @@ class SkillService:
         self._xp_today: Dict[Tuple[int, int, date], int] = {}
         # Track consecutive method usage for burnout
         self._method_history: Dict[int, Tuple[LearningMethod | None, int]] = {}
+        # Temporary XP buffs awarded for session successes
+        # key -> (multiplier, remaining_uses)
+        self._session_buffs: Dict[Tuple[int, int], Tuple[float, int]] = {}
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -127,7 +130,18 @@ class SkillService:
         modifier = self._lifestyle_modifier(user_id)
         modifier *= self.xp_events.get_active_multiplier(skill.name)
 
-        gain = int(base_xp * modifier)
+        buff_mult = 1.0
+        key = (user_id, skill.id)
+        buff = self._session_buffs.get(key)
+        if buff:
+            buff_mult = buff[0]
+            remaining = buff[1] - 1
+            if remaining <= 0:
+                self._session_buffs.pop(key, None)
+            else:
+                self._session_buffs[key] = (buff[0], remaining)
+
+        gain = int(base_xp * modifier * buff_mult)
 
         today = date.today()
         cap = get_config().daily_cap
@@ -244,6 +258,22 @@ class SkillService:
 
         base = 5 if revised else 10
         return self.train(user_id, SONGWRITING_SKILL, base)
+
+    def grant_temp_buff(
+        self, user_id: int, skill: Skill, multiplier: float = 1.2, uses: int = 1
+    ) -> None:
+        """Grant a temporary XP multiplier for the next training sessions."""
+
+        if multiplier <= 1.0 or uses <= 0:
+            return
+        self._session_buffs[(user_id, skill.id)] = (multiplier, uses)
+
+    def reward_songwriting_session(
+        self, user_id: int, multiplier: float = 1.2, uses: int = 1
+    ) -> None:
+        """Convenience wrapper to reward songwriting successes with a buff."""
+
+        self.grant_temp_buff(user_id, SONGWRITING_SKILL, multiplier, uses)
 
 
 skill_service = SkillService()

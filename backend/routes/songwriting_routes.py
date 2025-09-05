@@ -50,6 +50,20 @@ class CoWriterPayload(BaseModel):
     co_writer_id: int
 
 
+class LyricsPayload(BaseModel):
+    themes: list[str]
+    lines: int | None = 4
+
+    @validator("themes")
+    def validate_themes(cls, v: list[str]) -> list[str]:
+        if len(v) != 3:
+            raise ValueError("exactly_three_themes_required")
+        for t in v:
+            if t not in THEMES:
+                raise ValueError("unknown_theme")
+        return v
+
+
 @router.post("/prompt")
 async def submit_prompt(payload: PromptPayload, user_id: int = Depends(get_current_user_id)):
     draft = await songwriting_service.generate_draft(
@@ -59,6 +73,12 @@ async def submit_prompt(payload: PromptPayload, user_id: int = Depends(get_curre
         themes=payload.themes,
     )
     return draft
+
+
+@router.post("/lyrics")
+def generate_lyrics(payload: LyricsPayload, user_id: int = Depends(get_current_user_id)):
+    lyrics = songwriting_service.generate_lyrics(payload.themes, lines=payload.lines or 4)
+    return {"lyrics": lyrics}
 
 
 @router.get("/drafts")
