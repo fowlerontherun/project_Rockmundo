@@ -17,6 +17,7 @@ class LivePerformance:
         skill_gain,
         merch_sold,
         performance_score: float | None = None,
+        song_scores: dict[int, float] | None = None,
     ):
         self.id = id
         self.band_id = band_id
@@ -31,6 +32,8 @@ class LivePerformance:
         self.merch_sold = merch_sold
         # Optional quality metric for comparing performances
         self.performance_score = performance_score
+        # Aggregated performance scores keyed by song id
+        self.song_scores = song_scores or {}
 
     def to_dict(self):
         return self.__dict__
