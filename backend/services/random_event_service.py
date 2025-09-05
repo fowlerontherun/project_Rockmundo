@@ -35,6 +35,21 @@ class RandomEventService:
                 "impact": {"skill": ("stamina", -5)},
             },
             {
+                "type": "traffic_jam",
+                "description": "Heavy traffic slowed the band's travel.",
+                "impact": {"skill": ("stamina", -2)},
+            },
+            {
+                "type": "weather_delay",
+                "description": "Severe weather forced a detour.",
+                "impact": {"funds": -20},
+            },
+            {
+                "type": "mechanical_issue",
+                "description": "A mechanical issue required roadside repairs.",
+                "impact": {"skill": ("stamina", -3)},
+            },
+            {
                 "type": "press",
                 "description": "Local press covered the band’s arrival.",
                 "impact": {"fame": 10},
