@@ -254,6 +254,31 @@ class SkillService:
 
         return self.train(user_id, skill, int(base_xp))
 
+    def reduce_burnout(self, user_id: int, amount: int = 1) -> None:
+        """Reduce the stored burnout streak for a user.
+
+        A streak of repetitive learning methods causes diminishing returns.
+        Recovery actions can call this to lower the streak and ease the XP
+        penalty.
+
+        Parameters
+        ----------
+        user_id: int
+            The user whose streak should be reduced.
+        amount: int
+            How much to reduce the streak by. If the streak drops to zero the
+            history entry is cleared.
+        """
+
+        last, streak = self._method_history.get(user_id, (None, 0))
+        if streak <= 0:
+            return
+        streak = max(0, streak - amount)
+        if streak == 0:
+            self._method_history.pop(user_id, None)
+        else:
+            self._method_history[user_id] = (last, streak)
+
     def apply_decay(self, user_id: int, skill_id: int, amount: int) -> Skill | None:
         """Reduce XP for a skill and update its level."""
 
