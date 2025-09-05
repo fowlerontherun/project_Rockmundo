@@ -9,9 +9,12 @@ from schemas.band import (
     BandCollaborationResponse,
 )
 from services import band_service
+from services.tour_service import TourService, MAX_RECORDINGS_PER_YEAR
 from utils.i18n import _
 
 router = APIRouter(prefix="/bands", tags=["Bands"])
+
+tour_service = TourService()
 
 @router.post(
     "/",
@@ -57,6 +60,14 @@ def create_collaboration(collab: BandCollaborationCreate):
 @router.get("/{band_id}/collaborations", response_model=list[BandCollaborationResponse])
 def list_collaborations(band_id: int):
     return band_service.list_collaborations(band_id)
+
+
+@router.get("/{band_id}/recording-slots")
+def get_recording_slots(band_id: int):
+    """Return remaining yearly recording slots for the band."""
+    used = tour_service.get_band_recorded_count(band_id)
+    remaining = max(0, MAX_RECORDINGS_PER_YEAR - used)
+    return {"remaining_slots": remaining}
 
 
 @router.get("/", response_model=list[BandResponse])
