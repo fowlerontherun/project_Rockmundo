@@ -3,6 +3,7 @@ import sqlite3
 
 import pytest
 
+from backend.services import audio_mixing_service
 from backend.services.live_album_service import LiveAlbumService
 
 
@@ -18,7 +19,7 @@ def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
     )
 
 
-def test_compile_live_album(tmp_path):
+def test_compile_live_album(tmp_path, monkeypatch):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -71,6 +72,14 @@ def test_compile_live_album(tmp_path):
     conn.commit()
     conn.close()
 
+    called = {}
+
+    def fake_mix(ids):
+        called["ids"] = ids
+        return [pid + 1000 for pid in ids]
+
+    monkeypatch.setattr(audio_mixing_service, "mix_tracks", fake_mix)
+
     service = LiveAlbumService(str(db_file))
     album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
 
@@ -79,7 +88,9 @@ def test_compile_live_album(tmp_path):
     # Performance 5 has highest score (80)
     assert all(s["show_id"] == 5 for s in album["songs"])
     assert all(s["performance_score"] == 80 for s in album["songs"])
-    assert all(t["performance_id"] == 5 for t in album["tracks"])
+    assert called["ids"] == [5, 5]
+    assert all("performance_id" not in t for t in album["tracks"])
+    assert all(t["track_id"] == 1005 for t in album["tracks"])
     assert album["cover_art"]
 
 def test_update_tracks_validation(tmp_path):
