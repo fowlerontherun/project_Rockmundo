@@ -1,5 +1,6 @@
 # File: backend/services/sales_service.py
 import sqlite3
+import aiosqlite
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -21,13 +22,12 @@ class SalesError(Exception):
 class SalesService:
     def __init__(self, db_path: Optional[str] = None, economy: Optional[EconomyService] = None):
         self.db_path = str(db_path or DB_PATH)
-        # Allow injecting a custom economy instance for tests
         self.economy = economy or EconomyService(self.db_path)
 
-    def ensure_schema(self) -> None:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
+    async def ensure_schema(self) -> None:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            await conn.execute("""
             CREATE TABLE IF NOT EXISTS digital_sales (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 buyer_user_id INTEGER NOT NULL,
@@ -39,7 +39,7 @@ class SalesService:
                 created_at TEXT DEFAULT (datetime('now'))
             )
             """)
-            cur.execute("""
+            await conn.execute("""
             CREATE TABLE IF NOT EXISTS vinyl_skus (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 album_id INTEGER NOT NULL,
@@ -51,7 +51,7 @@ class SalesService:
                 updated_at TEXT
             )
             """)
-            cur.execute("""
+            await conn.execute("""
             CREATE TABLE IF NOT EXISTS vinyl_orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 buyer_user_id INTEGER NOT NULL,
@@ -63,7 +63,7 @@ class SalesService:
                 updated_at TEXT
             )
             """)
-            cur.execute("""
+            await conn.execute("""
             CREATE TABLE IF NOT EXISTS vinyl_order_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 order_id INTEGER NOT NULL,
@@ -76,7 +76,7 @@ class SalesService:
                 FOREIGN KEY(sku_id) REFERENCES vinyl_skus(id)
             )
             """)
-            cur.execute("""
+            await conn.execute("""
             CREATE TABLE IF NOT EXISTS vinyl_refunds (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 order_id INTEGER NOT NULL,
@@ -86,16 +86,18 @@ class SalesService:
                 FOREIGN KEY(order_id) REFERENCES vinyl_orders(id)
             )
             """)
-            cur.execute("CREATE INDEX IF NOT EXISTS ix_digital_sales_work ON digital_sales(work_type, work_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_skus_album ON vinyl_skus(album_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_items_order ON vinyl_order_items(order_id)")
-            cur.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_items_sku ON vinyl_order_items(sku_id)")
-            conn.commit()
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_digital_sales_work ON digital_sales(work_type, work_id)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_skus_album ON vinyl_skus(album_id)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_items_order ON vinyl_order_items(order_id)")
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_vinyl_items_sku ON vinyl_order_items(sku_id)")
+            await conn.commit()
+        finally:
+            await conn.close()
 
     def _now(self) -> str:
         return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    def record_digital_sale(
+    async def record_digital_sale(
         self,
         buyer_user_id: int,
         work_type: str,
@@ -105,15 +107,6 @@ class SalesService:
         source: Optional[str] = "store",
         album_type: Optional[str] = None,
     ) -> int:
-        """Record a digital sale and deposit earnings to the owning band.
-
-        Parameters
-        ----------
-        album_type:
-            Only relevant when ``work_type`` is ``"album"``. Accepts
-            ``"studio"`` or ``"live"``. Defaults to ``"studio"``.
-        """
-
         work_type = work_type.lower()
         if work_type not in ("song", "album"):
             raise SalesError("work_type must be 'song' or 'album'")
@@ -124,9 +117,9 @@ class SalesService:
             if album_type not in ("studio", "live"):
                 raise SalesError("album_type must be 'studio' or 'live'")
 
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute(
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            cur = await conn.execute(
                 """
                 INSERT INTO digital_sales (buyer_user_id, work_type, work_id, price_cents, currency, source)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -136,75 +129,99 @@ class SalesService:
 
             if work_type == "album":
                 try:
-                    cur.execute("SELECT band_id FROM releases WHERE id = ?", (work_id,))
-                    row = cur.fetchone()
+                    band_cur = await conn.execute("SELECT band_id FROM releases WHERE id = ?", (work_id,))
+                    row = await band_cur.fetchone()
                     if row and row[0] is not None:
                         band_id = int(row[0])
                 except sqlite3.OperationalError:
                     band_id = None
 
-            conn.commit()
+            await conn.commit()
+            sale_id = cur.lastrowid
+        finally:
+            await conn.close()
 
-        # Boost popularity for song sales
         if work_type == "song":
             add_event(work_id, price_cents / 100.0, "sale")
 
-        # Deposit revenue for album sales
         if work_type == "album" and band_id is not None:
             try:
                 self.economy.deposit(band_id, price_cents, currency)
             except Exception:
                 pass
 
-        return cur.lastrowid
+        return sale_id
 
-    def list_digital_sales_for_work(self, work_type: str, work_id: int) -> List[Dict[str, Any]]:
+    async def list_digital_sales_for_work(self, work_type: str, work_id: int) -> List[Dict[str, Any]]:
         work_type = work_type.lower()
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("""
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                """
                 SELECT * FROM digital_sales
                 WHERE work_type = ? AND work_id = ?
                 ORDER BY created_at DESC
-            """, (work_type, work_id))
-            return [dict(r) for r in cur.fetchall()]
+                """,
+                (work_type, work_id),
+            )
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
 
-    def create_vinyl_sku(self, album_id: int, variant: str, price_cents: int, stock_qty: int, currency: str = "USD") -> int:
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("""
+    async def create_vinyl_sku(self, album_id: int, variant: str, price_cents: int, stock_qty: int, currency: str = "USD") -> int:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            cur = await conn.execute(
+                """
                 INSERT INTO vinyl_skus (album_id, variant, price_cents, currency, stock_qty)
                 VALUES (?, ?, ?, ?, ?)
-            """, (album_id, variant, price_cents, currency, stock_qty))
-            conn.commit()
+                """,
+                (album_id, variant, price_cents, currency, stock_qty),
+            )
+            await conn.commit()
             return cur.lastrowid
+        finally:
+            await conn.close()
 
-    def list_vinyl_skus(self, album_id: int) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM vinyl_skus WHERE album_id = ? ORDER BY price_cents ASC", (album_id,))
-            return [dict(r) for r in cur.fetchall()]
+    async def list_vinyl_skus(self, album_id: int) -> List[Dict[str, Any]]:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                "SELECT * FROM vinyl_skus WHERE album_id = ? ORDER BY price_cents ASC",
+                (album_id,),
+            )
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()
 
-    def update_vinyl_sku(self, sku_id: int, **fields) -> None:
+    async def update_vinyl_sku(self, sku_id: int, **fields) -> None:
         if not fields:
             return
         cols, vals = [], []
-        for k in ("variant","price_cents","currency","stock_qty"):
+        for k in ("variant", "price_cents", "currency", "stock_qty"):
             if k in fields:
                 cols.append(f"{k} = ?")
                 vals.append(fields[k])
         if not cols:
             return
         vals.append(sku_id)
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            cur.execute(f"UPDATE vinyl_skus SET {', '.join(cols)}, updated_at = datetime('now') WHERE id = ?", vals)
-            conn.commit()
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            await conn.execute(
+                f"UPDATE vinyl_skus SET {', '.join(cols)}, updated_at = datetime('now') WHERE id = ?",
+                vals,
+            )
+            await conn.commit()
+        finally:
+            await conn.close()
 
-    def _sku_remaining(self, cur, sku_id: int) -> int:
-        cur.execute("""
+    async def _sku_remaining(self, conn: aiosqlite.Connection, sku_id: int) -> int:
+        cur = await conn.execute(
+            """
             SELECT
               s.stock_qty
               - IFNULL((
@@ -215,110 +232,138 @@ class SalesService:
               ), 0) AS remaining
             FROM vinyl_skus s
             WHERE s.id = ?
-        """, (sku_id,))
-        row = cur.fetchone()
+            """,
+            (sku_id,),
+        )
+        row = await cur.fetchone()
         return int(row[0] if row and row[0] is not None else 0)
 
-    def purchase_vinyl(self, buyer_user_id: int, items: List[Dict[str, int]], shipping_address: Optional[str] = None) -> int:
+    async def purchase_vinyl(self, buyer_user_id: int, items: List[Dict[str, int]], shipping_address: Optional[str] = None) -> int:
         norm_items = [VinylItem(int(x["sku_id"]), int(x["qty"])) for x in items if int(x.get("qty", 0)) > 0]
         if not norm_items:
             raise SalesError("No vinyl items specified")
 
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
-                total_cents = 0
-                currency = "USD"
-                for it in norm_items:
-                    cur.execute("SELECT * FROM vinyl_skus WHERE id = ?", (it.sku_id,))
-                    sku = cur.fetchone()
-                    if not sku:
-                        raise SalesError("SKU not found")
-                    remaining = self._sku_remaining(cur, it.sku_id)
-                    if remaining < it.qty:
-                        raise SalesError(f"Not enough stock for variant '{sku['variant']}'")
-                    total_cents += int(sku["price_cents"]) * it.qty
-                    currency = sku["currency"] or currency
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("BEGIN IMMEDIATE")
+            total_cents = 0
+            currency = "USD"
+            for it in norm_items:
+                cur = await conn.execute("SELECT * FROM vinyl_skus WHERE id = ?", (it.sku_id,))
+                sku = await cur.fetchone()
+                if not sku:
+                    raise SalesError("SKU not found")
+                remaining = await self._sku_remaining(conn, it.sku_id)
+                if remaining < it.qty:
+                    raise SalesError(f"Not enough stock for variant '{sku['variant']}'")
+                total_cents += int(sku["price_cents"]) * it.qty
+                currency = sku["currency"] or currency
 
-                cur.execute("""
-                    INSERT INTO vinyl_orders (buyer_user_id, total_cents, currency, status, shipping_address)
-                    VALUES (?, ?, ?, 'confirmed', ?)
-                """, (buyer_user_id, total_cents, currency, shipping_address))
-                order_id = cur.lastrowid
+            cur = await conn.execute(
+                """
+                INSERT INTO vinyl_orders (buyer_user_id, total_cents, currency, status, shipping_address)
+                VALUES (?, ?, ?, 'confirmed', ?)
+                """,
+                (buyer_user_id, total_cents, currency, shipping_address),
+            )
+            order_id = cur.lastrowid
 
-                for it in norm_items:
-                    cur.execute("SELECT price_cents FROM vinyl_skus WHERE id = ?", (it.sku_id,))
-                    price = int(cur.fetchone()[0])
-                    cur.execute("""
-                        INSERT INTO vinyl_order_items (order_id, sku_id, unit_price_cents, qty)
-                        VALUES (?, ?, ?, ?)
-                    """, (order_id, it.sku_id, price, it.qty))
+            for it in norm_items:
+                price_cur = await conn.execute("SELECT price_cents FROM vinyl_skus WHERE id = ?", (it.sku_id,))
+                price = int((await price_cur.fetchone())[0])
+                await conn.execute(
+                    """
+                    INSERT INTO vinyl_order_items (order_id, sku_id, unit_price_cents, qty)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (order_id, it.sku_id, price, it.qty),
+                )
 
-                conn.commit()
-                return order_id
-            except Exception:
-                conn.rollback()
-                raise
+            await conn.commit()
+            return order_id
+        except Exception:
+            await conn.rollback()
+            raise
+        finally:
+            await conn.close()
 
-    def refund_vinyl_order(self, order_id: int, reason: str = "") -> Dict[str, Any]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM vinyl_orders WHERE id = ?", (order_id,))
-            order = cur.fetchone()
+    async def refund_vinyl_order(self, order_id: int, reason: str = "") -> Dict[str, Any]:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute("SELECT * FROM vinyl_orders WHERE id = ?", (order_id,))
+            order = await cur.fetchone()
             if not order:
                 raise SalesError("Order not found")
             if order["status"] == "refunded":
                 raise SalesError("Order already refunded")
 
-            cur.execute("""
+            cur = await conn.execute(
+                """
                 SELECT SUM(unit_price_cents * (qty - refunded_qty)) AS refundable
                 FROM vinyl_order_items
                 WHERE order_id = ?
-            """, (order_id,))
-            row = cur.fetchone()
+                """,
+                (order_id,),
+            )
+            row = await cur.fetchone()
             refundable = int(row["refundable"] or 0)
             if refundable <= 0:
                 raise SalesError("Nothing to refund")
 
             try:
-                cur.execute("BEGIN IMMEDIATE")
-                cur.execute("UPDATE vinyl_orders SET status = 'refunded', updated_at = datetime('now') WHERE id = ?", (order_id,))
-                cur.execute("UPDATE vinyl_order_items SET refunded_qty = qty WHERE order_id = ?", (order_id,))
-                cur.execute("""
+                await conn.execute("BEGIN IMMEDIATE")
+                await conn.execute("UPDATE vinyl_orders SET status = 'refunded', updated_at = datetime('now') WHERE id = ?", (order_id,))
+                await conn.execute("UPDATE vinyl_order_items SET refunded_qty = qty WHERE order_id = ?", (order_id,))
+                await conn.execute(
+                    """
                     INSERT INTO vinyl_refunds (order_id, amount_cents, reason)
                     VALUES (?, ?, ?)
-                """, (order_id, refundable, reason))
-                conn.commit()
+                    """,
+                    (order_id, refundable, reason),
+                )
+                await conn.commit()
                 return {"order_id": order_id, "refunded_cents": refundable}
             except Exception:
-                conn.rollback()
+                await conn.rollback()
                 raise
+        finally:
+            await conn.close()
 
-    def get_vinyl_order(self, order_id: int) -> Dict[str, Any]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM vinyl_orders WHERE id = ?", (order_id,))
-            o = cur.fetchone()
+    async def get_vinyl_order(self, order_id: int) -> Dict[str, Any]:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute("SELECT * FROM vinyl_orders WHERE id = ?", (order_id,))
+            o = await cur.fetchone()
             if not o:
                 raise SalesError("Order not found")
-            cur.execute("""
+            cur = await conn.execute(
+                """
                 SELECT oi.*, s.variant
                 FROM vinyl_order_items oi
                 JOIN vinyl_skus s ON s.id = oi.sku_id
                 WHERE oi.order_id = ?
-            """, (order_id,))
-            items = [dict(r) for r in cur.fetchall()]
+                """,
+                (order_id,),
+            )
+            items = [dict(r) for r in await cur.fetchall()]
             d = dict(o)
             d["items"] = items
             return d
+        finally:
+            await conn.close()
 
-    def list_vinyl_orders_for_user(self, buyer_user_id: int) -> List[Dict[str, Any]]:
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM vinyl_orders WHERE buyer_user_id = ? ORDER BY created_at DESC", (buyer_user_id,))
-            return [dict(r) for r in cur.fetchall()]
+    async def list_vinyl_orders_for_user(self, buyer_user_id: int) -> List[Dict[str, Any]]:
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                "SELECT * FROM vinyl_orders WHERE buyer_user_id = ? ORDER BY created_at DESC",
+                (buyer_user_id,),
+            )
+            rows = await cur.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            await conn.close()

@@ -1,10 +1,12 @@
 import sqlite3
 from pathlib import Path
 import sys
+import asyncio
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-sys.path.append(str(BASE_DIR))
-sys.path.append(str(BASE_DIR / "backend"))
+sv = sys.path
+sv.append(str(BASE_DIR))
+sv.append(str(BASE_DIR / "backend"))
 
 from backend.services.sales_service import SalesService
 from backend.services.economy_service import EconomyService
@@ -61,8 +63,8 @@ def test_live_album_sale_updates_bank(tmp_path):
         conn.commit()
 
     sales = SalesService(db_path=db, economy=economy)
-    sales.ensure_schema()
-    sales.record_digital_sale(2, "album", 1, 1500, album_type="live")
+    asyncio.run(sales.ensure_schema())
+    asyncio.run(sales.record_digital_sale(2, "album", 1, 1500, album_type="live"))
 
     assert economy.get_balance(1) == 1500
 
@@ -81,8 +83,8 @@ def test_live_album_chart_entry(tmp_path):
         conn.commit()
 
     sales = SalesService(db_path=db, economy=economy)
-    sales.ensure_schema()
-    sales.record_digital_sale(2, "album", 1, 1500, album_type="live")
+    asyncio.run(sales.ensure_schema())
+    asyncio.run(sales.record_digital_sale(2, "album", 1, 1500, album_type="live"))
 
     chart_service.DB_PATH = db
     fame = DummyFameService()

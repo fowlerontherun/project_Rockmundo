@@ -14,12 +14,13 @@ except Exception:  # pragma: no cover
 
         return _noop
 
+import asyncio
 from services.sales_service import SalesError, SalesService
 
 router = APIRouter(prefix="/sales", tags=["Sales"])
 
 svc = SalesService()
-svc.ensure_schema()
+asyncio.run(svc.ensure_schema())
 
 
 class DigitalSaleIn(BaseModel):
@@ -39,7 +40,7 @@ async def record_digital(payload: DigitalSaleIn) -> dict[str, int]:
     """Record a digital song or album sale."""
 
     try:
-        sid = svc.record_digital_sale(**payload.model_dump())
+        sid = await svc.record_digital_sale(**payload.model_dump())
     except SalesError as exc:  # pragma: no cover
         raise HTTPException(status_code=400, detail=str(exc))
     return {"sale_id": sid}
@@ -52,7 +53,7 @@ async def record_digital(payload: DigitalSaleIn) -> dict[str, int]:
 async def list_digital_sales(work_type: str, work_id: int):
     """List digital sales for a work."""
 
-    return svc.list_digital_sales_for_work(work_type, work_id)
+    return await svc.list_digital_sales_for_work(work_type, work_id)
 
 
 class VinylSkuIn(BaseModel):
@@ -80,7 +81,7 @@ class VinylPurchaseIn(BaseModel):
 )
 async def create_vinyl_sku(payload: VinylSkuIn) -> dict[str, int]:
     try:
-        sku_id = svc.create_vinyl_sku(**payload.model_dump())
+        sku_id = await svc.create_vinyl_sku(**payload.model_dump())
     except SalesError as exc:  # pragma: no cover
         raise HTTPException(status_code=400, detail=str(exc))
     return {"sku_id": sku_id}
@@ -91,7 +92,7 @@ async def create_vinyl_sku(payload: VinylSkuIn) -> dict[str, int]:
     dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 async def list_vinyl_skus(album_id: int):
-    return svc.list_vinyl_skus(album_id)
+    return await svc.list_vinyl_skus(album_id)
 
 
 @router.post(
@@ -100,7 +101,7 @@ async def list_vinyl_skus(album_id: int):
 )
 async def purchase_vinyl(payload: VinylPurchaseIn) -> dict[str, int]:
     try:
-        order_id = svc.purchase_vinyl(
+        order_id = await svc.purchase_vinyl(
             buyer_user_id=payload.buyer_user_id,
             items=[i.model_dump() for i in payload.items],
             shipping_address=payload.shipping_address,
@@ -116,7 +117,7 @@ async def purchase_vinyl(payload: VinylPurchaseIn) -> dict[str, int]:
 )
 async def refund_vinyl(order_id: int, reason: str = "") -> dict[str, bool]:
     try:
-        svc.refund_vinyl_order(order_id, reason)
+        await svc.refund_vinyl_order(order_id, reason)
     except SalesError as exc:  # pragma: no cover
         raise HTTPException(status_code=400, detail=str(exc))
     return {"ok": True}
