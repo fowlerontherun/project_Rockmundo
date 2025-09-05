@@ -15,6 +15,7 @@ from .admin_city_shop_routes import router as city_shop_router
 from .admin_course_routes import router as course_router
 from .admin_economy_routes import router as economy_router
 from .admin_item_routes import router as item_router
+from .admin_drug_routes import router as drug_router
 from .admin_job_routes import router as jobs_router
 from .admin_loyalty_routes import router as loyalty_router
 from .admin_media_moderation_routes import router as media_router
@@ -72,6 +73,7 @@ router.include_router(quest_router)
 router.include_router(schema_router)
 router.include_router(song_popularity_router)
 router.include_router(item_router)
+router.include_router(drug_router)
 
 router.include_router(course_router)
 router.include_router(book_router)
