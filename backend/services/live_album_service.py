@@ -303,13 +303,15 @@ class LiveAlbumService:
         # auxiliary for this service.
         try:
             sales = SalesService(self.db_path)
-            sales.ensure_schema()
-            sales.record_digital_sale(
-                buyer_user_id=0,
-                work_type="album",
-                work_id=release_id,
-                price_cents=0,
-                album_type=album["album_type"],
+            asyncio.run(sales.ensure_schema())
+            asyncio.run(
+                sales.record_digital_sale(
+                    buyer_user_id=0,
+                    work_type="album",
+                    work_id=release_id,
+                    price_cents=0,
+                    album_type=album["album_type"],
+                )
             )
         except Exception:
             pass
