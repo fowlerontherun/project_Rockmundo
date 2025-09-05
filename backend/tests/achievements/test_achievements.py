@@ -1,22 +1,20 @@
 import sqlite3
 import sys
+import types
 from pathlib import Path
-
-import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.services.achievement_service import AchievementService
-from backend.services.property_service import PropertyService
-from backend.services.economy_service import EconomyService
 import pydantic
+
+from backend.services.achievement_service import AchievementService
+from backend.services.economy_service import EconomyService
+from backend.services.property_service import PropertyService
 
 if not hasattr(pydantic, "Field"):
     def Field(default=None, **kwargs):
         return default
     pydantic.Field = Field
-
-import types
 
 core_errors = types.ModuleType("core.errors")
 
@@ -34,9 +32,9 @@ core_errors.VenueConflictError = VenueConflictError
 core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
-from backend.services.tour_service import TourService
-from backend.services.chart_service import calculate_weekly_chart
-from backend.routes import achievement_routes
+from backend.routes import achievement_routes  # noqa: E402
+from backend.services.chart_service import calculate_weekly_chart  # noqa: E402
+from backend.services.tour_service import TourService  # noqa: E402
 
 
 def setup_db(tmp_path):
@@ -86,7 +84,7 @@ def test_chart_topper_unlock(tmp_path):
             CREATE TABLE songs (id INTEGER PRIMARY KEY, title TEXT, band_id INTEGER);
             CREATE TABLE streams (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, timestamp TEXT);
             CREATE TABLE earnings (id INTEGER PRIMARY KEY AUTOINCREMENT, source_type TEXT, source_id INTEGER, amount REAL, timestamp TEXT);
-            CREATE TABLE chart_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, chart_type TEXT, week_start TEXT, position INTEGER, song_id INTEGER, band_name TEXT, score REAL, generated_at TEXT);
+            CREATE TABLE chart_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, chart_type TEXT, region TEXT, week_start TEXT, position INTEGER, song_id INTEGER, band_name TEXT, score REAL, generated_at TEXT);
             """
         )
         cur.execute("INSERT INTO bands (id, name) VALUES (1, 'Band A')")
