@@ -70,21 +70,28 @@ class LiveAlbumService:
         if not common:
             raise ValueError("No common songs across performances")
         order = [s for s in performances[0]["order"] if s in common]
-        tracks = []
+        songs: List[dict] = []
         for song_id in order:
             best = max(
                 (p for p in performances if song_id in p["songs"]),
                 key=lambda p: p["song_scores"].get(song_id, p["skill_gain"]),
             )
-            tracks.append({"song_id": song_id, "performance_id": best["id"]})
+            songs.append(
+                {
+                    "song_id": song_id,
+                    "show_id": best["id"],
+                    "performance_score": best["metric"],
+                }
+            )
         album = Album(
             id=0,
             title=title,
             album_type="live",
             genre_id=0,
             band_id=performances[0]["band_id"],
-            song_ids=[t["song_id"] for t in tracks],
+            songs=songs,
         )
+
         data = album.to_dict()
         data["tracks"] = tracks
 
@@ -147,4 +154,5 @@ class LiveAlbumService:
         album["song_ids"] = new_order
 
         self._albums[album_id] = album
-        return album
+        return album.to_dict()
+

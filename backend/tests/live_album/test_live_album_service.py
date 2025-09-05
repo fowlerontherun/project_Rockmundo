@@ -75,10 +75,11 @@ def test_compile_live_album(tmp_path):
     album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
 
     assert album["album_type"] == "live"
-    assert album["song_ids"] == [1, 2]
+    assert [s["song_id"] for s in album["songs"]] == [1, 2]
     # Performance 5 has highest score (80)
+    assert all(s["show_id"] == 5 for s in album["songs"])
+    assert all(s["performance_score"] == 80 for s in album["songs"])
     assert all(t["performance_id"] == 5 for t in album["tracks"])
-
 
 def test_update_tracks_validation(tmp_path):
     db_file = tmp_path / "perf.db"

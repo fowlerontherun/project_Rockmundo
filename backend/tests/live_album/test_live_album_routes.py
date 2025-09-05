@@ -76,6 +76,7 @@ def test_compile_route(tmp_path, client_factory):
     resp = client.post("/api/live_albums/compile", json={"show_ids": [1, 2, 3, 4, 5], "album_title": "Best Live"})
     assert resp.status_code == 200
     data = resp.json()
+
     assert data["song_ids"] == [1, 2]
     assert all(t["performance_id"] == 5 for t in data["tracks"])
 
@@ -156,3 +157,7 @@ def test_patch_tracks_route(tmp_path, client_factory):
     resp = client.patch(f"/api/live_albums/{album_id}/tracks", json={"track_ids": [1]})
     assert resp.status_code == 200
     assert resp.json()["song_ids"] == [1]
+=======
+    assert [s["song_id"] for s in data["songs"]] == [1, 2]
+    assert all(s["show_id"] == 5 for s in data["songs"])
+    assert all(s["performance_score"] == 80 for s in data["songs"])
