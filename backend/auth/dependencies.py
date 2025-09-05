@@ -64,3 +64,13 @@ async def require_permission(
 async def require_role(roles: List[str], user_id: int = Depends(get_current_user_id)) -> bool:
     """Backward compatible wrapper around :func:`require_permission`."""
     return await require_permission(roles, user_id)
+
+
+async def require_admin(user_id: int = Depends(get_current_user_id)) -> int:
+    """Ensure the current user has the ``admin`` permission.
+
+    Returns the ``user_id`` for convenience when the dependency is used in
+    endpoints that need to know which administrator performed the action.
+    """
+    await require_permission(["admin"], user_id)
+    return user_id

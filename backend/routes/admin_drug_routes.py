@@ -1,15 +1,18 @@
 """Admin routes for managing drug items and categories."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from backend.auth.dependencies import require_admin
 from backend.models.item import Item, ItemCategory
 from backend.models.drug import Drug
 from backend.services.admin_audit_service import audit_dependency
 from backend.services.item_service import ItemService
 
-router = APIRouter(tags=["AdminDrugs"], dependencies=[Depends(audit_dependency)])
+router = APIRouter(
+    tags=["AdminDrugs"],
+    dependencies=[Depends(require_admin), Depends(audit_dependency)],
+)
 svc = ItemService()
 
 
@@ -42,39 +45,30 @@ def _item_to_drug(item: Item) -> Drug:
     )
 
 
-async def _ensure_admin(req: Request) -> None:
-    admin_id = await get_current_user_id(req)
-    await require_permission(["admin"], admin_id)
-
-
 # ---------------------------------------------------------------------------
 # Category routes
 # ---------------------------------------------------------------------------
 
 
 @router.get("/drug-categories")
-async def list_drug_categories(req: Request) -> list[ItemCategory]:
-    await _ensure_admin(req)
+async def list_drug_categories() -> list[ItemCategory]:
     return svc.list_categories()
 
 
 @router.post("/drug-categories")
-async def create_drug_category(payload: DrugCategoryIn, req: Request) -> ItemCategory:
-    await _ensure_admin(req)
+async def create_drug_category(payload: DrugCategoryIn) -> ItemCategory:
     category = ItemCategory(**payload.model_dump())
     return svc.create_category(category)
 
 
 @router.put("/drug-categories/{name}")
-async def update_drug_category(name: str, payload: DrugCategoryIn, req: Request) -> ItemCategory:
-    await _ensure_admin(req)
+async def update_drug_category(name: str, payload: DrugCategoryIn) -> ItemCategory:
     category = ItemCategory(name=name, description=payload.description)
     return svc.create_category(category)
 
 
 @router.delete("/drug-categories/{name}")
-async def delete_drug_category(name: str, req: Request) -> dict[str, str]:
-    await _ensure_admin(req)
+async def delete_drug_category(name: str) -> dict[str, str]:
     svc.delete_category(name)
     return {"status": "deleted"}
 
@@ -85,22 +79,19 @@ async def delete_drug_category(name: str, req: Request) -> dict[str, str]:
 
 
 @router.get("/drugs")
-async def list_drugs(req: Request) -> list[Drug]:
-    await _ensure_admin(req)
+async def list_drugs() -> list[Drug]:
     items = svc.list_items()
     return [_item_to_drug(i) for i in items if "effects" in i.stats]
 
 
 @router.post("/drugs")
-async def create_drug(payload: DrugIn, req: Request) -> Drug:
-    await _ensure_admin(req)
+async def create_drug(payload: DrugIn) -> Drug:
     drug = Drug(id=None, **payload.model_dump())
     return svc.create_item(drug)  # type: ignore[return-value]
 
 
 @router.get("/drugs/{drug_id}")
-async def get_drug(drug_id: int, req: Request) -> Drug:
-    await _ensure_admin(req)
+async def get_drug(drug_id: int) -> Drug:
     try:
         item = svc.get_item(drug_id)
     except ValueError as exc:  # pragma: no cover - handled via HTTPException
@@ -109,8 +100,7 @@ async def get_drug(drug_id: int, req: Request) -> Drug:
 
 
 @router.put("/drugs/{drug_id}")
-async def update_drug(drug_id: int, payload: DrugIn, req: Request) -> Drug:
-    await _ensure_admin(req)
+async def update_drug(drug_id: int, payload: DrugIn) -> Drug:
     stats = {
         "effects": payload.effects,
         "addiction_rate": payload.addiction_rate,
@@ -131,8 +121,7 @@ async def update_drug(drug_id: int, payload: DrugIn, req: Request) -> Drug:
 
 
 @router.delete("/drugs/{drug_id}")
-async def delete_drug(drug_id: int, req: Request) -> dict[str, str]:
-    await _ensure_admin(req)
+async def delete_drug(drug_id: int) -> dict[str, str]:
     svc.delete_item(drug_id)
     return {"status": "deleted"}
 

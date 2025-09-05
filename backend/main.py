@@ -105,7 +105,7 @@ def startup() -> None:
 # Existing routers
 app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
-app.include_router(admin_routes.router, prefix="/admin", tags=["Admin"])
+app.include_router(admin_routes.router)
 app.include_router(
     admin_media_moderation_routes.router,
     prefix="/admin",
