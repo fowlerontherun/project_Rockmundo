@@ -34,8 +34,9 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
 
     return round(modifier, 2)
 
-def apply_lifestyle_decay_and_xp_effects():
+def apply_lifestyle_decay_and_xp_effects() -> int:
     from .skill_service import skill_service  # local import to avoid cycle
+    from .lifestyle_service import grant_daily_xp
 
     event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
@@ -67,6 +68,7 @@ def apply_lifestyle_decay_and_xp_effects():
             """
         )
 
+        count = 0
         for row in rows:
             user_id = row[1]
 
@@ -129,10 +131,23 @@ def apply_lifestyle_decay_and_xp_effects():
                 VALUES (?, ?, ?)
             """, (user_id, modifier, datetime.utcnow().date()))
 
+            data = {
+                "sleep_hours": sleep,
+                "stress": stress,
+                "training_discipline": discipline,
+                "mental_health": mental,
+                "nutrition": nutrition,
+                "fitness": fitness,
+            }
+            grant_daily_xp(user_id, data)
+
             # Daily lifestyle decay affects skills slightly
             skill_service.apply_daily_decay(user_id)
 
+            count += 1
+
         conn.commit()
+        return count
 
 # Optional: simulate daily task
 if __name__ == "__main__":
