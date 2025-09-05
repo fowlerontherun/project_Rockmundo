@@ -92,6 +92,58 @@ async def effective_branding(venue_id: int, query: BrandingQuery) -> Dict[str, A
     return svc.effective_branding(venue_id, query.venue_name, query.on_date)
 
 
+class NegotiationTerms(BaseModel):
+    sponsor_website: Optional[HttpUrl] = None
+    sponsor_logo_url: Optional[HttpUrl] = None
+    naming_pattern: str = "{sponsor} {venue}"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    is_active: bool = True
+
+
+class OfferIn(BaseModel):
+    venue_id: int
+    sponsor_name: str
+    terms: NegotiationTerms
+
+
+class CounterIn(BaseModel):
+    terms: NegotiationTerms
+
+
+@router.post(
+    "/negotiations/offer",
+    dependencies=[Depends(require_role(["admin", "moderator"]))],
+)
+async def create_offer(payload: OfferIn) -> Dict[str, Any]:
+    negotiation = svc.create_offer(payload.venue_id, payload.sponsor_name, payload.terms.model_dump())
+    return negotiation.__dict__
+
+
+@router.post(
+    "/negotiations/{negotiation_id}/counter",
+    dependencies=[Depends(require_role(["admin", "moderator"]))],
+)
+async def counter_offer(negotiation_id: int, payload: CounterIn) -> Dict[str, Any]:
+    try:
+        negotiation = svc.counter_offer(negotiation_id, payload.terms.model_dump())
+    except VenueSponsorshipError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return negotiation.__dict__
+
+
+@router.post(
+    "/negotiations/{negotiation_id}/accept",
+    dependencies=[Depends(require_role(["admin", "moderator"]))],
+)
+async def accept_offer(negotiation_id: int) -> Dict[str, Any]:
+    try:
+        negotiation = svc.accept_offer(negotiation_id)
+    except VenueSponsorshipError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return negotiation.__dict__
+
+
 class ImpressionIn(BaseModel):
     sponsorship_id: int
     placement: Optional[str] = None
