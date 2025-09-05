@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
 
+from auth.dependencies import get_current_user_id
 from auth.routes import admin_mfa_router
 from core.config import settings
 from database import init_db
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from middleware.admin_mfa import AdminMFAMiddleware
@@ -31,6 +32,7 @@ from routes import (
     media_routes,
     membership_routes,
     merch_routes,
+    notifications_routes,
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
@@ -155,6 +157,12 @@ app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
 app.include_router(membership_routes.router, prefix="/api", tags=["Membership"])
 app.include_router(merch_routes.router, prefix="/api", tags=["Merch"])
 app.include_router(mail_routes.router, prefix="/api", tags=["Mail"])
+app.include_router(
+    notifications_routes.router,
+    prefix="/api",
+    tags=["Notifications"],
+    dependencies=[Depends(get_current_user_id)],
+)
 
 
 
