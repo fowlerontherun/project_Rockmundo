@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from backend.models.item import Item, ItemCategory
+from backend.services.addiction_service import addiction_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -233,6 +234,15 @@ class ItemService:
                     (user_id, item_id),
                 )
             conn.commit()
+
+    def consume_drug(self, user_id: int, item_id: int) -> Dict[str, object]:
+        """Consume a drug item and apply its effects."""
+
+        item = self.get_item(item_id)
+        if item.category != "drug":
+            raise ValueError("not a drug")
+        self.remove_from_inventory(user_id, item_id, 1)
+        return addiction_service.update_addiction(user_id, item.name)
 
     def get_inventory(self, user_id: int) -> Dict[int, int]:
         with sqlite3.connect(self.db_path) as conn:
