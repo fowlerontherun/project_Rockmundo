@@ -86,3 +86,63 @@ def test_mixing_invoked_and_tracks_stored(tmp_path, monkeypatch):
     assert called["ids"] == [5, 5]
     assert [t["track_id"] for t in album["tracks"]] == [505, 505]
     assert all("performance_id" not in t for t in album["tracks"])
+
+
+def test_missing_recording_raises_error(tmp_path):
+    db_file = tmp_path / "perf.db"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE live_performances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            band_id INTEGER,
+            city TEXT,
+            venue TEXT,
+            date TEXT,
+            setlist TEXT,
+            crowd_size INTEGER,
+            fame_earned INTEGER,
+            revenue_earned INTEGER,
+            skill_gain REAL,
+            merch_sold INTEGER
+        )
+        """,
+    )
+    cur.execute(
+        """
+        CREATE TABLE recorded_tracks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            song_id INTEGER,
+            performance_score REAL,
+            created_at TEXT
+        )
+        """,
+    )
+    setlist = {
+        "setlist": [
+            {"type": "song", "reference": "1"},
+            {"type": "song", "reference": "2"},
+        ],
+        "encore": [],
+    }
+    for idx in range(1, 6):
+        _insert_performance(cur, 1, setlist, 0.0)
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
+            (idx, 10),
+        )
+        if idx != 5:
+            cur.execute(
+                "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 2, ?, '')",
+                (idx, 10),
+            )
+    conn.commit()
+    conn.close()
+
+    service = LiveAlbumService(str(db_file))
+    with pytest.raises(ValueError) as exc:
+        service.compile_live_album([1, 2, 3, 4, 5], "Live")
+    assert "5" in str(exc.value)
+    assert "2" in str(exc.value)

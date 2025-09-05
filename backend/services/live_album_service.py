@@ -84,6 +84,16 @@ class LiveAlbumService:
             common &= set(p["songs"])
         if not common:
             raise ValueError("No common songs across performances")
+        # Ensure every candidate performance has a recording for each song in
+        # the intersection.  Without this validation we'd risk generating
+        # tracks from performances lacking recorded audio, leading to
+        # placeholder mixes.
+        for p in performances:
+            missing = [sid for sid in common if sid not in p["song_scores"]]
+            if missing:
+                raise ValueError(
+                    f"Performance {p['id']} missing recorded tracks for songs {missing}"
+                )
         order = [s for s in performances[0]["order"] if s in common]
         songs: List[dict] = []
         tracks: List[dict] = []
