@@ -114,7 +114,8 @@ def optimize_tour(payload: TourRequest) -> TourResponse:
         fame = fame_service.get_total_fame(payload.band_id)
         if fame < RECORDING_FAME_THRESHOLD:
             raise HTTPException(status_code=403, detail="Not enough fame to record stops")
-        if len(payload.record_stops) > MAX_RECORDINGS_PER_YEAR:
+        current = svc.get_band_recorded_count(payload.band_id)
+        if current + len(payload.record_stops) > MAX_RECORDINGS_PER_YEAR:
             raise HTTPException(status_code=400, detail="Recording limit exceeded")
         if any(i < 0 or i >= len(payload.route) for i in payload.record_stops):
             raise HTTPException(status_code=400, detail="Invalid recording index")

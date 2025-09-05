@@ -20,6 +20,8 @@ class Band(Base):
     skill = Column(Integer, default=0)
     performance_quality = Column(Integer, default=0)
     cohesion = Column(Integer, default=0)
+    # number of tour stops recorded in the current calendar year
+    recorded_shows_year = Column(Integer, default=0)
 
 class BandMember(Base):
     __tablename__ = "band_members"
