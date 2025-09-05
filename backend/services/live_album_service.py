@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sqlite3
 from typing import Dict, List
@@ -5,6 +6,7 @@ from typing import Dict, List
 from models.album import Album
 
 from backend.database import DB_PATH
+from backend.services.ai_art_service import ai_art_service
 
 
 class LiveAlbumService:
@@ -25,16 +27,18 @@ class LiveAlbumService:
         cur = conn.cursor()
 
         performances = []
+        cities = set()
+        venues = set()
         for pid in performance_ids:
             cur.execute(
-                "SELECT rowid, band_id, setlist, skill_gain FROM live_performances WHERE rowid = ?",
+                "SELECT rowid, band_id, city, venue, setlist, skill_gain FROM live_performances WHERE rowid = ?",
                 (pid,),
             )
             row = cur.fetchone()
             if not row:
                 conn.close()
                 raise ValueError(f"Performance {pid} not found")
-            rowid, band_id, setlist_json, skill_gain = row
+            rowid, band_id, city, venue, setlist_json, skill_gain = row
             setlist_data = json.loads(setlist_json)
             actions = setlist_data.get("setlist", []) + setlist_data.get("encore", [])
             songs: List[int] = []
@@ -58,8 +62,14 @@ class LiveAlbumService:
                     "order": songs,
                     "song_scores": song_scores,
                     "skill_gain": skill_gain,
+                    "city": city,
+                    "venue": venue,
                 }
             )
+            if city:
+                cities.add(city)
+            if venue:
+                venues.add(venue)
         conn.close()
         band_ids = {p["band_id"] for p in performances}
         if len(band_ids) != 1:
@@ -71,18 +81,36 @@ class LiveAlbumService:
             raise ValueError("No common songs across performances")
         order = [s for s in performances[0]["order"] if s in common]
         songs: List[dict] = []
+        tracks: List[dict] = []
         for song_id in order:
             best = max(
                 (p for p in performances if song_id in p["songs"]),
                 key=lambda p: p["song_scores"].get(song_id, p["skill_gain"]),
             )
+            score = best["song_scores"].get(song_id, best["skill_gain"])
             songs.append(
                 {
                     "song_id": song_id,
                     "show_id": best["id"],
-                    "performance_score": best["metric"],
+                    "performance_score": score,
                 }
             )
+            tracks.append(
+                {
+                    "song_id": song_id,
+                    "performance_id": best["id"],
+                    "performance_score": score,
+                }
+            )
+
+        themes = list(cities | venues)
+        try:
+            cover_url = asyncio.run(
+                ai_art_service.generate_album_art(title, themes)
+            )
+        except Exception:
+            cover_url = None
+
         album = Album(
             id=0,
             title=title,
@@ -90,10 +118,12 @@ class LiveAlbumService:
             genre_id=0,
             band_id=performances[0]["band_id"],
             songs=songs,
+            cover_art=cover_url,
         )
 
         data = album.to_dict()
         data["tracks"] = tracks
+        data["song_ids"] = [s["song_id"] for s in songs]
 
         # Store a draft so it can be edited prior to publishing.  ``Album``
         # objects use ``id`` for persistence; for drafts we assign a simple
@@ -154,5 +184,5 @@ class LiveAlbumService:
         album["song_ids"] = new_order
 
         self._albums[album_id] = album
-        return album.to_dict()
+        return album
 

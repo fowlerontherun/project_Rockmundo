@@ -6,15 +6,15 @@ from fastapi import FastAPI
 from backend.routes import live_album_routes
 
 
-def _insert_performance(cur, band_id, setlist, skill_gain, perf_score):
+def _insert_performance(cur, band_id, setlist, skill_gain, perf_score, city="", venue=""):
     cur.execute(
         """
         INSERT INTO live_performances (
             band_id, city, venue, date, setlist, crowd_size, fame_earned,
             revenue_earned, skill_gain, merch_sold, performance_score
-        ) VALUES (?, '', '', '', ?, 0, 0, 0, ?, 0, ?)
+        ) VALUES (?, ?, ?, '', ?, 0, 0, 0, ?, 0, ?)
         """,
-        (band_id, json.dumps(setlist), skill_gain, perf_score),
+        (band_id, city, venue, json.dumps(setlist), skill_gain, perf_score),
     )
     perf_id = cur.lastrowid
     # store two recorded tracks for the songs
@@ -63,8 +63,8 @@ def test_compile_route(tmp_path, client_factory):
     )
     setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}
     scores = [50, 60, 55, 40, 80]
-    for score in scores:
-        _insert_performance(cur, 1, setlist, 0.0, score)
+    for idx, score in enumerate(scores, start=1):
+        _insert_performance(cur, 1, setlist, 0.0, score, f"City {idx}", f"Venue {idx}")
     conn.commit()
     conn.close()
 
@@ -79,6 +79,7 @@ def test_compile_route(tmp_path, client_factory):
 
     assert data["song_ids"] == [1, 2]
     assert all(t["performance_id"] == 5 for t in data["tracks"])
+    assert data["cover_art"]
 
 
 def test_patch_tracks_route(tmp_path, client_factory):
@@ -122,8 +123,8 @@ def test_patch_tracks_route(tmp_path, client_factory):
     )
     setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}
     scores = [50, 60, 55, 40, 80]
-    for score in scores:
-        _insert_performance(cur, 1, setlist, 0.0, score)
+    for idx, score in enumerate(scores, start=1):
+        _insert_performance(cur, 1, setlist, 0.0, score, f"City {idx}", f"Venue {idx}")
     # mark song 1 as single
     cur.execute("INSERT INTO releases (format) VALUES ('single')")
     rid = cur.lastrowid
@@ -157,7 +158,3 @@ def test_patch_tracks_route(tmp_path, client_factory):
     resp = client.patch(f"/api/live_albums/{album_id}/tracks", json={"track_ids": [1]})
     assert resp.status_code == 200
     assert resp.json()["song_ids"] == [1]
-=======
-    assert [s["song_id"] for s in data["songs"]] == [1, 2]
-    assert all(s["show_id"] == 5 for s in data["songs"])
-    assert all(s["performance_score"] == 80 for s in data["songs"])
