@@ -103,8 +103,39 @@ class SkillService:
                 name=skill.name,
                 category=skill.category,
                 parent_id=skill.parent_id,
+                specializations=skill.specializations,
             )
+        else:
+            if skill.specializations:
+                self._skills[key].specializations = skill.specializations
         return self._skills[key]
+
+    def _synergy_bonus(self, user_id: int, skill: Skill) -> float:
+        """Return XP multiplier from specialization synergies."""
+
+        spec_name = skill.specialization
+        if not spec_name:
+            return 1.0
+        spec = skill.specializations.get(spec_name)
+        if not spec:
+            return 1.0
+        bonus = 1.0
+        for related_id, threshold in spec.related_skills.items():
+            other = self._skills.get((user_id, related_id))
+            if other and other.level >= threshold:
+                bonus += spec.bonus
+        return bonus
+
+    def select_specialization(
+        self, user_id: int, skill: Skill, specialization: str
+    ) -> Skill:
+        """Select a specialization for a user's skill."""
+
+        inst = self._get_skill(user_id, skill)
+        inst.specialization = specialization
+        if skill.specializations:
+            inst.specializations = skill.specializations
+        return inst
 
     def _check_level(self, skill: Skill) -> None:
         level = skill.xp // 100 + 1
@@ -141,7 +172,7 @@ class SkillService:
             else:
                 self._session_buffs[key] = (buff[0], remaining)
 
-        gain = int(base_xp * modifier * buff_mult)
+        gain = int(base_xp * modifier * buff_mult * self._synergy_bonus(user_id, inst))
 
         today = date.today()
         cap = get_config().daily_cap

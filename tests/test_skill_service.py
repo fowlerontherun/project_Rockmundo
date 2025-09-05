@@ -5,7 +5,7 @@ import pytest
 
 from backend.models.item import Item
 from backend.models.learning_method import LearningMethod
-from backend.models.skill import Skill
+from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
 from backend.services.item_service import item_service
 from backend.services.skill_service import SkillService
@@ -185,4 +185,15 @@ def test_method_burnout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
     updated = svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
     assert updated.xp == 27
+
+
+def test_synergy_bonus_applied() -> None:
+    svc = SkillService()
+    spec = SkillSpecialization(name="lead", related_skills={31: 2}, bonus=0.5)
+    guitar = Skill(id=30, name="guitar", category="instrument", specializations={"lead": spec})
+    theory = Skill(id=31, name="music theory", category="knowledge")
+    svc.select_specialization(1, guitar, "lead")
+    svc.train(1, theory, 200)
+    updated = svc.train(1, guitar, 100)
+    assert updated.xp == 150
 
