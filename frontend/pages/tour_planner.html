@@ -80,8 +80,10 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
   });
 
   const result = await res.json();
+  const quotaRes = await fetch(`/api/bands/${payload.band_id}/recording-slots`);
+  const { remaining_slots } = await quotaRes.json();
   const itineraryDiv = document.getElementById('itinerary');
-  let remainingSlots = 5;
+  let remainingSlots = remaining_slots;
   itineraryDiv.innerHTML = `
     <h3>Optimized Itinerary</h3>
     <p id="recordSlots">Recording slots remaining: ${remainingSlots}</p>
@@ -118,6 +120,7 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
         updateSlots();
       });
     });
+  updateSlots();
 
   document.getElementById('saveRecordings').addEventListener('click', async () => {
     const recordStops = Array.from(
