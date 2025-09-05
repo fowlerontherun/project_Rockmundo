@@ -13,9 +13,9 @@ INSERT INTO tours (band_id, name, status) VALUES
   (1, 'UK Weekender', 'draft');
 
 -- Two pending stops for tour 1
-INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes) VALUES
-  (1, 1, date('now', '+7 day'), date('now', '+7 day'), 0, 'pending', 'Opening night'),
-  (1, 2, date('now', '+9 day'), date('now', '+9 day'), 1, 'pending', 'Second show');
+INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded) VALUES
+  (1, 1, date('now', '+7 day'), date('now', '+7 day'), 0, 'pending', 'Opening night', 0),
+  (1, 2, date('now', '+9 day'), date('now', '+9 day'), 1, 'pending', 'Second show', 0);
 
 -- A sample notification for user 1
 INSERT INTO notifications (user_id, type, title, body) VALUES

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS tour_stops (
   order_index INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending', -- pending|confirmed|cancelled
   notes TEXT,
+  is_recorded INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE,
   FOREIGN KEY (venue_id) REFERENCES venues(id) ON DELETE RESTRICT

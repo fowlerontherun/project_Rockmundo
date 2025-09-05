@@ -37,6 +37,7 @@ class TourLeg:
     revenue: float = 0.0
     profit: float = 0.0
     status: str = "scheduled"
+    is_recorded: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -51,6 +52,7 @@ class TourLeg:
             "revenue": self.revenue,
             "profit": self.profit,
             "status": self.status,
+            "is_recorded": self.is_recorded,
         }
 
 

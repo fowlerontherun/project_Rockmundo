@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS tour_stops (
   order_index INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending',
   notes TEXT,
+  is_recorded INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 """
