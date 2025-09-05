@@ -16,7 +16,7 @@ DECAY = {
 }
 
 # XP modifier ranges
-def lifestyle_xp_modifier(sleep, stress, discipline, mental):
+def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness):
     modifier = 1.0
 
     if sleep < 5:
@@ -27,6 +27,10 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental):
         modifier *= 0.85
     if mental < 60:
         modifier *= 0.8
+    if nutrition < 40:
+        modifier *= 0.9
+    if fitness < 30:
+        modifier *= 0.9
 
     return round(modifier, 2)
 
@@ -115,7 +119,9 @@ def apply_lifestyle_decay_and_xp_effects():
                 (new_energy, user_id),
             )
 
-            modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental)
+            nutrition = row[7]
+            fitness = row[8]
+            modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
             modifier *= event_svc.get_active_multiplier()
 
             cur.execute("""

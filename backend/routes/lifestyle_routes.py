@@ -12,7 +12,9 @@ fake_lifestyle_data = {
     "drinking": "heavy",
     "stress": 90,
     "training_discipline": 60,
-    "mental_health": 80
+    "mental_health": 80,
+    "nutrition": 30,
+    "fitness": 40,
 }
 
 @router.get("/lifestyle/me")

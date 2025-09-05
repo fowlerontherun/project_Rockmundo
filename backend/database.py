@@ -57,6 +57,8 @@ def init_db():
             stress REAL DEFAULT 0.0,
             training_discipline REAL DEFAULT 50.0,
             mental_health REAL DEFAULT 100.0,
+            nutrition REAL DEFAULT 70.0,
+            fitness REAL DEFAULT 70.0,
             last_updated TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )

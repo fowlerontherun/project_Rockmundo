@@ -25,6 +25,8 @@ class LifestylePayload(BaseModel):
     training_discipline: int
     mental_health: int
     drinking: str = "none"
+    nutrition: int = 70
+    fitness: int = 70
 
 @router.post("/", response_model=AvatarResponse, dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
 def create_avatar(payload: AvatarCreate):
