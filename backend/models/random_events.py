@@ -20,3 +20,12 @@ class ActiveEvent(BaseModel):
     skill_affected: Optional[str]
     start_date: date
     duration_days: int
+
+# Events related to addiction mechanics
+ADDICTION_EVENTS = [
+    "missed_event",
+    "overdose",
+    "police_intervention",
+]
+
+__all__ = ["Event", "ActiveEvent", "ADDICTION_EVENTS"]

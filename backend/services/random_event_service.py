@@ -1,9 +1,13 @@
 import random
+from datetime import datetime
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.models.random_event import RandomEvent
 from backend.models.skill import Skill
+from backend.models.daily_schedule import clear_day
+from backend.models.random_events import ADDICTION_EVENTS
+from backend.services.addiction_service import addiction_service
 from backend.services.notifications_service import NotificationsService
 from backend.services.skill_service import skill_service
 
@@ -150,6 +154,42 @@ class RandomEventService:
         if user_id is not None:
             title = f"{event.type.replace('_', ' ').title()}"
             self.notifier.create(user_id, title, event.description)
+        return event.to_dict()
+
+    # ------------------------------------------------------------------
+    # Addiction-related events
+    # ------------------------------------------------------------------
+    def trigger_addiction_event(self, user_id: int, *, date: str | None = None):
+        """Trigger negative events based on user's addiction level."""
+
+        level = addiction_service.get_highest_level(user_id)
+        if level < 50:
+            return None
+        if level >= 100:
+            event_type = "overdose"
+            description = "Severe overdose requires hospitalization."
+        elif level >= 70:
+            event_type = "police_intervention"
+            description = "Police intervened due to erratic behavior."
+        else:
+            event_type = "missed_event"
+            description = "Addiction caused you to miss an important event."
+
+        assert event_type in ADDICTION_EVENTS
+
+        event = RandomEvent(
+            id=None,
+            band_id=None,
+            avatar_id=user_id,
+            type=event_type,
+            description=description,
+        )
+        if self.db:
+            self.db.insert_random_event(event)
+        self._apply_impact(event)
+
+        # Skip conflicting appointments for the day
+        clear_day(user_id, date or datetime.utcnow().date().isoformat())
         return event.to_dict()
 
     # ------------------------------------------------------------------
