@@ -5,6 +5,7 @@ import random
 import sqlite3
 
 from backend.database import DB_PATH
+from backend.models import notification_models
 
 from .skill_service import skill_service
 from .xp_reward_service import xp_reward_service
@@ -73,6 +74,10 @@ def log_exercise_session(
     conn.commit()
     if own_conn:
         conn.close()
+    if full_benefit:
+        notification_models.notifications.record_event(
+            user_id, "Appearance buff gained"
+        )
     return full_benefit
 
 def calculate_lifestyle_score(data):

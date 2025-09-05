@@ -9,6 +9,7 @@ from typing import Dict, List
 
 from backend.models.item import Item, ItemCategory
 from backend.services.addiction_service import addiction_service
+from backend.models import notification_models
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -242,7 +243,11 @@ class ItemService:
         if item.category != "drug":
             raise ValueError("not a drug")
         self.remove_from_inventory(user_id, item_id, 1)
-        return addiction_service.update_addiction(user_id, item.name)
+        result = addiction_service.update_addiction(user_id, item.name)
+        notification_models.notifications.record_event(
+            user_id, "Missed show due to addiction"
+        )
+        return result
 
     def get_inventory(self, user_id: int) -> Dict[int, int]:
         with sqlite3.connect(self.db_path) as conn:
