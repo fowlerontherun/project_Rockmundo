@@ -26,9 +26,11 @@ def _ensure_row(cur: sqlite3.Cursor, user_id: int) -> None:
             challenge_progress,
             reward_claimed,
             catch_up_tokens,
-            challenge_tier
+            challenge_tier,
+            weekly_goal_count,
+            tier_progress
         )
-        VALUES (?, 0, NULL, '', 0, 0, 0, 1)
+        VALUES (?, 0, NULL, '', 0, 0, 0, 1, 0, 0)
         """,
         (user_id,),
     )
@@ -48,7 +50,9 @@ def get_status(user_id: int) -> Dict:
             challenge_progress,
             reward_claimed,
             catch_up_tokens,
-            challenge_tier
+            challenge_tier,
+            weekly_goal_count,
+            tier_progress
         FROM daily_loop
         WHERE user_id = ?
     """,
@@ -64,6 +68,8 @@ def get_status(user_id: int) -> Dict:
         "reward_claimed": bool(row[4]),
         "catch_up_tokens": row[5],
         "challenge_tier": row[6],
+        "weekly_goal_count": row[7],
+        "tier_progress": row[8],
     }
 
 
@@ -138,3 +144,37 @@ def rotate_daily_challenge() -> None:
     )
     conn.commit()
     conn.close()
+
+
+def reset_weekly_milestones(user_id: int) -> Dict:
+    """Reset weekly goal counters and tier progress for a user."""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    _ensure_row(cur, user_id)
+    cur.execute(
+        "UPDATE daily_loop SET weekly_goal_count = 0, tier_progress = 0 WHERE user_id = ?",
+        (user_id,),
+    )
+    conn.commit()
+    conn.close()
+    return get_status(user_id)
+
+
+def advance_tier(user_id: int) -> Dict:
+    """Advance the user's challenge tier and reset progress."""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    _ensure_row(cur, user_id)
+    cur.execute(
+        """
+        UPDATE daily_loop
+        SET challenge_tier = challenge_tier + 1,
+            tier_progress = 0,
+            reward_claimed = 0
+        WHERE user_id = ?
+        """,
+        (user_id,),
+    )
+    conn.commit()
+    conn.close()
+    return get_status(user_id)

@@ -373,6 +373,8 @@ def init_db():
             reward_claimed INTEGER DEFAULT 0,
             catch_up_tokens INTEGER DEFAULT 0,
             challenge_tier INTEGER DEFAULT 1,
+            weekly_goal_count INTEGER DEFAULT 0,
+            tier_progress INTEGER DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
         """)
