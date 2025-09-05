@@ -1,20 +1,34 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
 from pathlib import Path
 from typing import Callable, Optional
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.exc import NoReferencedTableError
+from sqlalchemy.orm import Session, sessionmaker
 
-from models.avatar import Base, Avatar
+from models.avatar import Avatar, Base
 from schemas.avatar import AvatarCreate, AvatarUpdate
+try:  # pragma: no cover - optional when character model unavailable
+    from models.character import Base as CharacterBase  # type: ignore
+except Exception:  # pragma: no cover
+    CharacterBase = None  # type: ignore
 
 DB_PATH = Path(__file__).resolve().parents[1] / "database" / "rockmundo.db"
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
+# Ensure the parent directory exists so SQLite can create the DB file without
+# raising an OperationalError during imports or test initialisation.
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-Base.metadata.create_all(bind=engine)
+if CharacterBase is not None:
+    CharacterBase.metadata.create_all(bind=engine)
+try:  # pragma: no cover - character table may be created elsewhere
+    Base.metadata.create_all(bind=engine)
+except NoReferencedTableError:  # pragma: no cover
+    pass
 
 
 class AvatarService:
@@ -63,3 +77,42 @@ class AvatarService:
             session.delete(avatar)
             session.commit()
             return True
+
+    # ------------------------------------------------------------------
+    def adjust_mood(
+        self,
+        avatar_id: int,
+        lifestyle_score: float,
+        events: list[str] | None = None,
+    ) -> Optional[Avatar]:
+        """Adjust an avatar's mood.
+
+        ``lifestyle_score`` is expected to be a 0-100 value summarising the
+        avatar's wellbeing.  Mood will drift toward this score.  Any events
+        passed in can further modify the result.  The mood value is clamped
+        to the 0-100 range before persisting.
+        """
+
+        events = events or []
+        with self.session_factory() as session:
+            avatar = session.get(Avatar, avatar_id)
+            if not avatar:
+                return None
+            # Move mood halfway toward lifestyle score for gentle adjustments.
+            avatar.mood = int((avatar.mood + lifestyle_score) / 2)
+            # Negative events impact mood further.
+            if "burnout" in events:
+                avatar.mood -= 10
+            if "illness" in events:
+                avatar.mood -= 5
+            if "mental fatigue" in events:
+                avatar.mood -= 3
+            avatar.mood = max(0, min(100, avatar.mood))
+            session.commit()
+            session.refresh(avatar)
+            return avatar
+
+    # ------------------------------------------------------------------
+    def get_mood(self, avatar_id: int) -> Optional[int]:
+        avatar = self.get_avatar(avatar_id)
+        return avatar.mood if avatar else None

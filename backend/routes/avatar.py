@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from schemas.avatar import AvatarCreate, AvatarUpdate, AvatarResponse
+from pydantic import BaseModel
+from schemas.avatar import AvatarCreate, AvatarResponse, AvatarUpdate
 from services.avatar_service import AvatarService
+from services.lifestyle_service import calculate_lifestyle_score, evaluate_lifestyle_risks
 
 try:  # pragma: no cover - fallback for environments without auth module
     from auth.dependencies import require_role
@@ -8,10 +10,21 @@ except Exception:  # pragma: no cover
     def require_role(roles):
         async def _noop():
             return True
+
         return _noop
 
 router = APIRouter(prefix="/avatars", tags=["Avatars"])
 svc = AvatarService()
+
+
+class LifestylePayload(BaseModel):
+    """Minimal lifestyle data used to influence mood."""
+
+    sleep_hours: float
+    stress: int
+    training_discipline: int
+    mental_health: int
+    drinking: str = "none"
 
 @router.post("/", response_model=AvatarResponse, dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
 def create_avatar(payload: AvatarCreate):
@@ -40,3 +53,29 @@ def delete_avatar(avatar_id: int):
     if not svc.delete_avatar(avatar_id):
         raise HTTPException(status_code=404, detail="Avatar not found")
     return {"ok": True}
+
+
+@router.get(
+    "/{avatar_id}/mood",
+    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+)
+def get_mood(avatar_id: int):
+    mood = svc.get_mood(avatar_id)
+    if mood is None:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return {"mood": mood}
+
+
+@router.post(
+    "/{avatar_id}/mood",
+    response_model=AvatarResponse,
+    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+)
+def influence_mood(avatar_id: int, payload: LifestylePayload):
+    data = payload.model_dump()
+    score = calculate_lifestyle_score(data)
+    events = evaluate_lifestyle_risks(data)
+    avatar = svc.adjust_mood(avatar_id, score, events)
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    return avatar
