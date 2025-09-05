@@ -48,6 +48,32 @@ class TourService:
         # in-memory storage for simulated tours
         self.tours: Dict[int, TourModel] = {}
 
+    # --- Band recording counters -------------------------------------------------
+    def get_band_recorded_count(self, band_id: int) -> int:
+        """Return how many shows the band has recorded this year."""
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT recorded_shows_year FROM bands WHERE id=?", (band_id,)
+            )
+            row = c.fetchone()
+            return int(row[0] or 0) if row else 0
+
+    def _change_band_recorded_count(self, band_id: int, delta: int) -> None:
+        """Increment or decrement the band's recorded show counter."""
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT recorded_shows_year FROM bands WHERE id=?", (band_id,)
+            )
+            row = c.fetchone()
+            current = int(row[0] or 0) if row else 0
+            new_val = max(0, current + delta)
+            c.execute(
+                "UPDATE bands SET recorded_shows_year=? WHERE id=?",
+                (new_val, band_id),
+            )
+
     def _assert_recording_allowed(self, band_id: int, date_str: str) -> None:
         fame_total = self.fame.get_total_fame(band_id) if self.fame else 0
         if fame_total < RECORDING_FAME_THRESHOLD:
@@ -55,18 +81,7 @@ class TourService:
                 "Band lacks required fame to record this stop.",
                 code="FAME_TOO_LOW",
             )
-        year = date_str.split("-")[0]
-        with get_conn(self.db_path) as conn:
-            c = conn.cursor()
-            c.execute(
-                """
-                SELECT COUNT(*) FROM tour_stops ts
-                JOIN tours t ON t.id = ts.tour_id
-                WHERE t.band_id = ? AND ts.is_recorded = 1 AND substr(ts.date_start,1,4) = ?
-                """,
-                (band_id, year),
-            )
-            count = int(c.fetchone()[0] or 0)
+        count = self.get_band_recorded_count(band_id)
         if count >= MAX_RECORDINGS_PER_YEAR:
             raise AppError(
                 "Recording limit reached for this year.",
@@ -191,6 +206,8 @@ class TourService:
                 ),
             )
             stop_id = int(c.lastrowid)
+        if is_recorded:
+            self._change_band_recorded_count(tour["band_id"], 1)
         return self.get_stop(stop_id)
 
     def update_stop_status(self, stop_id: int, status: str) -> Dict[str, Any]:
@@ -219,6 +236,10 @@ class TourService:
                 "UPDATE tour_stops SET is_recorded=? WHERE id=?",
                 (int(is_recorded), stop_id),
             )
+        if is_recorded and not stop["is_recorded"]:
+            self._change_band_recorded_count(tour["band_id"], 1)
+        elif not is_recorded and stop["is_recorded"]:
+            self._change_band_recorded_count(tour["band_id"], -1)
         return self.get_stop(stop_id)
 
     def get_stop(self, stop_id: int) -> Dict[str, Any]:
