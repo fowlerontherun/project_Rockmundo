@@ -13,8 +13,10 @@ from fastapi import APIRouter, HTTPException, Query
 # The service lives under ``services`` when the package root is ``backend``.
 try:  # pragma: no cover - import shim for tests vs runtime
     from services.jobs_world_pulse import WorldPulseService
+    from services.world_pulse_service import get_current_season
 except Exception:  # pragma: no cover
     from backend.services.jobs_world_pulse import WorldPulseService
+    from backend.services.world_pulse_service import get_current_season
 
 
 router = APIRouter(prefix="/world-pulse", tags=["World Pulse"])
@@ -42,6 +44,13 @@ def ranked_list(
         )
     except Exception as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/season")
+def current_season() -> dict:
+    """Expose the game's current season."""
+
+    return {"season": get_current_season()}
 
 
 @router.get("/trending")
