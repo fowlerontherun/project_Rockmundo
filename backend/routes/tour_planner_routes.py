@@ -8,7 +8,18 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from services.fame_service import FameService
+from services.tour_service import RECORDING_FAME_THRESHOLD, MAX_RECORDINGS_PER_YEAR
+
 router = APIRouter(prefix="/tour-planner", tags=["TourPlanner"])
+
+
+class _FameDB:
+    def get_band_fame_total(self, band_id: int) -> int:
+        return 0
+
+
+fame_service = FameService(_FameDB())
 
 
 class TourRequest(BaseModel):
@@ -16,6 +27,8 @@ class TourRequest(BaseModel):
 
     route: List[str]
     vehicle_type: str
+    band_id: int
+    record_stops: List[int] = []
 
 
 class TourResponse(BaseModel):
@@ -25,6 +38,7 @@ class TourResponse(BaseModel):
     total_distance: float
     total_time: float
     total_cost: float
+    record_stops: List[int] = []
 
 
 # Simple city database with lat/long coordinates
@@ -82,6 +96,15 @@ def optimize_tour(payload: TourRequest) -> TourResponse:
         if city not in CITY_COORDS:
             raise HTTPException(status_code=400, detail=f"Unknown city: {city}")
 
+    if payload.record_stops:
+        fame = fame_service.get_total_fame(payload.band_id)
+        if fame < RECORDING_FAME_THRESHOLD:
+            raise HTTPException(status_code=403, detail="Not enough fame to record stops")
+        if len(payload.record_stops) > MAX_RECORDINGS_PER_YEAR:
+            raise HTTPException(status_code=400, detail="Recording limit exceeded")
+        if any(i < 0 or i >= len(payload.route) for i in payload.record_stops):
+            raise HTTPException(status_code=400, detail="Invalid recording index")
+
     remaining = payload.route[:]
     itinerary = [remaining.pop(0)]
     while remaining:
@@ -113,5 +136,6 @@ def optimize_tour(payload: TourRequest) -> TourResponse:
         total_distance=total_distance,
         total_time=total_time,
         total_cost=total_cost,
+        record_stops=payload.record_stops,
     )
 

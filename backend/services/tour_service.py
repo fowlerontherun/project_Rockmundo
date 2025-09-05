@@ -8,8 +8,12 @@ from core.errors import AppError, VenueConflictError, TourMinStopsError
 from services.achievement_service import AchievementService
 from services.weather_service import WeatherService
 from services.economy_service import EconomyService
+from services.fame_service import FameService
 from models.economy_config import get_config
 from models.tour import Tour as TourModel, TourLeg, TicketTier, Expense
+
+RECORDING_FAME_THRESHOLD = 1000
+MAX_RECORDINGS_PER_YEAR = 5
 
 class TourService:
     """Service handling both legacy DB backed operations and lightweight tour
@@ -27,12 +31,14 @@ class TourService:
         achievements: Optional[AchievementService] = None,
         weather: Optional[WeatherService] = None,
         economy: Optional[EconomyService] = None,
+        fame: Optional[FameService] = None,
     ):
         self.db_path = db_path
         self.availability = VenueAvailabilityService(self.db_path)
         self.achievements = achievements or AchievementService(self.db_path)
         self.weather = weather or WeatherService()
         self.economy = economy or EconomyService(self.db_path)
+        self.fame = fame
         # Ensure economy tables exist for simulations
         try:
             self.economy.ensure_schema()
@@ -41,6 +47,31 @@ class TourService:
 
         # in-memory storage for simulated tours
         self.tours: Dict[int, TourModel] = {}
+
+    def _assert_recording_allowed(self, band_id: int, date_str: str) -> None:
+        fame_total = self.fame.get_total_fame(band_id) if self.fame else 0
+        if fame_total < RECORDING_FAME_THRESHOLD:
+            raise AppError(
+                "Band lacks required fame to record this stop.",
+                code="FAME_TOO_LOW",
+            )
+        year = date_str.split("-")[0]
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                """
+                SELECT COUNT(*) FROM tour_stops ts
+                JOIN tours t ON t.id = ts.tour_id
+                WHERE t.band_id = ? AND ts.is_recorded = 1 AND substr(ts.date_start,1,4) = ?
+                """,
+                (band_id, year),
+            )
+            count = int(c.fetchone()[0] or 0)
+        if count >= MAX_RECORDINGS_PER_YEAR:
+            raise AppError(
+                "Recording limit reached for this year.",
+                code="RECORDING_LIMIT_REACHED",
+            )
 
     # ---- Tours ----
     def create_tour(
@@ -117,9 +148,18 @@ class TourService:
         return tour
 
     # ---- Stops ----
-    def add_stop(self, tour_id: int, venue_id: int, date_start: str, date_end: str, order_index: int, notes: str = "") -> Dict[str, Any]:
+    def add_stop(
+        self,
+        tour_id: int,
+        venue_id: int,
+        date_start: str,
+        date_end: str,
+        order_index: int,
+        notes: str = "",
+        is_recorded: bool = False,
+    ) -> Dict[str, Any]:
         # Verify tour exists (raises if not)
-        self.get_tour(tour_id)
+        tour = self.get_tour(tour_id)
 
         if not date_start or not date_end:
             raise AppError("date_start and date_end are required.", code="STOP_DATES_REQUIRED")
@@ -131,12 +171,23 @@ class TourService:
             conflicts = self.availability.venue_conflicts(venue_id, date_start, date_end)
             raise VenueConflictError(f"Venue not available in window; conflicts: {conflicts}")
 
+        if is_recorded:
+            self._assert_recording_allowed(tour["band_id"], date_start)
+
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes)
-                       VALUES (?, ?, ?, ?, ?, 'pending', ?)""",
-                (tour_id, venue_id, date_start, date_end, order_index, notes),
+                """INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded)
+                       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)""",
+                (
+                    tour_id,
+                    venue_id,
+                    date_start,
+                    date_end,
+                    order_index,
+                    notes,
+                    int(is_recorded),
+                ),
             )
             stop_id = int(c.lastrowid)
         return self.get_stop(stop_id)
@@ -153,8 +204,9 @@ class TourService:
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes
-                       FROM tour_stops WHERE id=?""", (stop_id,)
+                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded
+                       FROM tour_stops WHERE id=?""",
+                (stop_id,),
             )
             row = c.fetchone()
             if not row:
@@ -166,9 +218,10 @@ class TourService:
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes
+                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded
                        FROM tour_stops WHERE tour_id=?
-                       ORDER BY order_index ASC, date_start ASC""", (tour_id,)
+                       ORDER BY order_index ASC, date_start ASC""",
+                (tour_id,),
             )
             cols = [d[0] for d in c.description]
             return [dict(zip(cols, r)) for r in c.fetchall()]
@@ -212,13 +265,21 @@ class TourService:
         date: str,
         ticket_tiers: Optional[List[TicketTier]] = None,
         expenses: Optional[List[Expense]] = None,
+        is_recorded: bool = False,
     ) -> Dict[str, Any]:
         tour = self.tours.get(tour_id)
         if not tour:
             raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
-        leg = TourLeg(city=city, venue=venue, date=date,
-                      ticket_tiers=ticket_tiers or [],
-                      expenses=expenses or [])
+        if is_recorded:
+            self._assert_recording_allowed(tour.band_id, date)
+        leg = TourLeg(
+            city=city,
+            venue=venue,
+            date=date,
+            ticket_tiers=ticket_tiers or [],
+            expenses=expenses or [],
+            is_recorded=is_recorded,
+        )
         if tour.legs:
             prev_city = tour.legs[-1].city
             leg.travel_distance = self._estimate_distance(prev_city, city)
