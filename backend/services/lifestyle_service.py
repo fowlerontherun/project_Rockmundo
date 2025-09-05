@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import random
+import sqlite3
 
 from .skill_service import skill_service
 from .xp_reward_service import xp_reward_service
@@ -84,7 +85,9 @@ def apply_recovery_action(user_id: int, data: dict, action: str) -> dict:
     return data
 
 
-def grant_daily_xp(user_id: int, data: dict) -> int:
+def grant_daily_xp(
+    user_id: int, data: dict, conn: sqlite3.Connection | None = None
+) -> int:
     """Grant daily XP based on the user's lifestyle score.
 
     The ``xp_reward_service`` is used to award XP scaled by the calculated
@@ -97,7 +100,9 @@ def grant_daily_xp(user_id: int, data: dict) -> int:
     # Scale 0-100 score into a small XP reward range (0-20)
     amount = max(0, int(score / 5))
     try:
-        xp_reward_service.grant_hidden_xp(user_id, reason="lifestyle", amount=amount)
+        xp_reward_service.grant_hidden_xp(
+            user_id, reason="lifestyle", amount=amount, conn=conn
+        )
     except Exception:
         pass
     return amount

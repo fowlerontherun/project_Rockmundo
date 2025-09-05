@@ -4,7 +4,7 @@ from backend.services import lifestyle_service
 def _collect(monkeypatch):
     awarded = []
 
-    def fake_grant(user_id, reason, amount):
+    def fake_grant(user_id, reason, amount, conn=None):
         awarded.append(amount)
         return True
 

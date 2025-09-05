@@ -148,14 +148,15 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
                 "nutrition": nutrition,
                 "fitness": fitness,
             }
-            grant_daily_xp(user_id, data)
+            grant_daily_xp(user_id, data, conn)
+
+            conn.commit()
 
             # Daily lifestyle decay affects skills slightly
             skill_service.apply_daily_decay(user_id)
 
             count += 1
 
-        conn.commit()
         return count
 
 # Optional: simulate daily task
