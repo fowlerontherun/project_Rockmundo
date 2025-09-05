@@ -4,7 +4,12 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
+from backend.models.venue_sponsorship import (
+    NegotiationStage,
+    SponsorshipNegotiation,
+)
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -59,6 +64,17 @@ class VenueSponsorshipsService:
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS ix_sponsor_impr_sponsorship ON sponsor_ad_impressions(sponsorship_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS ix_sponsor_impr_event ON sponsor_ad_impressions(event_id)")
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS venue_sponsorship_negotiations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              venue_id INTEGER NOT NULL,
+              sponsor_name TEXT NOT NULL,
+              terms_json TEXT NOT NULL,
+              stage TEXT NOT NULL DEFAULT 'offer',
+              created_at TEXT DEFAULT (datetime('now')),
+              updated_at TEXT
+            )
+            """)
             conn.commit()
 
     # -------- helpers --------
@@ -141,6 +157,103 @@ class VenueSponsorshipsService:
             "start_date": s.get("start_date"),
             "end_date": s.get("end_date"),
         }
+
+    # -------- negotiation --------
+    def _row_to_negotiation(self, row: sqlite3.Row) -> SponsorshipNegotiation:
+        return SponsorshipNegotiation(
+            id=row["id"],
+            venue_id=row["venue_id"],
+            sponsor_name=row["sponsor_name"],
+            terms=json.loads(row["terms_json"]),
+            stage=NegotiationStage(row["stage"]),
+        )
+
+    def get_negotiation(self, negotiation_id: int) -> SponsorshipNegotiation:
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT * FROM venue_sponsorship_negotiations WHERE id = ?",
+                (negotiation_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise VenueSponsorshipError("Negotiation not found")
+            return self._row_to_negotiation(row)
+
+    def create_offer(
+        self, venue_id: int, sponsor_name: str, terms: Dict[str, Any]
+    ) -> SponsorshipNegotiation:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO venue_sponsorship_negotiations
+                  (venue_id, sponsor_name, terms_json, stage)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    venue_id,
+                    sponsor_name,
+                    json.dumps(terms),
+                    NegotiationStage.OFFER.value,
+                ),
+            )
+            conn.commit()
+            nid = cur.lastrowid
+        return SponsorshipNegotiation(
+            id=nid,
+            venue_id=venue_id,
+            sponsor_name=sponsor_name,
+            terms=terms,
+            stage=NegotiationStage.OFFER,
+        )
+
+    def counter_offer(
+        self, negotiation_id: int, terms: Dict[str, Any]
+    ) -> SponsorshipNegotiation:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE venue_sponsorship_negotiations
+                SET terms_json = ?, stage = ?, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    json.dumps(terms),
+                    NegotiationStage.COUNTER.value,
+                    negotiation_id,
+                ),
+            )
+            if cur.rowcount == 0:
+                raise VenueSponsorshipError("Negotiation not found")
+            conn.commit()
+        return self.get_negotiation(negotiation_id)
+
+    def accept_offer(self, negotiation_id: int) -> SponsorshipNegotiation:
+        negotiation = self.get_negotiation(negotiation_id)
+        data = SponsorshipIn(
+            venue_id=negotiation.venue_id,
+            sponsor_name=negotiation.sponsor_name,
+            sponsor_website=negotiation.terms.get("sponsor_website"),
+            sponsor_logo_url=negotiation.terms.get("sponsor_logo_url"),
+            naming_pattern=negotiation.terms.get("naming_pattern", "{sponsor} {venue}"),
+            start_date=negotiation.terms.get("start_date"),
+            end_date=negotiation.terms.get("end_date"),
+            is_active=bool(negotiation.terms.get("is_active", True)),
+        )
+        self.upsert_sponsorship(data)
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE venue_sponsorship_negotiations SET stage = ?, updated_at = datetime('now') WHERE id = ?",
+                (NegotiationStage.ACCEPTED.value, negotiation_id),
+            )
+            if cur.rowcount == 0:
+                raise VenueSponsorshipError("Negotiation not found")
+            conn.commit()
+        return self.get_negotiation(negotiation_id)
 
     # -------- Ad tracking --------
     def record_impression(self, sponsorship_id: int, placement: Optional[str] = None, user_id: Optional[int] = None,
