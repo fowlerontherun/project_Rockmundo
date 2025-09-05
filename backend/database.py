@@ -59,6 +59,9 @@ def init_db():
             mental_health REAL DEFAULT 100.0,
             nutrition REAL DEFAULT 70.0,
             fitness REAL DEFAULT 70.0,
+            appearance_score REAL DEFAULT 50.0,
+            exercise_minutes REAL DEFAULT 0.0,
+            last_exercise TEXT,
             last_updated TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
@@ -552,6 +555,40 @@ def init_db():
                 user_id INTEGER PRIMARY KEY,
                 energy INTEGER NOT NULL DEFAULT 100,
                 FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+
+        # Substance tracking
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS drug_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS drugs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                category_id INTEGER NOT NULL,
+                description TEXT,
+                FOREIGN KEY(category_id) REFERENCES drug_categories(id)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS addictions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                drug_id INTEGER NOT NULL,
+                severity INTEGER NOT NULL DEFAULT 0,
+                started_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(drug_id) REFERENCES drugs(id)
             )
             """
         )
