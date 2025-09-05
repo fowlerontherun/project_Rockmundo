@@ -117,6 +117,15 @@ class XPRewardService:
             conn.commit()
             return True
 
+    # ------------------------------------------------------------------
+    def grant_daily_reward(self, user_id: int, tier: int) -> bool:
+        """Award XP for completing the daily challenge.
+
+        The amount scales with the provided ``tier``.
+        """
+        amount = 10 * max(1, int(tier))
+        return self.grant_hidden_xp(user_id, f"daily_tier_{tier}", amount)
+
 
 xp_reward_service = XPRewardService()
 

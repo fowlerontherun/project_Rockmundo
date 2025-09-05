@@ -47,7 +47,7 @@ def test_recurring_template_populates_daily_schedule(tmp_path):
     # Ensure user exists in daily_loop with old login date
     with sqlite3.connect(database.DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed) VALUES (1,0,'2024-01-01','',0,0)"
+            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed, catch_up_tokens, challenge_tier) VALUES (1,0,'2024-01-01','',0,0,0,1)"
         )
         conn.commit()
 
@@ -72,7 +72,7 @@ def test_inactive_template_not_applied(tmp_path):
 
     with sqlite3.connect(database.DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed) VALUES (1,0,'2024-01-01','',0,0)"
+            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed, catch_up_tokens, challenge_tier) VALUES (1,0,'2024-01-01','',0,0,0,1)"
         )
         conn.commit()
 
