@@ -1,5 +1,3 @@
-import types
-
 from backend.services.random_event_service import RandomEventService
 
 
@@ -21,7 +19,6 @@ class DummyDB:
 
     def list_band_ids(self):
         return self.band_ids
-
 
 class DummyNotifier:
     def __init__(self):
@@ -46,9 +43,35 @@ def test_trigger_event_applies_outcome(monkeypatch):
     db = DummyDB()
     notifier = DummyNotifier()
     service = RandomEventService(db, notifier)
-    options = [("press", "press", {"fame": 5})]
-    monkeypatch.setattr("backend.services.random_event_service.random.choice", lambda _: options[0])
-    event = service.trigger_event_for_band(1, user_id=42)
+    options = [
+        {"type": "press", "description": "press", "impact": {"fame": 5}}
+    ]
+    event = service._trigger(1, None, 42, options)
     assert db.fame[1] == 5
     assert notifier.created[0][0] == 42
     assert event["fame"] == 5
+
+
+def test_context_filters_events(monkeypatch):
+    db = DummyDB()
+    service = RandomEventService(db)
+    options = [
+        {
+            "type": "city_event",
+            "description": "in city",
+            "impact": {"fame": 1},
+            "location": ["city"],
+        },
+        {
+            "type": "anywhere",
+            "description": "anywhere",
+            "impact": {"fame": 2},
+        },
+    ]
+    monkeypatch.setattr(
+        "backend.services.random_event_service.random.choice", lambda opts: opts[0]
+    )
+    event = service._trigger(1, None, None, options, location="city")
+    assert event["type"] == "city_event"
+    event = service._trigger(1, None, None, options, location="desert")
+    assert event["type"] == "anywhere"
