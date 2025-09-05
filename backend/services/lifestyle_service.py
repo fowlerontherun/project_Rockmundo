@@ -4,6 +4,7 @@ from datetime import datetime
 import random
 
 from .skill_service import skill_service
+from .xp_reward_service import xp_reward_service
 
 def calculate_lifestyle_score(data):
     # Composite score from normalized attributes
@@ -83,8 +84,28 @@ def apply_recovery_action(user_id: int, data: dict, action: str) -> dict:
     return data
 
 
+def grant_daily_xp(user_id: int, data: dict) -> int:
+    """Grant daily XP based on the user's lifestyle score.
+
+    The ``xp_reward_service`` is used to award XP scaled by the calculated
+    lifestyle score. Low scores yield smaller rewards while healthy habits
+    grant more XP.  The awarded amount is returned for introspection or
+    testing purposes.
+    """
+
+    score = calculate_lifestyle_score(data)
+    # Scale 0-100 score into a small XP reward range (0-20)
+    amount = max(0, int(score / 5))
+    try:
+        xp_reward_service.grant_hidden_xp(user_id, reason="lifestyle", amount=amount)
+    except Exception:
+        pass
+    return amount
+
+
 __all__ = [
     "calculate_lifestyle_score",
     "evaluate_lifestyle_risks",
     "apply_recovery_action",
+    "grant_daily_xp",
 ]
