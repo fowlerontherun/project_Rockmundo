@@ -90,8 +90,87 @@ def test_compile_live_album(tmp_path, monkeypatch):
     assert all(s["performance_score"] == 80 for s in album["songs"])
     assert called["ids"] == [5, 5]
     assert all("performance_id" not in t for t in album["tracks"])
+    assert all(t["show_id"] == 5 for t in album["tracks"])
+    assert all(t["performance_score"] == 80 for t in album["tracks"])
     assert all(t["track_id"] == 1005 for t in album["tracks"])
     assert album["cover_art"]
+
+
+def test_publish_album_records_show_data(tmp_path, monkeypatch):
+    db_file = tmp_path / "perf.db"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE live_performances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            band_id INTEGER,
+            city TEXT,
+            venue TEXT,
+            date TEXT,
+            setlist TEXT,
+            crowd_size INTEGER,
+            fame_earned INTEGER,
+            revenue_earned INTEGER,
+            skill_gain REAL,
+            merch_sold INTEGER
+        )
+        """,
+    )
+    cur.execute(
+        """
+        CREATE TABLE recorded_tracks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            song_id INTEGER,
+            performance_score REAL,
+            created_at TEXT
+        )
+        """,
+    )
+    setlist = {
+        "setlist": [
+            {"type": "song", "reference": "1"},
+            {"type": "song", "reference": "2"},
+        ],
+        "encore": [],
+    }
+    scores = [50, 60, 55, 40, 80]
+    for idx, score in enumerate(scores, start=1):
+        _insert_performance(cur, 1, setlist, 0.0, f"City {idx}", f"Venue {idx}")
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
+            (idx, score),
+        )
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 2, ?, '')",
+            (idx, score),
+        )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(
+        audio_mixing_service,
+        "mix_tracks",
+        lambda ids: [pid + 1000 for pid in ids],
+    )
+
+    service = LiveAlbumService(str(db_file))
+    album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+    release_id = service.publish_album(album["id"])
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT song_id, show_id, performance_score FROM release_tracks WHERE release_id = ?",
+        (release_id,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    assert len(rows) == 2
+    assert all(row[1] == 5 for row in rows)
+    assert all(row[2] == 80 for row in rows)
 
 def test_update_tracks_validation(tmp_path):
     db_file = tmp_path / "perf.db"
@@ -130,7 +209,7 @@ def test_update_tracks_validation(tmp_path):
         "CREATE TABLE releases (id INTEGER PRIMARY KEY AUTOINCREMENT, format TEXT)"
     )
     cur.execute(
-        "CREATE TABLE release_tracks (release_id INTEGER, song_id INTEGER)"
+        "CREATE TABLE release_tracks (release_id INTEGER, song_id INTEGER, show_id INTEGER, performance_score REAL)"
     )
 
     setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}

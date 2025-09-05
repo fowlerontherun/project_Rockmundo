@@ -89,6 +89,7 @@ def test_compile_route(tmp_path, client_factory, monkeypatch):
     assert data["song_ids"] == [1, 2]
     assert called["ids"] == [5, 5]
     assert all(t["track_id"] == 1005 for t in data["tracks"])
+    assert all(t["show_id"] == 5 for t in data["tracks"])
     assert data["cover_art"]
 
 
@@ -129,7 +130,7 @@ def test_patch_tracks_route(tmp_path, client_factory):
         "CREATE TABLE releases (id INTEGER PRIMARY KEY AUTOINCREMENT, format TEXT)"
     )
     cur.execute(
-        "CREATE TABLE release_tracks (release_id INTEGER, song_id INTEGER)"
+        "CREATE TABLE release_tracks (release_id INTEGER, song_id INTEGER, show_id INTEGER, performance_score REAL)"
     )
     setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}
     scores = [50, 60, 55, 40, 80]
