@@ -43,6 +43,7 @@ from routes import (
     social_routes,
     song_forecast_routes,
     sponsorship,
+    live_album_routes,
     support_slot_routes,
     tour_collab_routes,
     tour_planner_routes,
@@ -146,6 +147,7 @@ app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
+app.include_router(live_album_routes.router, prefix="/api", tags=["LiveAlbums"])
 app.include_router(avatar.router, prefix="/api", tags=["Avatars"])
 app.include_router(character.router, prefix="/api", tags=["Characters"])
 app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
