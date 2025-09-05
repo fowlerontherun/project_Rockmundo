@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
 
@@ -228,7 +229,8 @@ class LiveAlbumService:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
                 band_id INTEGER,
-                album_type TEXT
+                album_type TEXT,
+                release_date TEXT
             )
             """
         )
@@ -241,9 +243,32 @@ class LiveAlbumService:
             """
         )
 
+        # Prevent multiple live albums in the same calendar year
+        try:
+            cur.execute(
+                """
+                SELECT 1 FROM releases
+                WHERE band_id = ? AND album_type = 'live'
+                  AND release_date IS NOT NULL
+                  AND strftime('%Y', release_date) = ?
+                """,
+                (album["band_id"], str(datetime.utcnow().year)),
+            )
+            if cur.fetchone():
+                conn.close()
+                raise ValueError("Band already released a live album this year")
+        except sqlite3.OperationalError:
+            # If the table or column doesn't exist we skip the check
+            pass
+
         cur.execute(
-            "INSERT INTO releases (title, band_id, album_type) VALUES (?, ?, ?)",
-            (album["title"], album["band_id"], album["album_type"]),
+            "INSERT INTO releases (title, band_id, album_type, release_date) VALUES (?, ?, ?, ?)",
+            (
+                album["title"],
+                album["band_id"],
+                album["album_type"],
+                datetime.utcnow().date().isoformat(),
+            ),
         )
         release_id = cur.lastrowid
 
