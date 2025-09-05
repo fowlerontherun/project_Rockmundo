@@ -200,6 +200,25 @@ class TourService:
             c.execute("UPDATE tour_stops SET status=? WHERE id=?", (status, stop_id))
         return self.get_stop(stop_id)
 
+    def update_stop_recording(self, stop_id: int, is_recorded: bool) -> Dict[str, Any]:
+        """Toggle the recording flag for a tour stop.
+
+        This verifies that the band is eligible to record the stop when
+        setting ``is_recorded`` to ``True`` and then persists the change.
+        """
+
+        stop = self.get_stop(stop_id)
+        tour = self.get_tour(stop["tour_id"])
+        if is_recorded:
+            self._assert_recording_allowed(tour["band_id"], stop["date_start"])
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "UPDATE tour_stops SET is_recorded=? WHERE id=?",
+                (int(is_recorded), stop_id),
+            )
+        return self.get_stop(stop_id)
+
     def get_stop(self, stop_id: int) -> Dict[str, Any]:
         with get_conn(self.db_path) as conn:
             c = conn.cursor()

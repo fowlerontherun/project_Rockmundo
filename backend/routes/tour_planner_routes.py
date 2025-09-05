@@ -9,9 +9,14 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from services.fame_service import FameService
-from services.tour_service import RECORDING_FAME_THRESHOLD, MAX_RECORDINGS_PER_YEAR
+from services.tour_service import (
+    RECORDING_FAME_THRESHOLD,
+    MAX_RECORDINGS_PER_YEAR,
+    TourService,
+)
 
 router = APIRouter(prefix="/tour-planner", tags=["TourPlanner"])
+svc = TourService()
 
 
 class _FameDB:
@@ -39,6 +44,15 @@ class TourResponse(BaseModel):
     total_time: float
     total_cost: float
     record_stops: List[int] = []
+
+
+class RecordingUpdate(BaseModel):
+    stop_id: int
+    is_recorded: bool
+
+
+class ScheduleUpdateRequest(BaseModel):
+    updates: List[RecordingUpdate]
 
 
 # Simple city database with lat/long coordinates
@@ -138,4 +152,12 @@ def optimize_tour(payload: TourRequest) -> TourResponse:
         total_cost=total_cost,
         record_stops=payload.record_stops,
     )
+
+
+@router.post("/schedule/update")
+def update_schedule(payload: ScheduleUpdateRequest):
+    """Persist recording selections for existing tour stops."""
+
+    updated = [svc.update_stop_recording(u.stop_id, u.is_recorded) for u in payload.updates]
+    return {"stops": updated}
 

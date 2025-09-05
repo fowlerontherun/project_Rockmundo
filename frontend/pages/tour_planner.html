@@ -80,12 +80,57 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
   });
 
   const result = await res.json();
-  document.getElementById('itinerary').innerHTML = `
+  const itineraryDiv = document.getElementById('itinerary');
+  let remainingSlots = 5;
+  itineraryDiv.innerHTML = `
     <h3>Optimized Itinerary</h3>
-    <p>${result.itinerary.join(' -> ')}</p>
+    <p id="recordSlots">Recording slots remaining: ${remainingSlots}</p>
+    <ul id="itineraryList">
+      ${result.itinerary
+        .map(
+          (city, idx) =>
+            `<li><label><input type="checkbox" data-idx="${idx}"> ${city}</label></li>`
+        )
+        .join('')}
+    </ul>
     <p>Total Distance: ${result.total_distance.toFixed(2)} km</p>
     <p>Total Time: ${result.total_time.toFixed(2)} hrs</p>
     <p>Estimated Cost: $${result.total_cost.toFixed(2)}</p>
+    <button type="button" id="saveRecordings">Save Recording Choices</button>
   `;
+
+  const updateSlots = () => {
+    document.getElementById('recordSlots').innerText = `Recording slots remaining: ${remainingSlots}`;
+    document
+      .querySelectorAll('#itineraryList input[type="checkbox"]')
+      .forEach((cb) => {
+        if (!cb.checked) {
+          cb.disabled = remainingSlots <= 0;
+        }
+      });
+  };
+
+  document
+    .querySelectorAll('#itineraryList input[type="checkbox"]')
+    .forEach((cb) => {
+      cb.addEventListener('change', () => {
+        remainingSlots += cb.checked ? -1 : 1;
+        updateSlots();
+      });
+    });
+
+  document.getElementById('saveRecordings').addEventListener('click', async () => {
+    const recordStops = Array.from(
+      document.querySelectorAll('#itineraryList input[type="checkbox"]')
+    )
+      .filter((cb) => cb.checked)
+      .map((cb) => parseInt(cb.dataset.idx));
+    await fetch('/api/tour-planner/schedule/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates: recordStops.map((id) => ({ stop_id: id, is_recorded: true })) }),
+    });
+    alert('Recording preferences saved');
+  });
 });
 </script>
