@@ -16,6 +16,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, create_eng
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from backend.services.chemistry_service import ChemistryService
+from backend.services.band_relationship_service import BandRelationshipService
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -80,9 +81,11 @@ class BandService:
         self,
         session_factory: Callable[[], Session] | sessionmaker = SessionLocal,
         chemistry_service: ChemistryService | None = None,
+        relationship_service: BandRelationshipService | None = None,
     ):
         self.session_factory = session_factory
         self.chemistry_service = chemistry_service or ChemistryService(session_factory)
+        self.relationship_service = relationship_service or BandRelationshipService()
 
     # ------------------------------------------------------------------
     def create_band(self, user_id: int, band_name: str, genre: str) -> Band:
@@ -168,9 +171,16 @@ class BandService:
         """
 
         if collaboration_band_id:
+            modifier = 1.0
+            if self.relationship_service:
+                modifier = self.relationship_service.get_relationship_modifier(
+                    band_id, collaboration_band_id
+                )
+            total = int(amount * modifier)
             return {
-                "band_1_share": amount // 2,
-                "band_2_share": amount - (amount // 2),
+                "band_1_share": total // 2,
+                "band_2_share": total - (total // 2),
+                "modifier": modifier,
             }
 
         with self.session_factory() as session:
