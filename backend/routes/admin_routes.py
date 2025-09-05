@@ -37,7 +37,7 @@ from .admin_workshop_routes import router as workshop_router
 from .admin_xp_event_routes import router as xp_event_router
 from .admin_xp_routes import router as xp_router
 
-router = APIRouter()
+router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 @router.get("/economy/analytics", dependencies=[Depends(audit_dependency)])
