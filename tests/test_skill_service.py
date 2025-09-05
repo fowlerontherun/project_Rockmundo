@@ -187,6 +187,20 @@ def test_method_burnout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     assert updated.xp == 27
 
 
+def test_burnout_recovery(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _setup_db(tmp_path)
+    svc = SkillService(db_path=db)
+    skill = Skill(id=24, name="piano", category="instrument")
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    svc.reduce_burnout(1, amount=2)
+    updated = svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    assert updated.xp == 29
+
+
 def test_synergy_bonus_applied() -> None:
     svc = SkillService()
     spec = SkillSpecialization(name="lead", related_skills={31: 2}, bonus=0.5)
