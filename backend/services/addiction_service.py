@@ -68,6 +68,12 @@ class AddictionService:
             conn.commit()
         return level
 
+    def update_addiction(self, user_id: int, substance: str) -> dict[str, object]:
+        """Increase addiction level and return immediate buffs."""
+
+        level = self.use(user_id, substance)
+        return {"addiction_level": level, "buffs": [substance]}
+
     def apply_withdrawal(self, user_id: int, decay: int = 5) -> None:
         """Apply daily withdrawal decay to all addictions."""
 
