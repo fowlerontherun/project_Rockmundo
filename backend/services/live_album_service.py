@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sqlite3
+from pathlib import Path
 from typing import Dict, List
 
 from models.album import Album
@@ -8,6 +9,8 @@ from models.album import Album
 from backend.database import DB_PATH
 from backend.services import audio_mixing_service
 from backend.services.ai_art_service import ai_art_service
+from backend.services.sales_service import SalesService
+from backend.services import chart_service
 
 
 class LiveAlbumService:
@@ -194,4 +197,89 @@ class LiveAlbumService:
 
         self._albums[album_id] = album
         return album
+
+    # ------------------------------------------------------------------
+    def publish_album(self, album_id: int) -> int:
+        """Persist a drafted live album and register it for sales and charts.
+
+        Parameters
+        ----------
+        album_id:
+            Identifier of the in-memory draft created by
+            :meth:`compile_live_album`.
+
+        Returns
+        -------
+        int
+            The database ``releases.id`` of the stored album.
+        """
+
+        album = self._albums.get(album_id)
+        if not album:
+            raise ValueError("Album not found")
+
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+
+        # Ensure minimal schema for releases and tracks
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS releases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT,
+                band_id INTEGER,
+                album_type TEXT
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS release_tracks (
+                release_id INTEGER,
+                song_id INTEGER
+            )
+            """
+        )
+
+        cur.execute(
+            "INSERT INTO releases (title, band_id, album_type) VALUES (?, ?, ?)",
+            (album["title"], album["band_id"], album["album_type"]),
+        )
+        release_id = cur.lastrowid
+
+        for track in album["tracks"]:
+            cur.execute(
+                "INSERT INTO release_tracks (release_id, song_id) VALUES (?, ?)",
+                (release_id, track["song_id"]),
+            )
+
+        conn.commit()
+        conn.close()
+
+        # Record a zero-value digital sale so revenue tracking includes this
+        # release.  Failures are silently ignored as sales tracking is
+        # auxiliary for this service.
+        try:
+            sales = SalesService(self.db_path)
+            sales.ensure_schema()
+            sales.record_digital_sale(
+                buyer_user_id=0,
+                work_type="album",
+                work_id=release_id,
+                price_cents=0,
+                album_type=album["album_type"],
+            )
+        except Exception:
+            pass
+
+        # Update album charts.  ``chart_service`` uses a module-level DB path;
+        # point it to our database for the calculation.  Any errors are
+        # swallowed to keep publishing resilient.
+        try:
+            chart_service.DB_PATH = Path(self.db_path)
+            chart_service.calculate_album_chart(album_type=album["album_type"])
+        except Exception:
+            pass
+
+        return release_id
 
