@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import List, Optional
 from datetime import date
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class Festival(BaseModel):
     id: int
@@ -22,3 +24,20 @@ class Festival(BaseModel):
     revenue: float
     genre_id: Optional[int]
     success_score: Optional[float]
+
+
+class FestivalProposal(BaseModel):
+    """Represents a player submitted festival idea awaiting votes."""
+
+    id: int
+    proposer_id: int
+    name: str
+    description: Optional[str] = None
+    votes: List[int] = Field(default_factory=list)
+
+
+class ProposalVote(BaseModel):
+    """Record of a player's vote on a proposal."""
+
+    proposal_id: int
+    voter_id: int

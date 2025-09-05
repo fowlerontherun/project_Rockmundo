@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 from backend.services.festival_builder_service import (
     BookingConflictError,
     FestivalBuilderService,
+    FestivalError,
 )
 
 
@@ -63,3 +64,15 @@ def test_financial_reconciliation():
     assert finances["payouts"] == 500
     assert svc.economy.get_balance(1) == 3000
     assert svc.economy.get_balance(2) == 500
+
+
+def test_proposals_and_voting():
+    svc = setup_service()
+    pid = svc.propose_festival(proposer_id=1, name="IdeaFest")
+    assert pid == 1
+    proposals = svc.list_proposals()
+    assert proposals[0].name == "IdeaFest"
+    votes = svc.vote_on_proposal(pid, voter_id=2)
+    assert votes == 1
+    with pytest.raises(FestivalError):
+        svc.vote_on_proposal(pid, voter_id=2)

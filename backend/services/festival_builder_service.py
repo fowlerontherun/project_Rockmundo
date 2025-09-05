@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from services.economy_service import EconomyService
+from services.legacy_service import LegacyService
+
+from backend.models.festival import FestivalProposal
 from backend.models.festival_builder import (
     FestivalBuilder,
     Slot,
-    Stage,
     Sponsor,
+    Stage,
     TicketTier,
 )
 from backend.models.ticketing_models import Ticket
-from services.economy_service import EconomyService
-from services.legacy_service import LegacyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -42,6 +43,8 @@ class FestivalBuilderService:
         self.legacy.ensure_schema()
         self._festivals: Dict[int, FestivalBuilder] = {}
         self._id_seq = 1
+        self._proposals: Dict[int, FestivalProposal] = {}
+        self._proposal_seq = 1
 
     # ---------------- Festival lifecycle ----------------
     def create_festival(
@@ -154,3 +157,29 @@ class FestivalBuilderService:
     def get_finances(self, festival_id: int) -> Dict[str, int]:
         fest = self.get_festival(festival_id)
         return dict(fest.finances)
+
+    # ---------------- Proposals and voting ----------------
+    def propose_festival(
+        self, proposer_id: int, name: str, description: Optional[str] = None
+    ) -> int:
+        proposal = FestivalProposal(
+            id=self._proposal_seq,
+            proposer_id=proposer_id,
+            name=name,
+            description=description,
+        )
+        self._proposals[proposal.id] = proposal
+        self._proposal_seq += 1
+        return proposal.id
+
+    def list_proposals(self) -> List[FestivalProposal]:
+        return list(self._proposals.values())
+
+    def vote_on_proposal(self, proposal_id: int, voter_id: int) -> int:
+        proposal = self._proposals.get(int(proposal_id))
+        if not proposal:
+            raise FestivalError("Proposal not found")
+        if voter_id in proposal.votes:
+            raise FestivalError("Player already voted")
+        proposal.votes.append(int(voter_id))
+        return len(proposal.votes)
