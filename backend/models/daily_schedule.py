@@ -39,6 +39,17 @@ def remove_entry(user_id: int, date: str, slot: int) -> None:
         conn.commit()
 
 
+def clear_day(user_id: int, date: str) -> None:
+    """Remove all schedule entries for a user on a given day."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM daily_schedule WHERE user_id = ? AND date = ?",
+            (user_id, date),
+        )
+        conn.commit()
+
+
 def find_conflicts(
     user_id: int, date: str, start_slot: int, duration_slots: int
 ) -> List[int]:
@@ -101,4 +112,11 @@ def get_schedule(user_id: int, date: str) -> List[Dict]:
     ]
 
 
-__all__ = ["add_entry", "update_entry", "remove_entry", "find_conflicts", "get_schedule"]
+__all__ = [
+    "add_entry",
+    "update_entry",
+    "remove_entry",
+    "clear_day",
+    "find_conflicts",
+    "get_schedule",
+]

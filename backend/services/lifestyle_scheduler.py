@@ -37,6 +37,8 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
 def apply_lifestyle_decay_and_xp_effects() -> int:
     from .skill_service import skill_service  # local import to avoid cycle
     from .lifestyle_service import grant_daily_xp
+    from .addiction_service import addiction_service
+    from .random_event_service import random_event_service
 
     event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
@@ -87,6 +89,13 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             stress = min(100, row[4] + DECAY["stress"])
             discipline = max(0, row[5] - DECAY["training_discipline"])
             mental = max(0, row[6] - DECAY["mental_health"])
+
+            # Additional penalties from addictions
+            addiction_level = addiction_service.get_highest_level(user_id)
+            if addiction_level > 0:
+                mental = max(0, mental - addiction_level * 0.1)
+                if addiction_level >= 50:
+                    random_event_service.trigger_addiction_event(user_id)
 
             cur.execute(
                 """
