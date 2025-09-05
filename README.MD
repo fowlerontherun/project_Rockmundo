@@ -6,6 +6,28 @@ RockMundo is a modern music industry simulation game inspired by the depth of le
 
 This document outlines the current state of implemented features, the roadmap for future development, and the architecture that ties it all together.
 
+## Feature Summary
+- **Core Platform & API:** FastAPI services with role-based access, migrations, and OpenAPI docs.
+- **Player & Avatar System:** Customizable avatars with cosmetic skins and expressive emotes.
+- **Bands, Collaborations & Gigs:** Tools for managing bands, collaborations, and gig history.
+- **Music Content: Songs, Albums, EPs:** Create and digitally distribute music under business rules.
+- **Streaming, Sales, Charts & Royalties:** Track plays, sales, charts, and royalty earnings.
+- **Progression & Skills:** Skill progression with random events and a daily scheduler.
+- **Lifestyle & Event Engine:** Lifestyle stats and random events influence player performance.
+- **NPCs & World Simulation:** AI-controlled bands generate gigs and releases to populate the world.
+- **Community & Governance:** Karma, elections, and moderation tools support community life.
+- **Venues, Sponsors & Ads:** Venue sponsorships and ad revenue systems.
+- **Transport, Touring & Logistics:** AI tour scheduling and fan logistics planning.
+- **Admin & Ops:** Admin analytics, routes, and audit logging.
+- **Media & Promotion:** Media exposure systems and podcast scaffolding.
+- **Docs, Wiki & Onboarding:** Large-scale name generator and documentation seeds.
+
+## Game Loops
+- **Login Streaks:** Daily logins build streaks that grant increasing rewards.
+- **Rotating Challenges:** Challenges rotate each day to provide fresh tasks and bonuses.
+- **Weekly Milestones:** Weekly goals reset to deliver larger rewards.
+- **Tiered Rewards:** Completion of loops advances players through tiered reward tracks.
+
 ---
 
 ## Implemented Features
