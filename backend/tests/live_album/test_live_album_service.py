@@ -6,15 +6,15 @@ import pytest
 from backend.services.live_album_service import LiveAlbumService
 
 
-def _insert_performance(cur, band_id, setlist, skill_gain):
+def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
     cur.execute(
         """
         INSERT INTO live_performances (
             band_id, city, venue, date, setlist, crowd_size, fame_earned,
             revenue_earned, skill_gain, merch_sold
-        ) VALUES (?, '', '', '', ?, 0, 0, 0, ?, 0)
+        ) VALUES (?, ?, ?, '', ?, 0, 0, 0, ?, 0)
         """,
-        (band_id, json.dumps(setlist), skill_gain),
+        (band_id, city, venue, json.dumps(setlist), skill_gain),
     )
 
 
@@ -59,7 +59,7 @@ def test_compile_live_album(tmp_path):
     }
     scores = [50, 60, 55, 40, 80]
     for idx, score in enumerate(scores, start=1):
-        _insert_performance(cur, 1, setlist, 0.0)
+        _insert_performance(cur, 1, setlist, 0.0, f"City {idx}", f"Venue {idx}")
         cur.execute(
             "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
             (idx, score),
@@ -80,6 +80,7 @@ def test_compile_live_album(tmp_path):
     assert all(s["show_id"] == 5 for s in album["songs"])
     assert all(s["performance_score"] == 80 for s in album["songs"])
     assert all(t["performance_id"] == 5 for t in album["tracks"])
+    assert album["cover_art"]
 
 def test_update_tracks_validation(tmp_path):
     db_file = tmp_path / "perf.db"
@@ -123,7 +124,7 @@ def test_update_tracks_validation(tmp_path):
 
     setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}
     for idx in range(1, 6):
-        _insert_performance(cur, 1, setlist, 0.0)
+        _insert_performance(cur, 1, setlist, 0.0, f"City {idx}", f"Venue {idx}")
         cur.execute(
             "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
             (idx, 50),

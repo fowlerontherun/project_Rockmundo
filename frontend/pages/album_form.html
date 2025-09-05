@@ -18,12 +18,40 @@
     <option value="streaming">Streaming</option>
   </select>
   <input type="file" name="cover_art" />
+  <img id="coverPreview" style="max-width:200px;display:none" alt="Cover Art Preview" />
   <button type="submit">Create Release</button>
 </form>
 
 <script src="../components/notification.js"></script>
 <script>
   const orderedTracks = [];
+  const coverInput = document.querySelector('input[name="cover_art"]');
+  const coverPreview = document.getElementById('coverPreview');
+
+  function showCover(src) {
+    if (src) {
+      coverPreview.src = src;
+      coverPreview.style.display = 'block';
+    } else {
+      coverPreview.style.display = 'none';
+      coverPreview.removeAttribute('src');
+    }
+  }
+
+  if (window.initialCoverArt) {
+    showCover(window.initialCoverArt);
+  }
+
+  coverInput.addEventListener('change', function () {
+    const file = coverInput.files[0];
+    if (file) {
+      showCover(URL.createObjectURL(file));
+    } else if (window.initialCoverArt) {
+      showCover(window.initialCoverArt);
+    } else {
+      showCover('');
+    }
+  });
 
   function renderTracks() {
     const list = document.getElementById('selectedTracks');
