@@ -114,7 +114,7 @@ class LiveAlbumService:
         )
         for track, mixed_id in zip(tracks, mixed_ids):
             track["track_id"] = mixed_id
-            del track["performance_id"]
+            track["show_id"] = track.pop("performance_id")
 
         themes = list(cities | venues)
         try:
@@ -238,7 +238,9 @@ class LiveAlbumService:
             """
             CREATE TABLE IF NOT EXISTS release_tracks (
                 release_id INTEGER,
-                song_id INTEGER
+                song_id INTEGER,
+                show_id INTEGER,
+                performance_score REAL
             )
             """
         )
@@ -274,8 +276,13 @@ class LiveAlbumService:
 
         for track in album["tracks"]:
             cur.execute(
-                "INSERT INTO release_tracks (release_id, song_id) VALUES (?, ?)",
-                (release_id, track["song_id"]),
+                "INSERT INTO release_tracks (release_id, song_id, show_id, performance_score) VALUES (?, ?, ?, ?)",
+                (
+                    release_id,
+                    track["song_id"],
+                    track.get("show_id"),
+                    track.get("performance_score"),
+                ),
             )
 
         conn.commit()
