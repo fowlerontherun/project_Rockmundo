@@ -30,6 +30,7 @@ from routes import (
     mail_routes,
     media_routes,
     membership_routes,
+    merch_routes,
     music_metrics_routes,
     onboarding_routes,
     playlist_routes,
@@ -152,6 +153,7 @@ app.include_router(gifting_routes.router, prefix="/api", tags=["Gifting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
 app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
 app.include_router(membership_routes.router, prefix="/api", tags=["Membership"])
+app.include_router(merch_routes.router, prefix="/api", tags=["Merch"])
 app.include_router(mail_routes.router, prefix="/api", tags=["Mail"])
 
 
