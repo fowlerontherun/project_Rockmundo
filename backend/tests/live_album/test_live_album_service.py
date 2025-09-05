@@ -1,6 +1,8 @@
 import json
 import sqlite3
 
+import pytest
+
 from backend.services.live_album_service import LiveAlbumService
 
 
@@ -78,3 +80,81 @@ def test_compile_live_album(tmp_path):
     assert all(s["show_id"] == 5 for s in album["songs"])
     assert all(s["performance_score"] == 80 for s in album["songs"])
     assert all(t["performance_id"] == 5 for t in album["tracks"])
+
+def test_update_tracks_validation(tmp_path):
+    db_file = tmp_path / "perf.db"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE live_performances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            band_id INTEGER,
+            city TEXT,
+            venue TEXT,
+            date TEXT,
+            setlist TEXT,
+            crowd_size INTEGER,
+            fame_earned INTEGER,
+            revenue_earned INTEGER,
+            skill_gain REAL,
+            merch_sold INTEGER
+        )
+        """,
+    )
+    cur.execute(
+        """
+        CREATE TABLE recorded_tracks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            song_id INTEGER,
+            performance_score REAL,
+            created_at TEXT
+        )
+        """,
+    )
+    # Tables tracking existing releases for validation
+    cur.execute(
+        "CREATE TABLE releases (id INTEGER PRIMARY KEY AUTOINCREMENT, format TEXT)"
+    )
+    cur.execute(
+        "CREATE TABLE release_tracks (release_id INTEGER, song_id INTEGER)"
+    )
+
+    setlist = {"setlist": [{"type": "song", "reference": "1"}, {"type": "song", "reference": "2"}], "encore": []}
+    for idx in range(1, 6):
+        _insert_performance(cur, 1, setlist, 0.0)
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 1, ?, '')",
+            (idx, 50),
+        )
+        cur.execute(
+            "INSERT INTO recorded_tracks (performance_id, song_id, performance_score, created_at) VALUES (?, 2, ?, '')",
+            (idx, 60),
+        )
+    # Mark song 1 as already released as a single
+    cur.execute("INSERT INTO releases (format) VALUES ('single')")
+    release_id = cur.lastrowid
+    cur.execute(
+        "INSERT INTO release_tracks (release_id, song_id) VALUES (?, 1)",
+        (release_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    service = LiveAlbumService(str(db_file))
+    album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+    album_id = album["id"]
+
+    # Reorder tracks
+    updated = service.update_tracks(album_id, [2, 1])
+    assert updated["song_ids"] == [2, 1]
+
+    # Removing a track released as a single should fail
+    with pytest.raises(ValueError):
+        service.update_tracks(album_id, [2])
+
+    # Removing an unreleased track succeeds
+    updated = service.update_tracks(album_id, [1])
+    assert updated["song_ids"] == [1]
+
