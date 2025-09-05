@@ -61,7 +61,7 @@ class SkillService:
                 cur = conn.cursor()
                 # Lifestyle metrics
                 cur.execute(
-                    "SELECT sleep_hours, stress, training_discipline, mental_health FROM lifestyle WHERE user_id = ?",
+                    "SELECT sleep_hours, stress, training_discipline, mental_health, nutrition, fitness FROM lifestyle WHERE user_id = ?",
                     (user_id,),
                 )
                 row = cur.fetchone()

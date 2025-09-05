@@ -22,7 +22,7 @@ class DummyXPEvents:
 def _setup_db(
     tmp_path: Path,
     xp_modifier: float = 1.0,
-    lifestyle: tuple[float, float, float, float] = (7, 0, 50, 100),
+    lifestyle: tuple[float, float, float, float, float, float] = (7, 0, 50, 100, 70, 70),
     learning_style: str = "balanced",
 ) -> Path:
     db = tmp_path / "db.sqlite"
@@ -36,10 +36,10 @@ def _setup_db(
         (xp_modifier,),
     )
     cur.execute(
-        "CREATE TABLE lifestyle (user_id INTEGER, sleep_hours REAL, stress REAL, training_discipline REAL, mental_health REAL)"
+        "CREATE TABLE lifestyle (user_id INTEGER, sleep_hours REAL, stress REAL, training_discipline REAL, mental_health REAL, nutrition REAL, fitness REAL)"
     )
     cur.execute(
-        "INSERT INTO lifestyle (user_id, sleep_hours, stress, training_discipline, mental_health) VALUES (1, ?, ?, ?, ?)",
+        "INSERT INTO lifestyle (user_id, sleep_hours, stress, training_discipline, mental_health, nutrition, fitness) VALUES (1, ?, ?, ?, ?, ?, ?)",
         lifestyle,
     )
     cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, learning_style TEXT)")
@@ -167,7 +167,7 @@ def test_environment_quality(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_lifestyle_modifier(tmp_path: Path) -> None:
-    db = _setup_db(tmp_path, lifestyle=(4, 90, 50, 100))
+    db = _setup_db(tmp_path, lifestyle=(4, 90, 50, 100, 100, 100))
     svc = SkillService(db_path=db, xp_events=DummyXPEvents(1.0))
     skill = Skill(id=22, name="bass", category="instrument")
     updated = svc.train(1, skill, 10)
