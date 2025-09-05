@@ -94,8 +94,15 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             addiction_level = addiction_service.get_highest_level(user_id)
             if addiction_level > 0:
                 mental = max(0, mental - addiction_level * 0.1)
-                if addiction_level >= 50:
-                    random_event_service.trigger_addiction_event(user_id)
+                missed = addiction_service.check_for_missed_events(user_id, today)
+                if missed:
+                    from backend.models.daily_schedule import remove_entry
+
+                    for entry in missed:
+                        remove_entry(user_id, today, entry["slot"])
+                    random_event_service.trigger_addiction_event(
+                        user_id, level=addiction_level, date=today
+                    )
 
             cur.execute(
                 """

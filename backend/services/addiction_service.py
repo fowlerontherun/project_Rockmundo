@@ -115,6 +115,24 @@ class AddictionService:
             row = cur.fetchone()
             return row[0] if row and row[0] is not None else 0
 
+    def check_for_missed_events(self, user_id: int, day: str) -> list[dict]:
+        """Return scheduled events to cancel if addiction level is high.
+
+        When a user's highest addiction level for any substance reaches 70 or
+        more, they are considered unreliable for the day.  This helper returns
+        any scheduled events for ``day`` that should be cancelled by the
+        scheduler.  The method does not mutate the schedule; callers are
+        expected to remove the returned entries themselves.
+        """
+
+        level = self.get_highest_level(user_id)
+        if level < 70:
+            return []
+
+        from backend.models.daily_schedule import get_schedule  # local import
+
+        return get_schedule(user_id, day)
+
 
 # Singleton instance
 addiction_service = AddictionService()
