@@ -1,6 +1,7 @@
 
 from models.transport import Transport
 from datetime import datetime
+import random
 
 DEFAULT_VEHICLE_STATS = {
     "van": {"speed": 80, "fatigue_rate": 1.2, "capacity": 4, "perks": []},
@@ -33,3 +34,19 @@ class TransportService:
 
     def update_maintenance(self, vehicle_id):
         self.db.update_transport_maintenance(vehicle_id, datetime.utcnow().isoformat())
+
+    def evaluate_risks(self, vehicle_type, weather="clear"):
+        """Simple travel risk assessment.
+
+        Returns a list of potential disruptions based on vehicle type and
+        ambient weather. Probabilities are intentionally light-weight for
+        demonstration and tests.
+        """
+        risks = []
+        if random.random() < 0.1:
+            risks.append("traffic_jam")
+        if vehicle_type in ("van", "bus", "truck") and random.random() < 0.05:
+            risks.append("mechanical_issue")
+        if weather in ("storm", "snow") and random.random() < 0.3:
+            risks.append("weather_delay")
+        return risks

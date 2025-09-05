@@ -12,6 +12,8 @@ from services.tour_service import TourService, TourError
 from models.tour import TicketTier, Expense
 from services.weather_service import WeatherService
 from services.economy_service import EconomyService
+from services.tour_logistics_service import TourLogisticsService
+from services.transport_service import TransportService
 
 router = APIRouter(prefix="/tours", tags=["Tours"])
 
@@ -22,6 +24,7 @@ try:
 except Exception:
     pass
 svc = TourService(weather=WeatherService(), economy=_economy)
+_logistics = TourLogisticsService(db=None, transport=TransportService(db=None))
 
 
 # ----------------------- Pydantic models -----------------------
@@ -66,6 +69,13 @@ class SimulateIn(BaseModel):
     leg_index: int
 
 
+class TravelDisruptionIn(BaseModel):
+    vehicle_type: str = "van"
+    origin: str
+    destination: str
+    weather: str = "clear"
+
+
 # ----------------------- Routes -----------------------
 @router.post("/")
 def create_tour(payload: CreateTourIn):
@@ -104,6 +114,16 @@ def simulate(payload: SimulateIn):
         return svc.simulate_attendance(payload.tour_id, payload.leg_index)
     except TourError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/travel/disruptions")
+def travel_disruptions(payload: TravelDisruptionIn):
+    return _logistics.check_disruptions(
+        payload.vehicle_type,
+        payload.origin,
+        payload.destination,
+        weather=payload.weather,
+    )
 
 
 @router.get("/{tour_id}/report")
