@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-from typing import List, Optional
 import uuid
-
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from typing import List, Optional
 
 from auth.dependencies import get_current_user_id, require_role
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from services.media_event_service import media_event_service
 from services.media_moderation_service import media_moderation_service
+from services.media_service import (
+    list_collaborations,
+    request_collaboration,
+    respond_to_collaboration,
+)
 from services.storage_service import get_storage_backend
 
 router = APIRouter(prefix="/media")
@@ -78,3 +82,36 @@ async def moderate_media(
         data=data, text=text, filename=file.filename if file else None
     )
     return {"allowed": result.allowed, "reasons": result.reasons}
+
+
+@router.post("/collaborations")
+async def create_collaboration(
+    partner_id: int,
+    details: Optional[str] = None,
+    user_id: int = Depends(_current_user),
+):
+    """Initiate a collaboration request with another influencer."""
+
+    return request_collaboration(user_id, partner_id, details)
+
+
+@router.post("/collaborations/{collab_id}/respond")
+async def respond_collaboration(
+    collab_id: int,
+    accept: bool,
+    user_id: int = Depends(_current_user),
+):
+    """Accept or reject a collaboration request."""
+
+    try:
+        collab = respond_to_collaboration(collab_id, accept)
+    except KeyError:  # pragma: no cover - simple guard
+        raise HTTPException(status_code=404, detail="Collaboration not found")
+    return collab
+
+
+@router.get("/collaborations")
+async def get_collaborations(user_id: int = Depends(_current_user)):
+    """List collaborations involving the current user."""
+
+    return list_collaborations(user_id)
