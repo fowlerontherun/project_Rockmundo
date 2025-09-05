@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.fanclub_schema import FanClubCreate, FanClubResponse
 from datetime import date
@@ -8,7 +8,7 @@ router = APIRouter()
 fanclubs = []
 fanclub_id_counter = 1
 
-@router.post("/fanclubs/", response_model=FanClubResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/fanclubs/", response_model=FanClubResponse, dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def create_fanclub(fanclub: FanClubCreate):
     global fanclub_id_counter
     new_fc = fanclub.dict()

@@ -1,7 +1,7 @@
 """Routes for querying admin audit logs."""
 from fastapi import APIRouter, Depends
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from services.admin_audit_service import (
     AdminAuditService,
     audit_dependency,
@@ -20,5 +20,5 @@ async def list_audit_logs(
     admin_id: int = Depends(get_current_user_id),
     svc: AdminAuditService = Depends(get_admin_audit_service),
 ):
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return svc.query(skip, limit)

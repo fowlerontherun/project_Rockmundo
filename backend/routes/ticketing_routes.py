@@ -6,9 +6,9 @@ from services.economy_service import EconomyService
 from services.ticketing_service import TicketingError, TicketingService
 
 try:
-    from auth.dependencies import require_role
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover - fallback for tests
-    def require_role(roles):
+    def require_permission(roles):
         async def _noop():
             return True
         return _noop
@@ -42,12 +42,12 @@ class PurchaseIn(BaseModel):
     items: List[TicketItemIn]
 
 
-@router.get("/status", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.get("/status", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 async def check_ticketing_status():
     return {"status": "Ticketing system operational."}
 
 
-@router.post("/types", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/types", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 async def create_ticket_type(payload: TicketTypeIn):
     try:
         tid = svc.create_ticket_type(**payload.model_dump())
@@ -56,12 +56,12 @@ async def create_ticket_type(payload: TicketTypeIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/types/{event_id}", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.get("/types/{event_id}", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 async def list_ticket_types(event_id: int):
     return svc.list_ticket_types(event_id)
 
 
-@router.post("/purchase", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/purchase", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 async def purchase_tickets(payload: PurchaseIn):
     try:
         oid = svc.purchase_tickets(
@@ -74,7 +74,7 @@ async def purchase_tickets(payload: PurchaseIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/refund/{order_id}", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/refund/{order_id}", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 async def refund_order(order_id: int, reason: str = ""):
     try:
         return svc.refund_order(order_id, reason)

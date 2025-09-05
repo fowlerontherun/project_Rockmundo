@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from services.mailbox_service import *
 
 router = APIRouter()
 
-@router.post("/mail/send", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/mail/send", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def send_message(payload: dict, user_id: int = Depends(get_current_user_id)):
     return send_mail(payload)
 

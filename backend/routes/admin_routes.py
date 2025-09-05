@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.admin_analytics_service import fetch_shop_metrics
 from backend.services.admin_audit_service import audit_dependency
 
@@ -49,7 +49,7 @@ async def economy_analytics(
     """Summary of shop sales and top items."""
 
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return fetch_shop_metrics(period_start, period_end, limit)
 
 

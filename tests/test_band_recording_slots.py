@@ -15,7 +15,7 @@ import types
 auth_mod = types.ModuleType("auth")
 deps_mod = types.ModuleType("auth.dependencies")
 deps_mod.get_current_user_id = lambda: 1
-deps_mod.require_role = lambda roles: (lambda: None)
+deps_mod.require_permission = lambda roles: (lambda: None)
 auth_mod.dependencies = deps_mod
 sys.modules["auth"] = auth_mod
 sys.modules["auth.dependencies"] = deps_mod

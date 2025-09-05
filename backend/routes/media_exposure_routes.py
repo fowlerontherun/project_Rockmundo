@@ -1,11 +1,11 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, HTTPException
 from models.media_exposure_models import *
 from schemas.media_exposure_schemas import *
 
 router = APIRouter()
 
-@router.post("/media_exposure/post_social_media", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/media_exposure/post_social_media", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def post_social_media(post: SocialMediaPost):
     # Placeholder logic for posting on social media
     return {"message": f"Posted {post.platform} update: {post.content}"}

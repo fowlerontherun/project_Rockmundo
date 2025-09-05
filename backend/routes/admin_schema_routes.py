@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, field_validator
 
@@ -116,7 +116,7 @@ router = APIRouter(prefix="/schema", tags=["AdminSchema"])
 
 async def _ensure_admin(req: Request) -> None:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
 
 
 @router.get("/npc")

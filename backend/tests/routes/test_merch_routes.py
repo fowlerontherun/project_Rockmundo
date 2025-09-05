@@ -8,14 +8,14 @@ import backend.auth.dependencies as auth_dep
 from typing import List
 
 
-def _fake_require_role(_: List[str]):
+def _fake_require_permission(_: List[str]):
     async def _noop() -> None:
         return None
 
     return _noop
 
 
-auth_dep.require_role = _fake_require_role
+auth_dep.require_permission = _fake_require_permission
 
 from routes import merch_routes
 

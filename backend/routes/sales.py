@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 try:
-    from auth.dependencies import require_role
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
-    def require_role(_: List[str]):
+    def require_permission(_: List[str]):
         async def _noop() -> None:  # type: ignore[return-value]
             return None
 
@@ -33,7 +33,7 @@ class DigitalSaleIn(BaseModel):
 
 @router.post(
     "/digital",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 async def record_digital(payload: DigitalSaleIn) -> dict[str, int]:
     """Record a digital song or album sale."""
@@ -47,7 +47,7 @@ async def record_digital(payload: DigitalSaleIn) -> dict[str, int]:
 
 @router.get(
     "/digital/{work_type}/{work_id}",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def list_digital_sales(work_type: str, work_id: int):
     """List digital sales for a work."""
@@ -76,7 +76,7 @@ class VinylPurchaseIn(BaseModel):
 
 @router.post(
     "/vinyl/sku",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def create_vinyl_sku(payload: VinylSkuIn) -> dict[str, int]:
     try:
@@ -88,7 +88,7 @@ async def create_vinyl_sku(payload: VinylSkuIn) -> dict[str, int]:
 
 @router.get(
     "/vinyl/sku/{album_id}",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 async def list_vinyl_skus(album_id: int):
     return svc.list_vinyl_skus(album_id)
@@ -96,7 +96,7 @@ async def list_vinyl_skus(album_id: int):
 
 @router.post(
     "/vinyl/purchase",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 async def purchase_vinyl(payload: VinylPurchaseIn) -> dict[str, int]:
     try:
@@ -112,7 +112,7 @@ async def purchase_vinyl(payload: VinylPurchaseIn) -> dict[str, int]:
 
 @router.post(
     "/vinyl/refund/{order_id}",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def refund_vinyl(order_id: int, reason: str = "") -> dict[str, bool]:
     try:

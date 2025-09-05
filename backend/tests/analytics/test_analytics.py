@@ -6,7 +6,7 @@ from auth.service import AuthService
 from fastapi import HTTPException, Request
 from utils.db import get_conn
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.analytics_service import SERVICE_LATENCY_MS, AnalyticsService
 from backend.utils.metrics import generate_latest
 
@@ -86,13 +86,13 @@ def test_metrics_and_permissions(tmp_path):
     user_req = Request(headers={"Authorization": f"Bearer {token(2, auth_svc)}"})
     uid = asyncio.run(get_current_user_id(user_req))
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(require_role(["admin"], user_id=uid))
+        asyncio.run(require_permission(["admin"], user_id=uid))
     assert exc.value.status_code == 403
 
     # permission: admin succeeds
     admin_req = Request(headers={"Authorization": f"Bearer {token(1, auth_svc)}"})
     uid = asyncio.run(get_current_user_id(admin_req))
-    assert asyncio.run(require_role(["admin"], user_id=uid))
+    assert asyncio.run(require_permission(["admin"], user_id=uid))
 
 
 def test_kpis_latency_metric(tmp_path):

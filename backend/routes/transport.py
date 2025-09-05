@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
@@ -7,7 +7,7 @@ from schemas.transport import TransportCreate
 
 router = APIRouter()
 
-@router.post("/transport/add", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/transport/add", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def add_transport(transport_data: TransportCreate, db: Session = Depends(get_db)):
     new_vehicle = Transport(**transport_data.dict())
     db.add(new_vehicle)

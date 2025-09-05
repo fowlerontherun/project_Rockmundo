@@ -4,13 +4,13 @@ import backend.seeds.genre_seed as genre_seed
 import backend.seeds.skill_seed as skill_seed
 
 import backend.seeds.stage_equipment_seed as equipment_seed
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.genre import Genre
 from backend.models.skill import Skill
 from backend.models.stage_equipment import StageEquipment
 from backend.schemas.admin_music_schema import GenreSchema, SkillSchema, StageEquipmentSchema
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.genre import Genre
 from backend.models.skill import Skill
 from backend.schemas.admin_music_schema import GenreSchema, SkillSchema
@@ -25,7 +25,7 @@ router = APIRouter(
 
 async def _ensure_admin(req: Request) -> None:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
 
 
 @router.get("/skills")

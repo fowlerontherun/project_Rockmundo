@@ -18,11 +18,11 @@ def _setup(monkeypatch):
     async def fake_current_user(req: Request):
         return 1
 
-    async def fake_require_role(roles, user_id):
+    async def fake_require_permission(roles, user_id):
         return True
 
     monkeypatch.setattr(media_routes, "get_current_user_id", fake_current_user)
-    monkeypatch.setattr(media_routes, "require_role", fake_require_role)
+    monkeypatch.setattr(media_routes, "require_permission", fake_require_permission)
 
     # fresh storage backend in a temp directory
     tmpdir = tempfile.TemporaryDirectory()

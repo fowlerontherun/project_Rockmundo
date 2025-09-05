@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.education_schema import EducationSessionCreate, EducationSessionResponse
 from datetime import date
@@ -8,7 +8,7 @@ router = APIRouter()
 education_sessions = []
 education_id_counter = 1
 
-@router.post("/education/", response_model=EducationSessionResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
+@router.post("/education/", response_model=EducationSessionResponse, dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))])
 def create_session(session: EducationSessionCreate):
     global education_id_counter
     new_session = session.dict()

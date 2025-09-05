@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.economy_admin_service import EconomyAdminService
 from backend.models.economy_config import EconomyConfig
 from backend.services.admin_audit_service import audit_dependency
@@ -23,14 +23,14 @@ class ConfigUpdateIn(BaseModel):
 @router.get("/config")
 async def get_config(req: Request):
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return svc.get_config()
 
 
 @router.put("/config")
 async def update_config(payload: ConfigUpdateIn, req: Request):
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     data = {k: v for k, v in payload.dict().items() if v is not None}
     try:
         return svc.update_config(**data)
@@ -41,7 +41,7 @@ async def update_config(payload: ConfigUpdateIn, req: Request):
 @router.put("/config/preview")
 async def preview_config(payload: ConfigUpdateIn, req: Request):
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     current = svc.get_config()
     preview = current.__dict__.copy()
     for k, v in payload.dict().items():
@@ -53,5 +53,5 @@ async def preview_config(payload: ConfigUpdateIn, req: Request):
 @router.get("/transactions")
 async def recent_transactions(req: Request, limit: int = 50):
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
     return svc.recent_transactions(limit=limit)

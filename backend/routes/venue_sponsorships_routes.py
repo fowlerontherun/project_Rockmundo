@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, HttpUrl
 
 try:
-    from auth.dependencies import get_current_user_id, require_role
+    from auth.dependencies import get_current_user_id, require_permission
 except Exception:  # pragma: no cover
-    def require_role(_: List[str]):
+    def require_permission(_: List[str]):
         async def _noop() -> None:  # type: ignore[return-value]
             return None
 
@@ -39,7 +39,7 @@ class SponsorshipInModel(BaseModel):
     is_active: bool = True
 
 
-@router.post("", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 async def upsert_sponsorship(payload: SponsorshipInModel) -> Dict[str, int]:
     """Create or update a sponsorship for a venue."""
 
@@ -52,7 +52,7 @@ async def upsert_sponsorship(payload: SponsorshipInModel) -> Dict[str, int]:
 
 @router.get(
     "/{venue_id}",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 async def get_sponsorship(venue_id: int) -> Dict[str, Any]:
     """Retrieve sponsorship details for a venue."""
@@ -65,7 +65,7 @@ async def get_sponsorship(venue_id: int) -> Dict[str, Any]:
 
 @router.post(
     "/{venue_id}/deactivate",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def deactivate_sponsorship(venue_id: int) -> Dict[str, bool]:
     """Deactivate a sponsorship for a venue."""
@@ -84,7 +84,7 @@ class BrandingQuery(BaseModel):
 
 @router.post(
     "/{venue_id}/branding",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 async def effective_branding(venue_id: int, query: BrandingQuery) -> Dict[str, Any]:
     """Return the effective branding for a venue."""
@@ -113,7 +113,7 @@ class CounterIn(BaseModel):
 
 @router.post(
     "/negotiations/offer",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def create_offer(payload: OfferIn) -> Dict[str, Any]:
     negotiation = svc.create_offer(payload.venue_id, payload.sponsor_name, payload.terms.model_dump())
@@ -122,7 +122,7 @@ async def create_offer(payload: OfferIn) -> Dict[str, Any]:
 
 @router.post(
     "/negotiations/{negotiation_id}/counter",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def counter_offer(negotiation_id: int, payload: CounterIn) -> Dict[str, Any]:
     try:
@@ -134,7 +134,7 @@ async def counter_offer(negotiation_id: int, payload: CounterIn) -> Dict[str, An
 
 @router.post(
     "/negotiations/{negotiation_id}/accept",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def accept_offer(negotiation_id: int) -> Dict[str, Any]:
     try:
@@ -153,7 +153,7 @@ class ImpressionIn(BaseModel):
 
 @router.post(
     "/impressions",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 async def record_impression(
     payload: ImpressionIn, user_id: int = Depends(get_current_user_id)
@@ -172,7 +172,7 @@ async def record_impression(
 
 @router.get(
     "/impressions/{sponsorship_id}",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def list_impressions(
     sponsorship_id: int, limit: int = 100

@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
@@ -13,7 +13,7 @@ STREAM_RATE = 0.005  # $0.005 per stream
 DIGITAL_PRICE = 1.29  # $1.29 per sale
 VINYL_PRICE = 20.00   # $20 per vinyl
 
-@router.post("/update", response_model=DistributionResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/update", response_model=DistributionResponse, dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def update_distribution(data: DistributionUpdate, db: Session = Depends(get_db)):
     dist = db.query(SongDistribution).filter_by(song_id=data.song_id).first()
     if not dist:

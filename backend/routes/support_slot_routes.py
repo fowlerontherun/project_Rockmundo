@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 try:  # Authentication dependencies may not be available during tests
-    from auth.dependencies import get_current_user_id, require_role
+    from auth.dependencies import get_current_user_id, require_permission
 except Exception:  # pragma: no cover - fallback for docs builds
-    def require_role(_: List[str]):
+    def require_permission(_: List[str]):
         async def _noop() -> None:  # type: ignore[return-value]
             return None
 
@@ -44,7 +44,7 @@ class SupportSlotOut(SupportSlotIn):
 @router.post(
     "",
     response_model=SupportSlotOut,
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def create_slot(
     payload: SupportSlotIn, user_id: int = Depends(get_current_user_id)
@@ -60,7 +60,7 @@ async def create_slot(
 @router.get(
     "",
     response_model=List[SupportSlotOut],
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def list_slots() -> List[SupportSlotOut]:
     """Return all defined support slots."""
@@ -71,7 +71,7 @@ async def list_slots() -> List[SupportSlotOut]:
 @router.get(
     "/{slot_id}",
     response_model=SupportSlotOut,
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def get_slot(slot_id: int) -> SupportSlotOut:
     """Retrieve a single support slot by identifier."""
@@ -85,7 +85,7 @@ async def get_slot(slot_id: int) -> SupportSlotOut:
 @router.put(
     "/{slot_id}",
     response_model=SupportSlotOut,
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def update_slot(
     slot_id: int,
@@ -106,7 +106,7 @@ async def update_slot(
 
 @router.delete(
     "/{slot_id}",
-    dependencies=[Depends(require_role(["admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator"]))],
 )
 async def delete_slot(slot_id: int) -> dict[str, bool]:
     """Delete a support slot."""

@@ -3,7 +3,7 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from models.construction import Blueprint, BuildPhase
 from services.construction_service import ConstructionService
 from services.economy_service import EconomyService
@@ -24,7 +24,7 @@ class LandPurchaseIn(BaseModel):
     price: int
 
 
-@router.post("/land", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/land", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def purchase_land(payload: LandPurchaseIn, owner_id: int = Depends(get_current_user_id)):
     try:
         parcel_id = svc.purchase_land(owner_id, payload.location, payload.size, payload.price)
@@ -48,7 +48,7 @@ class DesignIn(BaseModel):
     upgrade_effect: Dict[str, int]
 
 
-@router.post("/design", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/design", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def submit_design(payload: DesignIn, owner_id: int = Depends(get_current_user_id)):
     blueprint = Blueprint(
         name=payload.name,
@@ -70,7 +70,7 @@ def submit_design(payload: DesignIn, owner_id: int = Depends(get_current_user_id
 
 @router.get(
     "/progress",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 def progress() -> List[Dict[str, int]]:
     return svc.get_queue()

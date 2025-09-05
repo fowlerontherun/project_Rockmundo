@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.apprenticeship import Apprenticeship
 from backend.services.admin_audit_service import audit_dependency
 from backend.services.apprenticeship_admin_service import (
@@ -29,7 +29,7 @@ class ApprenticeshipIn(BaseModel):
 
 async def _ensure_admin(req: Request) -> None:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
 
 
 @router.get("/")

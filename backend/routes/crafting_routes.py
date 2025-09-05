@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Dict
@@ -14,7 +14,7 @@ class RecipePayload(BaseModel):
     components: Dict[int, int]
 
 
-@router.post("/recipes", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/recipes", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def add_recipe(payload: RecipePayload):
     recipe = Recipe(**payload.model_dump())
     crafting_service.add_recipe(recipe)

@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from services.scheduler_service import *
 
 router = APIRouter()
 
-@router.post("/notify/send", dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
+@router.post("/notify/send", dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))])
 def send_notification(payload: dict, user_id: int = Depends(get_current_user_id)):
     return send_user_notification(payload)
 
