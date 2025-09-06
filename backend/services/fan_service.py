@@ -3,8 +3,8 @@ import sqlite3
 from backend.database import DB_PATH
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import skill_service
 from backend.services.avatar_service import AvatarService
+from backend.services.skill_service import skill_service
 
 avatar_service = AvatarService()
 
@@ -22,10 +22,7 @@ def add_fan(user_id: int, band_id: int, location: str, source: str = "organic") 
         """
         SELECT id, loyalty FROM fans
         WHERE user_id = ? AND band_id = ? AND location = ?
-
         """,
-    """,
-
         (user_id, band_id, location),
     )
     row = cur.fetchone()
@@ -45,9 +42,6 @@ def add_fan(user_id: int, band_id: int, location: str, source: str = "organic") 
             INSERT INTO fans (user_id, band_id, location, loyalty, source)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (user_id, band_id, location, 25, source),
-=======
-        """,
             (user_id, band_id, location, base_loyalty, source),
         )
 
@@ -103,16 +97,16 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
 
     avatar = avatar_service.get_avatar(band_id)
     charisma = avatar.charisma if avatar else 50
-    bonus = max(1, charisma // 50)
+    charisma_bonus = max(1, charisma // 50)
 
     # Boost existing fans in that location
     cur.execute(
         """
         UPDATE fans
-        SET loyalty = MIN(loyalty + ? , 100)
+        SET loyalty = MIN(loyalty + ?, 100)
         WHERE band_id = ? AND location = ?
         """,
-        (band_id, location),
+        (5 + charisma_bonus, band_id, location),
     )
 
     # Add new fans based on attendance and marketing/PR skill levels
@@ -129,25 +123,17 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
     )
     marketing_level = skill_service.train(band_id, marketing, 0).level
     pr_level = skill_service.train(band_id, pr_skill, 0).level
-    bonus = 1 + 0.05 * max(marketing_level - 1, 0) + 0.05 * max(pr_level - 1, 0)
-    new_fans = int(base_new * bonus)
-=======
-    """,
-        (5 + bonus, band_id, location),
+    skill_multiplier = 1 + 0.05 * max(marketing_level - 1, 0) + 0.05 * max(
+        pr_level - 1, 0
     )
-
-    # Add new fans based on attendance
-    new_fans = (attendance // 10) * bonus
+    new_fans = int(base_new * skill_multiplier)
     for _ in range(new_fans):
         cur.execute(
             """
             INSERT INTO fans (user_id, band_id, location, loyalty, source)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (None, band_id, location, 20, "gig"),
-=======
-        """,
-            (None, band_id, location, 20 + bonus, "gig"),
+            (None, band_id, location, 20 + charisma_bonus, "gig"),
         )
 
     conn.commit()
