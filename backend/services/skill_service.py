@@ -24,6 +24,7 @@ from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 from backend.services.xp_event_service import XPEventService
 from backend.services.avatar_service import AvatarService
+from backend.services.xp_item_service import xp_item_service
 
 INTERNET_DEVICE_NAME = "internet device"
 
@@ -166,6 +167,8 @@ class SkillService:
 
         modifier = self._lifestyle_modifier(user_id)
         modifier *= self.xp_events.get_active_multiplier(skill.name)
+        item_mult = xp_item_service.get_active_multiplier(user_id)
+        modifier *= item_mult
 
         buff_mult = 1.0
         key = (user_id, skill.id)
