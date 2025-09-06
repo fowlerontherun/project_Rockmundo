@@ -24,6 +24,7 @@ from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 from backend.services.xp_event_service import XPEventService
 from backend.services.avatar_service import AvatarService
+from backend.schemas.avatar import AvatarUpdate
 from backend.services.xp_item_service import xp_item_service
 
 INTERNET_DEVICE_NAME = "internet device"
@@ -261,7 +262,18 @@ class SkillService:
         base_xp *= burnout
         self._method_history[user_id] = (method, streak)
 
-        return self.train(user_id, skill, int(base_xp))
+        result = self.train(user_id, skill, int(base_xp))
+
+        # Training consumes stamina based on session duration.
+        avatar = self.avatar_service.get_avatar(user_id)
+        if avatar:
+            cost = duration // 2
+            new_stamina = max(0, avatar.stamina - cost)
+            self.avatar_service.update_avatar(
+                user_id, AvatarUpdate(stamina=new_stamina)
+            )
+
+        return result
 
     def reduce_burnout(self, user_id: int, amount: int = 1) -> None:
         """Reduce the stored burnout streak for a user.
