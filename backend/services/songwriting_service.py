@@ -11,6 +11,7 @@ from backend.models.theme import THEMES
 from backend.services.ai_art_service import AIArtService, ai_art_service
 from backend.services.band_service import BandService
 from backend.services.chemistry_service import ChemistryService
+from backend.services.avatar_service import AvatarService
 from backend.services.originality_service import (
     OriginalityService,
     originality_service,
@@ -57,6 +58,7 @@ class SongwritingService:
         skill_service: SkillService | None = None,
         band_service: BandService | None = None,
         chemistry_service: ChemistryService | None = None,
+        avatar_service: AvatarService | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
         self.art_service = art_service or ai_art_service
@@ -65,6 +67,7 @@ class SongwritingService:
         self.skill_service = skill_service or skill_service_instance
         self.band_service = band_service
         self.chemistry_service = chemistry_service or ChemistryService()
+        self.avatar_service = avatar_service or AvatarService()
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
@@ -127,6 +130,9 @@ class SongwritingService:
         avg_chem = sum(scores) / len(scores) if scores else 50.0
         chemistry_mod = (avg_chem - 50.0) / 100.0
         quality_mod = (1.0 + 0.1 * (skill.level - 1)) * (1 + chemistry_mod)
+        avatar = self.avatar_service.get_avatar(creator_id)
+        intelligence = avatar.intelligence if avatar else 50
+        quality_mod *= 1 + (intelligence - 50) / 100
         lyric_prompt = (
             f"Write {genre} song lyrics titled '{title}' focusing on themes: {theme_str}."
             f" Aim for quality modifier {quality_mod:.1f}."

@@ -7,6 +7,7 @@ from typing import Dict, Optional
 from backend.models.tutor import Tutor
 from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod, METHOD_PROFILES
+from backend.services.avatar_service import AvatarService
 from backend.services.economy_service import EconomyService
 from backend.services.skill_service import SkillService, skill_service
 
@@ -18,6 +19,7 @@ class TutorService:
         self,
         economy: Optional[EconomyService] = None,
         skills: Optional[SkillService] = None,
+        avatar_service: AvatarService | None = None,
     ) -> None:
         self.economy = economy or EconomyService()
         # Ensure economy schema exists for tests/in-memory usage
@@ -26,6 +28,7 @@ class TutorService:
         except Exception:
             pass
         self.skills = skills or skill_service
+        self.avatar_service = avatar_service or AvatarService()
         self._tutors: Dict[int, Tutor] = {}
         self._id_seq = 1
 
@@ -58,7 +61,9 @@ class TutorService:
         if inst.level < profile.min_level:
             raise ValueError("skill level too low for tutor")
 
-        cost = tutor.hourly_rate * hours
+        avatar = self.avatar_service.get_avatar(user_id)
+        stamina = avatar.stamina if avatar else 50
+        cost = tutor.hourly_rate * hours * (200 - stamina) // 100
         self.economy.withdraw(user_id, cost)
 
         before = inst.xp

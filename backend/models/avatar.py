@@ -56,6 +56,9 @@ class Avatar(Base):
     # lightweight persistence of how an avatar is feeling which can then be
     # influenced by lifestyle scores and random events.
     mood = Column(Integer, default=50)
+    stamina = Column(Integer, default=50)
+    charisma = Column(Integer, default=50)
+    intelligence = Column(Integer, default=50)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

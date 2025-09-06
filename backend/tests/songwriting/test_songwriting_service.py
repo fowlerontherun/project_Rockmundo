@@ -4,6 +4,10 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from models.avatar import Base as AvatarBase
+from models.character import Base as CharacterBase, Character
+from schemas.avatar import AvatarCreate
+from services.avatar_service import AvatarService
 
 Path(__file__).resolve().parents[2].joinpath("database").mkdir(exist_ok=True)
 
@@ -306,5 +310,50 @@ def test_add_co_writer_duplicate_invite():
         with pytest.raises(ValueError):
             svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
         assert svc.get_co_writers(draft.id) == {2}
+
+    asyncio.run(run())
+
+
+def test_intelligence_boosts_quality():
+    async def run():
+        engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+        CharacterBase.metadata.create_all(bind=engine)
+        AvatarBase.metadata.create_all(bind=engine)
+        SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+        avatar_svc = AvatarService(SessionLocal)
+        with SessionLocal() as session:
+            char = Character(name="Smart", genre="rock", trait="wise", birthplace="Earth")
+            session.add(char)
+            session.commit()
+            cid = char.id
+        avatar_svc.create_avatar(
+            AvatarCreate(
+                character_id=cid,
+                nickname="Brain",
+                body_type="slim",
+                skin_tone="pale",
+                face_shape="oval",
+                hair_style="short",
+                hair_color="black",
+                top_clothing="tshirt",
+                bottom_clothing="jeans",
+                shoes="boots",
+                intelligence=80,
+            )
+        )
+        skills = SkillService()
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            avatar_service=avatar_svc,
+            skill_service=skills,
+        )
+        draft = await svc.generate_draft(
+            creator_id=1,
+            title="Test",
+            genre="rock",
+            themes=["love", "hope", "loss"],
+        )
+        assert draft.metadata.quality_modifier == pytest.approx(1.3, rel=1e-2)
 
     asyncio.run(run())
