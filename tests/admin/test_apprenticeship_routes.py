@@ -17,6 +17,7 @@ from backend.routes.admin_apprenticeship_routes import (  # type: ignore  # noqa
     update_apprenticeship,
     svc,
 )
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
 
 
 def test_apprenticeship_routes_require_admin():
@@ -25,7 +26,7 @@ def test_apprenticeship_routes_require_admin():
         student_id=1,
         mentor_id=2,
         mentor_type="player",
-        skill_id=3,
+        skill_id=SKILL_NAME_TO_ID["vocals"],
         duration_days=7,
         level_requirement=0,
     )
@@ -62,7 +63,7 @@ def test_apprenticeship_routes_crud(monkeypatch, tmp_path):
         student_id=1,
         mentor_id=2,
         mentor_type="player",
-        skill_id=3,
+        skill_id=SKILL_NAME_TO_ID["vocals"],
         duration_days=7,
         level_requirement=0,
     )
@@ -76,7 +77,7 @@ def test_apprenticeship_routes_crud(monkeypatch, tmp_path):
         student_id=1,
         mentor_id=3,
         mentor_type="npc",
-        skill_id=4,
+        skill_id=SKILL_NAME_TO_ID["songwriting"],
         duration_days=10,
         level_requirement=5,
         status="active",
