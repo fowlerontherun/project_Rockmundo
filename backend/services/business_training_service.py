@@ -4,14 +4,24 @@ from typing import Dict
 
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import SkillService, skill_service
+from backend.services.skill_service import SkillService
+from backend.services.skill_service import skill_service as default_skill_service
 
 
 class BusinessTrainingService:
     """Provide workshops and courses for business skills."""
 
-    def __init__(self, svc: SkillService | None = None) -> None:
-        self.skill_service = svc or skill_service
+    def __init__(
+        self,
+        svc: SkillService | None = None,
+        skill_service: SkillService | None = None,
+    ) -> None:
+        """Create a training service using the provided skill service.
+
+        The ``skill_service`` keyword is kept for backward compatibility.
+        """
+
+        self.skill_service = svc or skill_service or default_skill_service
         self._workshop_xp: Dict[str, int] = {
             "marketing": 50,
             "public_relations": 50,
