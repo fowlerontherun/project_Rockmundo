@@ -1,4 +1,5 @@
-"""Service for managing city shops and their inventories."""
+"""Service for managing city shops, their inventories and player trades."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -9,6 +10,11 @@ from datetime import datetime
 from backend.services.item_service import item_service
 from backend.services.books_service import books_service
 from backend.services.economy_service import EconomyService
+
+from .economy_service import EconomyService, EconomyError
+from .item_service import item_service
+from .books_service import books_service
+
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -26,16 +32,27 @@ PRICE_ADJUST_RATE = 0.1
 
 
 class CityShopService:
-    """Persistent store for shops per city with item and book inventories."""
+    """Persistent store for shops per city with item and book inventories.
+
+    The service also allows players to sell items or books back to the shop. The
+    shop pays the player using the shared :class:`EconomyService` and the sold
+    goods are added to the shop's inventory.
+    """
 
     def __init__(self, db_path: str | None = None) -> None:
         self.db_path = str(db_path or DB_PATH)
         self.ensure_schema()
+        # Re-use the existing economy system for payouts when players sell
+        # goods to the shop.
+        self.economy = EconomyService(self.db_path)
+        self.economy.ensure_schema()
 
     # ------------------------------------------------------------------
     # schema helpers
     # ------------------------------------------------------------------
     def ensure_schema(self) -> None:
+        """Create required tables if they do not already exist."""
+
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
@@ -57,9 +74,9 @@ class CityShopService:
                     shop_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
+                    price_cents INTEGER NOT NULL DEFAULT 0,
                     restock_interval INTEGER,
                     restock_quantity INTEGER,
-                    price_cents INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (shop_id, item_id),
                     FOREIGN KEY (shop_id) REFERENCES city_shops(id) ON DELETE CASCADE
                 )
@@ -71,6 +88,7 @@ class CityShopService:
                     shop_id INTEGER NOT NULL,
                     book_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
+                    price_cents INTEGER NOT NULL DEFAULT 0,
                     restock_interval INTEGER,
                     restock_quantity INTEGER,
                     price_cents INTEGER NOT NULL DEFAULT 0,
@@ -79,6 +97,9 @@ class CityShopService:
                 )
                 """,
             )
+
+            # Older databases may miss some of the columns. Ensure they exist.
+            for tbl in ("shop_items", "shop_books"):
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS shop_drugs (
@@ -160,6 +181,10 @@ class CityShopService:
             for tbl in ("shop_items", "shop_books", "shop_drugs"):
                 cur.execute(f"PRAGMA table_info({tbl})")
                 cols = {row[1] for row in cur.fetchall()}
+                if "price_cents" not in cols:
+                    cur.execute(
+                        f"ALTER TABLE {tbl} ADD COLUMN price_cents INTEGER NOT NULL DEFAULT 0"
+                    )
                 if "restock_interval" not in cols:
                     cur.execute(f"ALTER TABLE {tbl} ADD COLUMN restock_interval INTEGER")
                 if "restock_quantity" not in cols:
@@ -447,11 +472,25 @@ class CityShopService:
             cur = conn.cursor()
             cur.execute(
                 """
+                INSERT INTO shop_items (
+                    shop_id, item_id, quantity, price_cents, restock_interval, restock_quantity
+                )
                 INSERT INTO shop_items (shop_id, item_id, quantity, restock_interval, restock_quantity, price_cents)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(shop_id, item_id) DO UPDATE SET
                     quantity = quantity + excluded.quantity,
+                    price_cents = excluded.price_cents,
                     restock_interval = COALESCE(excluded.restock_interval, restock_interval),
+                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity)
+                """,
+                (
+                    shop_id,
+                    item_id,
+                    quantity,
+                    price_cents,
+                    restock_interval,
+                    restock_quantity,
+                ),
                     restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity),
                     price_cents = excluded.price_cents
                 """,
@@ -552,7 +591,6 @@ class CityShopService:
                 ON CONFLICT(shop_id, drug_id) DO UPDATE SET
                     quantity = quantity + excluded.quantity,
                     restock_interval = COALESCE(excluded.restock_interval, restock_interval),
-                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity),
                     price_cents = excluded.price_cents
                 """,
                 (shop_id, drug_id, quantity, restock_interval, restock_quantity, price_cents),
@@ -647,11 +685,25 @@ class CityShopService:
             cur = conn.cursor()
             cur.execute(
                 """
+                INSERT INTO shop_books (
+                    shop_id, book_id, quantity, price_cents, restock_interval, restock_quantity
+                )
                 INSERT INTO shop_books (shop_id, book_id, quantity, restock_interval, restock_quantity, price_cents)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(shop_id, book_id) DO UPDATE SET
                     quantity = quantity + excluded.quantity,
+                    price_cents = excluded.price_cents,
                     restock_interval = COALESCE(excluded.restock_interval, restock_interval),
+              
+                """,
+                (
+                    shop_id,
+                    book_id,
+                    quantity,
+                    price_cents,
+                    restock_interval,
+                    restock_quantity,
+                ),
                     restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity),
                     price_cents = excluded.price_cents
                 """,
@@ -730,6 +782,100 @@ class CityShopService:
             return [dict(r) for r in cur.fetchall()]
 
     # ------------------------------------------------------------------
+    # selling to the shop
+    # ------------------------------------------------------------------
+    def _get_item_price(self, shop_id: int, item_id: int) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT price_cents FROM shop_items WHERE shop_id = ? AND item_id = ?",
+                (shop_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("item not found")
+            return int(row[0])
+
+    def _get_book_price(self, shop_id: int, book_id: int) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT price_cents FROM shop_books WHERE shop_id = ? AND book_id = ?",
+                (shop_id, book_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("book not found")
+            return int(row[0])
+
+    def sell_item(
+        self, shop_id: int, user_id: int, item_id: int, quantity: int = 1
+    ) -> int:
+        """Player sells an item to the shop.
+
+        The player's inventory is reduced, the shop's stock increases and the
+        player is paid using the economy service. The amount paid in cents is
+        returned.
+        """
+
+        if quantity <= 0:
+            raise ValueError("quantity must be positive")
+
+        price = self._get_item_price(shop_id, item_id)
+        # remove from player's inventory (raises if not enough)
+        item_service.remove_from_inventory(user_id, item_id, quantity)
+        # add to shop inventory at same price
+        self.add_item(shop_id, item_id, quantity, price)
+        total = price * quantity
+        try:
+            self.economy.deposit(user_id, total)
+        except EconomyError:
+            # If deposit fails we should rollback inventory changes. Since
+            # EconomyError is rare and database changes are simple, we'll attempt
+            # to revert and re-raise.
+            try:
+                self.remove_item(shop_id, item_id, quantity)
+                item_service.add_to_inventory(user_id, item_id, quantity)
+            finally:
+                raise
+        return total
+
+    def sell_book(
+        self, shop_id: int, user_id: int, book_id: int, quantity: int = 1
+    ) -> int:
+        """Player sells a book to the shop. Works similarly to :meth:`sell_item`."""
+
+        if quantity <= 0:
+            raise ValueError("quantity must be positive")
+
+        price = self._get_book_price(shop_id, book_id)
+
+        # remove from player's inventory
+        inv = books_service._inventories.get(user_id, [])
+        for _ in range(quantity):
+            if book_id not in inv:
+                raise ValueError("not enough books")
+            inv.remove(book_id)
+        books_service._inventories[user_id] = inv
+
+        # add to shop inventory
+        self.add_book(shop_id, book_id, quantity, price)
+
+        total = price * quantity
+        try:
+            self.economy.deposit(user_id, total)
+        except EconomyError:
+            # rollback on failure
+            try:
+                self.remove_book(shop_id, book_id, quantity)
+                for _ in range(quantity):
+                    books_service.add_to_inventory(user_id, book_id)
+            finally:
+                raise
+        return total
+
+    # ------------------------------------------------------------------
+    # restock configuration helpers
     # bundle operations
     # ------------------------------------------------------------------
     def add_bundle(
@@ -980,6 +1126,9 @@ class CityShopService:
             conn.commit()
 
 
+# default shared instance
 city_shop_service = CityShopService()
 
+
 __all__ = ["CityShopService", "city_shop_service"]
+

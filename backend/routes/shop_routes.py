@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-
 from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.books_service import books_service
 from backend.services.city_shop_service import city_shop_service
@@ -29,6 +28,7 @@ class PurchaseIn(BaseModel):
 
 
 class SellIn(BaseModel):
+    shop_id: int
     quantity: int = 1
 
 
@@ -43,7 +43,6 @@ class HaggleIn(BaseModel):
     offer_cents: int
     skill: int = 0
     reputation: int = 0
-
 
 @router.post("/items/{item_id}/purchase")
 def purchase_item(item_id: int, payload: PurchaseIn, user_id: int = Depends(_current_user)):
@@ -182,7 +181,16 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         "earned_points": earned,
     }
 
-
+@router.post("/city/{shop_id}/items/{item_id}/sell")
+def sell_item(
+    shop_id: int, item_id: int, payload: SellIn, user_id: int = Depends(_current_user)
+):
+    if payload.shop_id != shop_id:
+        # simple sanity check to avoid mismatched payload
+        raise HTTPException(status_code=400, detail="shop id mismatch")
+    try:
+        payout = city_shop_service.sell_item(shop_id, user_id, item_id, payload.quantity)
+=======
 @router.post("/city/{shop_id}/books/{book_id}/sell")
 def sell_book(shop_id: int, book_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
     try:
@@ -191,6 +199,17 @@ def sell_book(shop_id: int, book_id: int, payload: SellIn, user_id: int = Depend
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "payout_cents": payout}
 
+@router.post("/city/{shop_id}/books/{book_id}/sell")
+def sell_book(
+    shop_id: int, book_id: int, payload: SellIn, user_id: int = Depends(_current_user)
+):
+    if payload.shop_id != shop_id:
+        raise HTTPException(status_code=400, detail="shop id mismatch")
+    try:
+        payout = city_shop_service.sell_book(shop_id, user_id, book_id, payload.quantity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "payout_cents": payout}
 
 @router.post("/city/{shop_id}/drugs/{drug_id}/sell")
 def sell_drug(shop_id: int, drug_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
