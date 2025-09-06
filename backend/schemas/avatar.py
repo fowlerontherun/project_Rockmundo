@@ -28,6 +28,8 @@ class AvatarBase(BaseModel):
     stamina: int = 50
     charisma: int = 50
     intelligence: int = 50
+    creativity: int = 50
+    discipline: int = 50
 
 
 class AvatarCreate(AvatarBase):
@@ -56,8 +58,10 @@ class AvatarUpdate(BaseModel):
     stamina: Optional[int] = None
     charisma: Optional[int] = None
     intelligence: Optional[int] = None
+    creativity: Optional[int] = None
+    discipline: Optional[int] = None
 
-    @field_validator("stamina", "charisma", "intelligence")
+    @field_validator("stamina", "charisma", "intelligence", "creativity", "discipline")
     @classmethod
     def _validate_stats(cls, v: int | None) -> int | None:
         if v is not None and not 0 <= v <= 100:

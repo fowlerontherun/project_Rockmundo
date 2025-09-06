@@ -3,6 +3,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import pytest
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate, AvatarUpdate
@@ -39,6 +40,8 @@ def test_crud_lifecycle():
             top_clothing="tshirt",
             bottom_clothing="jeans",
             shoes="boots",
+            creativity=60,
+            discipline=70,
         )
     )
     assert avatar.id is not None
@@ -47,6 +50,8 @@ def test_crud_lifecycle():
     assert avatar.stamina == 50
     assert avatar.charisma == 50
     assert avatar.intelligence == 50
+    assert avatar.creativity == 60
+    assert avatar.discipline == 70
 
     fetched = svc.get_avatar(avatar.id)
     assert fetched and fetched.nickname == "Hero"
@@ -101,9 +106,26 @@ def test_update_validation_and_clamping():
         AvatarUpdate(charisma=-10)
     with pytest.raises(ValueError):
         AvatarUpdate(intelligence=101)
+    with pytest.raises(ValueError):
+        AvatarUpdate(creativity=120)
+    with pytest.raises(ValueError):
+        AvatarUpdate(discipline=-5)
 
     # Bypass validation to ensure service clamps the values
-    update_data = AvatarUpdate.model_construct(stamina=150, charisma=-10, intelligence=101)
+    update_data = AvatarUpdate.model_construct(
+        stamina=150,
+        charisma=-10,
+        intelligence=101,
+        creativity=120,
+        discipline=-5,
+    )
     svc.update_avatar(avatar.id, update_data)
     updated = svc.get_avatar(avatar.id)
-    assert updated and updated.stamina == 100 and updated.charisma == 0 and updated.intelligence == 100
+    assert (
+        updated
+        and updated.stamina == 100
+        and updated.charisma == 0
+        and updated.intelligence == 100
+        and updated.creativity == 100
+        and updated.discipline == 0
+    )

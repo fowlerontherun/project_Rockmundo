@@ -132,7 +132,9 @@ class SongwritingService:
         quality_mod = (1.0 + 0.1 * (skill.level - 1)) * (1 + chemistry_mod)
         avatar = self.avatar_service.get_avatar(creator_id)
         intelligence = avatar.intelligence if avatar else 50
+        creativity = avatar.creativity if avatar else 50
         quality_mod *= 1 + (intelligence - 50) / 100
+        quality_mod *= 1 + (creativity - 50) / 100
         lyric_prompt = (
             f"Write {genre} song lyrics titled '{title}' focusing on themes: {theme_str}."
             f" Aim for quality modifier {quality_mod:.1f}."
