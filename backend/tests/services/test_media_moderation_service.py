@@ -4,6 +4,7 @@ import pytest
 
 from services.economy_service import EconomyService
 from services.media_moderation_service import media_moderation_service
+from services.skill_service import SkillService
 from services.video_service import VideoService
 
 
@@ -12,7 +13,8 @@ def _setup_video_service():
     tmp.close()
     economy = EconomyService(db_path=tmp.name)
     economy.ensure_schema()
-    return VideoService(economy)
+    skills = SkillService()
+    return VideoService(economy, skills)
 
 
 def test_scan_bytes_detects_banned_word():
