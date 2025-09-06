@@ -50,6 +50,7 @@ from routes import (
     trade_routes,
     business_training_routes,
     image_training_routes,
+    attribute_routes,
     university_routes,
     user_settings_routes,
     venue_sponsorships_routes,
@@ -155,6 +156,11 @@ app.include_router(
     image_training_routes.router,
     prefix="/api/training/image",
     tags=["ImageTraining"],
+)
+app.include_router(
+    attribute_routes.router,
+    prefix="/api",
+    tags=["Attributes"],
 )
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
