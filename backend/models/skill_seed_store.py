@@ -17,6 +17,7 @@ def load_skills() -> List[Skill]:
         data = json.loads(SKILL_SEED_PATH.read_text())
         skills: List[Skill] = []
         for item in data:
+            prereqs = {int(k): v for k, v in item.get("prerequisites", {}).items()}
             prereqs = {
                 int(k): v for k, v in item.get("prerequisites", {}).items()
             }

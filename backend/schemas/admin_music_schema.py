@@ -11,6 +11,9 @@ class SkillSchema(BaseModel):
     prerequisites: Dict[int, int] = {}
 
 
+class SkillPrerequisitesSchema(BaseModel):
+    prerequisites: Dict[int, int]
+
 class GenreSchema(BaseModel):
     id: int
     name: str
@@ -24,4 +27,12 @@ class StageEquipmentSchema(BaseModel):
     brand: str
     rating: int
     genre_affinity: Dict[str, float] = {}
+
+__all__ = [
+    "SkillSchema",
+    "SkillPrerequisitesSchema",
+    "GenreSchema",
+    "StageEquipmentSchema",
+]
+
 __all__ = ["SkillSchema", "GenreSchema", "StageEquipmentSchema"]
