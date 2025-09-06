@@ -109,7 +109,7 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
         (5 + charisma_bonus, band_id, location),
     )
 
-    # Add new fans based on attendance and marketing/PR skill levels
+    # Add new fans based on attendance and marketing/PR/image skill levels
     base_new = attendance // 10
     marketing = Skill(
         id=SKILL_NAME_TO_ID.get("marketing", 0),
@@ -121,10 +121,26 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
         name="public_relations",
         category="business",
     )
+    fashion = Skill(
+        id=SKILL_NAME_TO_ID.get("fashion", 0),
+        name="fashion",
+        category="image",
+    )
+    image_mgmt = Skill(
+        id=SKILL_NAME_TO_ID.get("image_management", 0),
+        name="image_management",
+        category="image",
+    )
     marketing_level = skill_service.train(band_id, marketing, 0).level
     pr_level = skill_service.train(band_id, pr_skill, 0).level
-    skill_multiplier = 1 + 0.05 * max(marketing_level - 1, 0) + 0.05 * max(
-        pr_level - 1, 0
+    fashion_level = skill_service.train(band_id, fashion, 0).level
+    image_level = skill_service.train(band_id, image_mgmt, 0).level
+    skill_multiplier = (
+        1
+        + 0.05 * max(marketing_level - 1, 0)
+        + 0.05 * max(pr_level - 1, 0)
+        + 0.05 * max(fashion_level - 1, 0)
+        + 0.05 * max(image_level - 1, 0)
     )
     new_fans = int(base_new * skill_multiplier)
     for _ in range(new_fans):

@@ -49,6 +49,7 @@ from routes import (
     tour_planner_routes,
     trade_routes,
     business_training_routes,
+    image_training_routes,
     university_routes,
     user_settings_routes,
     venue_sponsorships_routes,
@@ -149,6 +150,11 @@ app.include_router(
     business_training_routes.router,
     prefix="/api/training/business",
     tags=["BusinessTraining"],
+)
+app.include_router(
+    image_training_routes.router,
+    prefix="/api/training/image",
+    tags=["ImageTraining"],
 )
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
