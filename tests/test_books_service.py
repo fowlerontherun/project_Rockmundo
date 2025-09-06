@@ -2,8 +2,11 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 import sys
+import random
 
-sys.path.append(str(Path(__file__).resolve().parents[1] / "backend"))
+root_dir = Path(__file__).resolve().parents[1]
+sys.path.append(str(root_dir))
+sys.path.append(str(root_dir / "backend"))
 
 from backend import database
 from backend.models.book import Book
@@ -11,6 +14,7 @@ from backend.models.skill import Skill
 from backend.services import scheduler_service
 from backend.services.books_service import books_service
 from backend.services.skill_service import skill_service
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 def _setup_db(tmp_path):
@@ -44,6 +48,8 @@ def _reset_services():
     books_service._id_seq = 1
     skill_service._skills.clear()
     skill_service._xp_today.clear()
+    skill_service._method_history.clear()
+    random.seed(0)
 
 
 def test_queue_reading(tmp_path):
@@ -116,4 +122,30 @@ def test_book_level_cap(tmp_path):
     inst = skill_service._skills[(1, skill.id)]
     assert inst.level == 3
     assert inst.xp == 299
+
+
+def test_music_theory_reading(tmp_path):
+    _setup_db(tmp_path)
+    _reset_services()
+
+    book = books_service.create_book(
+        Book(id=None, title="Theory", genre="music", rarity="common", max_skill_level=5)
+    )
+    books_service.add_to_inventory(1, book.id)
+    skill = Skill(
+        id=SKILL_NAME_TO_ID["music_theory"], name="music_theory", category="creative"
+    )
+
+    books_service.queue_reading(1, book.id, skill, hours=1)
+
+    conn = sqlite3.connect(scheduler_service.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("UPDATE scheduled_tasks SET run_at = ?", (datetime.utcnow().isoformat(),))
+    conn.commit()
+    conn.close()
+
+    scheduler_service.run_due_tasks()
+
+    inst = skill_service._skills[(1, skill.id)]
+    assert inst.xp > 0
 
