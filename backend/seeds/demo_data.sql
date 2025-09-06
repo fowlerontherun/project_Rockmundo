@@ -21,4 +21,12 @@ INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, st
 INSERT INTO notifications (user_id, type, title, body) VALUES
   (1, 'system', 'Welcome to RockMundo', 'Your account was created.');
 
+-- Demo avatar showcasing new stamina/charisma stats
+INSERT INTO avatars (
+  character_id, nickname, body_type, skin_tone, face_shape, hair_style,
+  hair_color, top_clothing, bottom_clothing, shoes, stamina, charisma
+) VALUES
+  (1, 'DemoHero', 'slim', 'pale', 'oval', 'short', 'black',
+   'tshirt', 'jeans', 'boots', 50, 50);
+
 COMMIT;
