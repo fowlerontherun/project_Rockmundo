@@ -4,6 +4,7 @@ from backend.services import fan_service
 from backend.services.business_service import BusinessService
 from backend.services.business_training_service import BusinessTrainingService
 from backend.services.skill_service import skill_service
+from backend.services.social_media_training_service import SocialMediaTrainingService
 
 
 def test_business_training_awards_xp(tmp_path):
@@ -44,6 +45,29 @@ def test_marketing_pr_boost_fans(tmp_path, monkeypatch):
 
     result = fan_service.boost_fans_after_gig(1, "NY", 100)
     assert result["fans_boosted"] == 12
+
+
+def test_social_media_management_boosts_fans(tmp_path, monkeypatch):
+    db = tmp_path / "fans.db"
+    monkeypatch.setattr(fan_service, "DB_PATH", db)
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "CREATE TABLE fans (user_id INTEGER, band_id INTEGER, location TEXT, loyalty INTEGER, source TEXT)"
+        )
+        conn.commit()
+
+    skill_service.db_path = tmp_path / "skills.db"
+    skill_service._skills.clear()
+    training = SocialMediaTrainingService(skill_service=skill_service)
+
+    baseline = fan_service.boost_fans_after_gig(1, "NY", 100)
+    assert baseline["fans_boosted"] == 10
+
+    for _ in range(4):
+        training.attend_workshop(1)
+
+    result = fan_service.boost_fans_after_gig(1, "NY", 100)
+    assert result["fans_boosted"] == 11
 
 
 def test_financial_management_boosts_revenue(tmp_path):
