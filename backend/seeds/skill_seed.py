@@ -34,9 +34,9 @@ SEED_SKILLS = [
     Skill(id=25, name="fashion", category="image"),
     Skill(id=26, name="image_management", category="image"),
     # Business skills
-    Skill(id=25, name="marketing", category="business"),
-    Skill(id=26, name="public_relations", category="business"),
-    Skill(id=27, name="financial_management", category="business"),
+    Skill(id=27, name="marketing", category="business"),
+    Skill(id=28, name="public_relations", category="business"),
+    Skill(id=29, name="financial_management", category="business"),
 ]
 
 SKILL_NAME_TO_ID = {skill.name: skill.id for skill in SEED_SKILLS}

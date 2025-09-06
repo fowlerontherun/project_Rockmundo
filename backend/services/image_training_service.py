@@ -1,82 +1,57 @@
-"""Training helpers for image and style related skills."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, Optional
+"""Service layer providing training for image-related skills."""
+
+from typing import Dict
 
 from backend.models.skill import Skill
-from backend.models.learning_method import LearningMethod
-from backend.services.economy_service import EconomyService
-from backend.services.skill_service import skill_service
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.skill_service import SkillService
+from backend.services.skill_service import skill_service as default_skill_service
 
 
-# ---------------------------------------------------------------------------
-# Online tutorials
-# ---------------------------------------------------------------------------
-
-def study_image_tutorial(user_id: int, skill: Skill, hours: int) -> Skill:
-    """Train an image related skill via online tutorials."""
-    return skill_service.train_with_method(
-        user_id, skill, LearningMethod.YOUTUBE, hours
-    )
-
-
-# ---------------------------------------------------------------------------
-# Stylist NPC training
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class Stylist:
-    id: int | None
-    name: str
-    specialization: str
-    hourly_rate: int
-
-
-class StylistService:
-    """Simple service for hiring stylists to train image skills."""
+class ImageTrainingService:
+    """Offer workshops and courses for image skills."""
 
     def __init__(
         self,
-        economy: Optional[EconomyService] = None,
-        skills=skill_service,
+        svc: SkillService | None = None,
+        skill_service: SkillService | None = None,
     ) -> None:
-        self.economy = economy or EconomyService()
-        self.skills = skills
-        self._stylists: Dict[int, Stylist] = {}
-        self._id_seq = 1
+        """Create a training service using the provided skill service.
 
-    def create_stylist(self, stylist: Stylist) -> Stylist:
-        stylist.id = self._id_seq
-        self._stylists[stylist.id] = stylist
-        self._id_seq += 1
-        return stylist
+        The ``skill_service`` keyword is kept for backward compatibility.
+        """
 
-    def list_stylists(self) -> list[Stylist]:
-        return list(self._stylists.values())
+        self.skill_service = svc or skill_service or default_skill_service
+        self._workshop_xp: Dict[str, int] = {"fashion": 40}
+        self._course_xp: Dict[str, int] = {"image_management": 100}
 
-    def schedule_session(
-        self, user_id: int, skill: Skill, stylist_id: int, hours: int
-    ) -> dict:
-        stylist = self._stylists.get(stylist_id)
-        if not stylist or stylist.specialization != skill.name:
-            raise ValueError("invalid stylist")
-        cost = stylist.hourly_rate * hours
-        self.economy.withdraw(user_id, cost)
-        before = self.skills.train(user_id, skill, 0).xp
-        updated = self.skills.train_with_method(
-            user_id, skill, LearningMethod.TUTOR, hours
+    def attend_workshop(self, user_id: int, skill_name: str) -> Skill:
+        """Attend a workshop for the given skill and gain XP."""
+
+        if skill_name not in self._workshop_xp:
+            raise ValueError("unknown_workshop")
+        skill_id = SKILL_NAME_TO_ID[skill_name]
+        skill = Skill(id=skill_id, name=skill_name, category="image")
+        return self.skill_service.train(
+            user_id, skill, self._workshop_xp[skill_name]
         )
-        gained = updated.xp - before
-        return {"status": "ok", "skill": updated, "xp_gained": gained}
+
+    def attend_course(self, user_id: int, skill_name: str) -> Skill:
+        """Complete a course for the given skill and gain XP."""
+
+        if skill_name not in self._course_xp:
+            raise ValueError("unknown_course")
+        skill_id = SKILL_NAME_TO_ID[skill_name]
+        skill = Skill(id=skill_id, name=skill_name, category="image")
+        return self.skill_service.train(
+            user_id, skill, self._course_xp[skill_name]
+        )
 
 
-stylist_service = StylistService()
+# Default shared instance
+image_training_service = ImageTrainingService()
 
-__all__ = [
-    "study_image_tutorial",
-    "Stylist",
-    "StylistService",
-    "stylist_service",
-]
+__all__ = ["ImageTrainingService", "image_training_service"]
+
