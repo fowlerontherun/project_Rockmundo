@@ -2,21 +2,18 @@ from typing import List
 
 import backend.seeds.genre_seed as genre_seed
 import backend.seeds.skill_seed as skill_seed
-
 import backend.seeds.stage_equipment_seed as equipment_seed
 from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.genre import Genre
 from backend.models.skill import Skill
 from backend.models.stage_equipment import StageEquipment
-from backend.schemas.admin_music_schema import GenreSchema, SkillSchema, StageEquipmentSchema
-
-from backend.auth.dependencies import get_current_user_id, require_permission
-from backend.models.genre import Genre
-from backend.models.skill import Skill
-from backend.schemas.admin_music_schema import GenreSchema, SkillSchema
-
+from backend.schemas.admin_music_schema import (
+    GenreSchema,
+    SkillSchema,
+    StageEquipmentSchema,
+)
 from backend.services.admin_audit_service import audit_dependency
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 router = APIRouter(
     prefix="/music", tags=["AdminMusic"], dependencies=[Depends(audit_dependency)]
@@ -40,6 +37,38 @@ async def replace_skills(skills: List[SkillSchema], req: Request) -> dict:
     skill_seed.SEED_SKILLS = [Skill(**s.dict()) for s in skills]
     skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
     return {"status": "updated", "count": len(skill_seed.SEED_SKILLS)}
+
+
+@router.post("/skills")
+async def add_skill(skill: SkillSchema, req: Request) -> dict:
+    await _ensure_admin(req)
+    existing_ids = {s.id for s in skill_seed.SEED_SKILLS}
+    if skill.id is None:
+        new_id = max(existing_ids, default=0) + 1
+    else:
+        new_id = skill.id
+        if new_id in existing_ids:
+            raise HTTPException(status_code=400, detail="Skill ID already exists")
+    new_skill = Skill(
+        id=new_id,
+        name=skill.name,
+        category=skill.category,
+        parent_id=skill.parent_id,
+    )
+    skill_seed.SEED_SKILLS.append(new_skill)
+    skill_seed.SKILL_NAME_TO_ID[new_skill.name] = new_skill.id
+    return new_skill.__dict__
+
+
+@router.delete("/skills/{skill_id}")
+async def delete_skill(skill_id: int, req: Request) -> dict:
+    await _ensure_admin(req)
+    for i, s in enumerate(skill_seed.SEED_SKILLS):
+        if s.id == skill_id:
+            skill_seed.SEED_SKILLS.pop(i)
+            skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
+            return {"status": "deleted"}
+    raise HTTPException(status_code=404, detail="Skill not found")
 
 
 @router.get("/genres")
