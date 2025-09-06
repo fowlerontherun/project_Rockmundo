@@ -11,6 +11,7 @@ from backend.models.stage_equipment import StageEquipment
 from backend.schemas.admin_music_schema import (
     GenreSchema,
     SkillSchema,
+    SkillPrerequisitesSchema,
     StageEquipmentSchema,
 )
 from backend.services.admin_audit_service import audit_dependency
@@ -62,6 +63,7 @@ async def add_skill(skill: SkillSchema, req: Request) -> dict:
         name=skill.name,
         category=skill.category,
         parent_id=skill.parent_id,
+        prerequisites=skill.prerequisites,
     )
     skill_seed.SEED_SKILLS.append(new_skill)
     skill_seed.SKILL_NAME_TO_ID[new_skill.name] = new_skill.id
@@ -78,6 +80,19 @@ async def delete_skill(skill_id: int, req: Request) -> dict:
             skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
             save_skills(skill_seed.SEED_SKILLS)
             return {"status": "deleted"}
+    raise HTTPException(status_code=404, detail="Skill not found")
+
+
+@router.post("/skills/{skill_id}/prerequisites")
+async def update_skill_prerequisites(
+    skill_id: int, data: SkillPrerequisitesSchema, req: Request
+) -> dict:
+    await _ensure_admin(req)
+    for s in skill_seed.SEED_SKILLS:
+        if s.id == skill_id:
+            s.prerequisites.update(data.prerequisites)
+            save_skills(skill_seed.SEED_SKILLS)
+            return {"status": "updated", "prerequisites": s.prerequisites}
     raise HTTPException(status_code=404, detail="Skill not found")
 
 

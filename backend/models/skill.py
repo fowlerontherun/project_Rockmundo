@@ -22,6 +22,8 @@ class Skill:
     xp: int = 0
     level: int = 1
     modifier: float = 1.0
+    # Mapping of skill_id -> required level
+    prerequisites: Dict[int, int] = field(default_factory=dict)
     specializations: Dict[str, SkillSpecialization] = field(default_factory=dict)
     specialization: Optional[str] = None
 

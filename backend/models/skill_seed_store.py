@@ -15,7 +15,12 @@ def load_skills() -> List[Skill]:
     """
     if SKILL_SEED_PATH.exists():
         data = json.loads(SKILL_SEED_PATH.read_text())
-        return [Skill(**item) for item in data]
+        skills: List[Skill] = []
+        for item in data:
+            prereqs = {int(k): v for k, v in item.get("prerequisites", {}).items()}
+            item["prerequisites"] = prereqs
+            skills.append(Skill(**item))
+        return skills
     return []
 
 

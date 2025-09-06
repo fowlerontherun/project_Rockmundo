@@ -8,7 +8,11 @@ class SkillSchema(BaseModel):
     name: str
     category: str
     parent_id: Optional[int] = None
+    prerequisites: Dict[int, int] = {}
 
+
+class SkillPrerequisitesSchema(BaseModel):
+    prerequisites: Dict[int, int]
 
 class GenreSchema(BaseModel):
     id: int
@@ -24,5 +28,9 @@ class StageEquipmentSchema(BaseModel):
     rating: int
     genre_affinity: Dict[str, float] = {}
 
-
-__all__ = ["SkillSchema", "GenreSchema", "StageEquipmentSchema"]
+__all__ = [
+    "SkillSchema",
+    "SkillPrerequisitesSchema",
+    "GenreSchema",
+    "StageEquipmentSchema",
+]
