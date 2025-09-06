@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AvatarBase(BaseModel):
@@ -56,6 +56,13 @@ class AvatarUpdate(BaseModel):
     stamina: Optional[int] = None
     charisma: Optional[int] = None
     intelligence: Optional[int] = None
+
+    @field_validator("stamina", "charisma", "intelligence")
+    @classmethod
+    def _validate_stats(cls, v: int | None) -> int | None:
+        if v is not None and not 0 <= v <= 100:
+            raise ValueError("must be between 0 and 100")
+        return v
 
 
 class AvatarResponse(AvatarBase):
