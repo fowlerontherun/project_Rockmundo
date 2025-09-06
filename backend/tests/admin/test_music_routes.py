@@ -36,12 +36,18 @@ def test_add_and_delete_skill(monkeypatch):
         start_len = len(skill_seed.SEED_SKILLS)
         start_max = max(s.id for s in skill_seed.SEED_SKILLS)
 
-        new_schema = admin_music_routes.SkillSchema(name="test_skill", category="instrument")
+        prereq_id = skill_seed.SEED_SKILLS[0].id
+        new_schema = admin_music_routes.SkillSchema(
+            name="test_skill",
+            category="instrument",
+            prerequisites={prereq_id: 100},
+        )
         asyncio.run(admin_music_routes.add_skill(new_schema, req))
         assert len(skill_seed.SEED_SKILLS) == start_len + 1
         added = skill_seed.SEED_SKILLS[-1]
         assert added.name == "test_skill"
         assert added.id == start_max + 1
+        assert added.prerequisites == {prereq_id: 100}
         assert skill_seed.SKILL_NAME_TO_ID["test_skill"] == added.id
 
         other_schema = admin_music_routes.SkillSchema(name="other_skill", category="instrument")

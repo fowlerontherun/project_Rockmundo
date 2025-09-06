@@ -62,6 +62,7 @@ async def add_skill(skill: SkillSchema, req: Request) -> dict:
         name=skill.name,
         category=skill.category,
         parent_id=skill.parent_id,
+        prerequisites=skill.prerequisites,
     )
     skill_seed.SEED_SKILLS.append(new_skill)
     skill_seed.SKILL_NAME_TO_ID[new_skill.name] = new_skill.id
