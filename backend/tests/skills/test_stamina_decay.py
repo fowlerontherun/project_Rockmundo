@@ -67,8 +67,8 @@ def test_stamina_scales_daily_decay():
     skills.apply_daily_decay(1, amount=10)
     skills.apply_daily_decay(2, amount=10)
 
-    assert low.xp == 84
-    assert high.xp == 90
+    assert low.xp == 88
+    assert high.xp == 93
 
 
 def test_training_consumes_and_recovery_restores_stamina():

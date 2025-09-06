@@ -187,7 +187,21 @@ class SkillService:
 
         gain = int(base_xp * modifier * buff_mult * self._synergy_bonus(user_id, inst))
         avatar = self.avatar_service.get_avatar(user_id)
-        discipline = avatar.discipline if avatar else 50
+
+        if avatar:
+            attr_map = {
+                "creative": avatar.creativity,
+                "performance": avatar.charisma,
+                "stage": avatar.charisma,
+                "business": avatar.intelligence,
+            }
+            attr_val = attr_map.get(inst.category)
+            if attr_val is not None:
+                gain = int(gain * (1 + attr_val / 200))
+            discipline = avatar.discipline
+        else:
+            discipline = 50
+
         gain = int(gain * (1 + (discipline - 50) / 100))
 
         today = date.today()
@@ -322,6 +336,18 @@ class SkillService:
         self._check_level(inst)
         return inst
 
+    def decay_skills(self, user_id: int, amount: int) -> None:
+        """Apply decay to skills scaled by the avatar's discipline."""
+
+        avatar = self.avatar_service.get_avatar(user_id)
+        factor = 1.0
+        if avatar:
+            factor = 1 - avatar.discipline / 200
+        decay = int(amount * factor)
+        for (uid, _sid), skill in list(self._skills.items()):
+            if uid == user_id:
+                self.apply_decay(uid, skill.id, decay)
+
     def apply_daily_decay(self, user_id: int, amount: int = 1) -> None:
         """Apply decay to all tracked skills for a user."""
         avatar = self.avatar_service.get_avatar(user_id)
@@ -329,9 +355,7 @@ class SkillService:
         if avatar:
             factor += max(0, 50 - avatar.stamina) / 50
         decay = int(amount * factor)
-        for (uid, _sid), skill in list(self._skills.items()):
-            if uid == user_id:
-                self.apply_decay(uid, skill.id, decay)
+        self.decay_skills(user_id, decay)
 
     def decay_all(self, amount: int = 1) -> None:
         """Global decay across all users (scheduler hook)."""
