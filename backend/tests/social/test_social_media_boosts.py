@@ -26,14 +26,15 @@ class DummyDB:
 
 
 class DummyAvatar:
-    def __init__(self, charisma: int = 50, social_media: int = 0):
+    def __init__(self, charisma: int = 50, social_media: int = 0, tech_savvy: int = 0):
         self.charisma = charisma
         self.social_media = social_media
+        self.tech_savvy = tech_savvy
 
 
 class DummyAvatarService:
-    def __init__(self, social_media: int):
-        self.avatar = DummyAvatar(social_media=social_media)
+    def __init__(self, social_media: int, tech_savvy: int = 0):
+        self.avatar = DummyAvatar(social_media=social_media, tech_savvy=tech_savvy)
 
     def get_avatar(self, _band_id):
         return self.avatar
@@ -50,6 +51,17 @@ def test_social_media_boosts_streaming_revenue():
     db_high = DummyDB()
     svc_low = StreamService(db_low, avatar_service=DummyAvatarService(0))
     svc_high = StreamService(db_high, avatar_service=DummyAvatarService(80))
+    data = {"id": 1, "song_id": 1, "user_id": 1, "platform": "Spotify"}
+    svc_low.record_stream(data)
+    svc_high.record_stream(data)
+    assert db_high.revenues[0] > db_low.revenues[0]
+
+
+def test_tech_savvy_boosts_streaming_revenue():
+    db_low = DummyDB()
+    db_high = DummyDB()
+    svc_low = StreamService(db_low, avatar_service=DummyAvatarService(0, tech_savvy=0))
+    svc_high = StreamService(db_high, avatar_service=DummyAvatarService(0, tech_savvy=80))
     data = {"id": 1, "song_id": 1, "user_id": 1, "platform": "Spotify"}
     svc_low.record_stream(data)
     svc_high.record_stream(data)

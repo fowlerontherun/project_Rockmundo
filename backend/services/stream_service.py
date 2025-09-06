@@ -27,7 +27,10 @@ class StreamService:
         for band_id, percent in song['royalties_split'].items():
             avatar = self.avatar_service.get_avatar(band_id)
             social_media = getattr(avatar, "social_media", 0) if avatar else 0
-            revenue = total_amount * (percent / 100) * (1 + social_media / 100)
+            tech = getattr(avatar, "tech_savvy", 0) if avatar else 0
+            revenue = total_amount * (percent / 100) * (1 + social_media / 100) * (
+                1 + tech / 100
+            )
             self.db.add_revenue_entry(band_id, stream.song_id, revenue, stream.timestamp)
 
     def get_band_revenue(self, band_id):

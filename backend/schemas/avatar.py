@@ -32,6 +32,7 @@ class AvatarBase(BaseModel):
     discipline: int = 50
     luck: int = 0
     social_media: int = 0
+    tech_savvy: int = 0
     networking: int = 0
 
 
@@ -65,6 +66,7 @@ class AvatarUpdate(BaseModel):
     discipline: Optional[int] = None
     luck: Optional[int] = None
     social_media: Optional[int] = None
+    tech_savvy: Optional[int] = None
     networking: Optional[int] = None
 
     @field_validator(
@@ -75,6 +77,7 @@ class AvatarUpdate(BaseModel):
         "discipline",
         "luck",
         "social_media",
+        "tech_savvy",
         "networking",
     )
     @classmethod
