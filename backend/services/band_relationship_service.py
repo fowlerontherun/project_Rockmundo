@@ -62,7 +62,11 @@ class BandRelationshipService:
         relationship_type: str,
         affinity: Optional[int] = None,
         compatibility: Optional[int] = None,
+        high_profile: bool = False,
+        networking: int = 0,
     ) -> dict:
+        if high_profile and networking < 60:
+            raise ValueError("Networking too low for high-profile collaboration")
         rel = BandRelationship(
             id=None,
             band_a_id=band_a_id,
