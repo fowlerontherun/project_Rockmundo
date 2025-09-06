@@ -45,6 +45,7 @@ class AvatarService:
             payload.setdefault("social_media", 0)
             payload.setdefault("tech_savvy", 0)
             payload.setdefault("networking", 0)
+            payload.setdefault("resilience", 50)
             avatar = Avatar(**payload)
             session.add(avatar)
             session.commit()
@@ -74,6 +75,7 @@ class AvatarService:
                     "intelligence",
                     "creativity",
                     "discipline",
+                    "resilience",
                     "luck",
                     "social_media",
                     "tech_savvy",
