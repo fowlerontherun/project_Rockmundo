@@ -8,6 +8,7 @@ from backend.realtime.publish import (
     publish_fan_club_event_invite,
     publish_fan_club_post,
 )
+from backend.services.avatar_service import AvatarService
 
 
 @dataclass
@@ -32,6 +33,7 @@ class FanClubPost:
     thread_id: int
     author_id: int
     content: str
+    engagement: int = 0
 
 
 @dataclass
@@ -46,7 +48,8 @@ class FanClubEvent:
 class FanClubService:
     """In-memory fan club management with posts and events."""
 
-    def __init__(self) -> None:
+    def __init__(self, avatar_service: AvatarService | None = None) -> None:
+        self.avatar_service = avatar_service or AvatarService()
         self._clubs: Dict[int, FanClub] = {}
         self._members: Dict[int, Dict[int, str]] = {}
         self._threads: Dict[int, FanClubThread] = {}
@@ -90,7 +93,10 @@ class FanClubService:
             raise ValueError("Thread not found or user not a member")
         pid = self._ids["post"]
         self._ids["post"] += 1
-        post = FanClubPost(pid, thread_id, author_id, content)
+        avatar = self.avatar_service.get_avatar(author_id)
+        charisma = avatar.charisma if avatar else 50
+        engagement = max(1, charisma // 10)
+        post = FanClubPost(pid, thread_id, author_id, content, engagement)
         self._posts[pid] = post
         await publish_fan_club_post(thread.fan_club_id, thread_id, pid)
         return post

@@ -43,6 +43,9 @@ def test_crud_lifecycle():
     assert avatar.id is not None
     # Default mood should be neutral (50)
     assert avatar.mood == 50
+    assert avatar.stamina == 50
+    assert avatar.charisma == 50
+    assert avatar.intelligence == 50
 
     fetched = svc.get_avatar(avatar.id)
     assert fetched and fetched.nickname == "Hero"

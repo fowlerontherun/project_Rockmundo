@@ -25,6 +25,9 @@ class AvatarBase(BaseModel):
     experience: int = 0
     health: int = 100
     mood: int = 50
+    stamina: int = 50
+    charisma: int = 50
+    intelligence: int = 50
 
 
 class AvatarCreate(AvatarBase):
@@ -50,6 +53,9 @@ class AvatarUpdate(BaseModel):
     experience: Optional[int] = None
     health: Optional[int] = None
     mood: Optional[int] = None
+    stamina: Optional[int] = None
+    charisma: Optional[int] = None
+    intelligence: Optional[int] = None
 
 
 class AvatarResponse(AvatarBase):
