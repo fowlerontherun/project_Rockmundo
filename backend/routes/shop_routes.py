@@ -6,6 +6,7 @@ from backend.services.economy_service import EconomyService, EconomyError
 from backend.services.item_service import item_service
 from backend.services.books_service import books_service
 from backend.services.loyalty_service import loyalty_service
+from backend.services.city_shop_service import city_shop_service
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
 
@@ -20,6 +21,11 @@ async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
 
 class PurchaseIn(BaseModel):
     owner_user_id: int
+    quantity: int = 1
+
+
+class SellIn(BaseModel):
+    shop_id: int
     quantity: int = 1
 
 
@@ -78,3 +84,30 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         "discount_cents": discount_cents,
         "earned_points": earned,
     }
+
+
+@router.post("/city/{shop_id}/items/{item_id}/sell")
+def sell_item(
+    shop_id: int, item_id: int, payload: SellIn, user_id: int = Depends(_current_user)
+):
+    if payload.shop_id != shop_id:
+        # simple sanity check to avoid mismatched payload
+        raise HTTPException(status_code=400, detail="shop id mismatch")
+    try:
+        payout = city_shop_service.sell_item(shop_id, user_id, item_id, payload.quantity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "payout_cents": payout}
+
+
+@router.post("/city/{shop_id}/books/{book_id}/sell")
+def sell_book(
+    shop_id: int, book_id: int, payload: SellIn, user_id: int = Depends(_current_user)
+):
+    if payload.shop_id != shop_id:
+        raise HTTPException(status_code=400, detail="shop id mismatch")
+    try:
+        payout = city_shop_service.sell_book(shop_id, user_id, book_id, payload.quantity)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "payout_cents": payout}
