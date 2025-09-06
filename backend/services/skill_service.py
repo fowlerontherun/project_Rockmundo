@@ -139,6 +139,9 @@ class SkillService:
 
     def _check_level(self, skill: Skill) -> None:
         level = skill.xp // 100 + 1
+        cap = get_config().level_cap
+        if cap:
+            level = min(level, cap)
         if level != skill.level:
             skill.level = level
 

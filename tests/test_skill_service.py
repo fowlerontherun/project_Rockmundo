@@ -77,6 +77,20 @@ def test_skill_daily_cap() -> None:
     set_config(old_cfg)
 
 
+def test_skill_level_cap() -> None:
+    old_cfg = get_config()
+    set_config(XPConfig(level_cap=5))
+    svc = SkillService(xp_events=DummyXPEvents(1.0))
+    skill = Skill(id=25, name="piano", category="instrument")
+
+    updated = svc.train(1, skill, 600)
+    assert updated.level == 5
+
+    updated = svc.train(1, skill, 400)
+    assert updated.level == 5
+    set_config(old_cfg)
+
+
 def test_skill_decay() -> None:
     svc = SkillService(xp_events=DummyXPEvents(1.0))
     skill = Skill(id=3, name="vocals", category="performance")
