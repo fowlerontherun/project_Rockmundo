@@ -3,8 +3,8 @@ import random
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.models.random_event import RandomEvent
-from backend.models.skill import Skill
 from backend.models.random_events import ADDICTION_EVENTS
+from backend.models.skill import Skill
 from backend.services.addiction_service import addiction_service
 from backend.services.notifications_service import NotificationsService
 from backend.services.skill_service import skill_service
@@ -27,6 +27,7 @@ class RandomEventService:
         *,
         location: str | None = None,
         mood: int | None = None,
+        luck: int = 0,
     ):
         """Trigger a contextual event for a band."""
 
@@ -78,6 +79,7 @@ class RandomEventService:
             options=options,
             location=location,
             mood=mood,
+            luck=luck,
         )
 
     def trigger_event_for_avatar(
@@ -87,6 +89,7 @@ class RandomEventService:
         *,
         location: str | None = None,
         mood: int | None = None,
+        luck: int = 0,
     ):
         options = [
             {
@@ -116,10 +119,22 @@ class RandomEventService:
             options=options,
             location=location,
             mood=mood,
+            luck=luck,
         )
 
-    def _trigger(self, band_id, avatar_id, user_id, options, *, location=None, mood=None):
+    def _trigger(
+        self,
+        band_id,
+        avatar_id,
+        user_id,
+        options,
+        *,
+        location=None,
+        mood=None,
+        luck: int = 0,
+    ):
         candidates = []
+        weights = []
         for opt in options:
             locs = opt.get("location")
             mood_range = opt.get("mood_range")
@@ -130,9 +145,33 @@ class RandomEventService:
                 if not (low <= mood <= high):
                     continue
             candidates.append(opt)
+            impact = opt.get("impact", {})
+            positive = False
+            for val in impact.values():
+                if isinstance(val, (int, float)) and val > 0:
+                    positive = True
+                    break
+            if not positive:
+                skill = impact.get("skill")
+                if isinstance(skill, (list, tuple)) and len(skill) > 1:
+                    positive = skill[1] > 0
+            weight = 1 + (luck / 100 if positive else 0)
+            weights.append(weight)
         if not candidates:
             candidates = options
-        selected = random.choice(candidates)
+            weights = []
+            for opt in candidates:
+                impact = opt.get("impact", {})
+                positive = any(
+                    isinstance(v, (int, float)) and v > 0
+                    for v in impact.values()
+                )
+                if not positive:
+                    skill = impact.get("skill")
+                    if isinstance(skill, (list, tuple)) and len(skill) > 1:
+                        positive = skill[1] > 0
+                weights.append(1 + (luck / 100 if positive else 0))
+        selected = random.choices(candidates, weights=weights, k=1)[0]
         impact = selected.get("impact", {})
         skill_name, skill_delta = impact.get("skill", (None, 0))
         event = RandomEvent(

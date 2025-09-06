@@ -40,7 +40,9 @@ class AvatarService:
     # ------------------------------------------------------------------
     def create_avatar(self, data: AvatarCreate) -> Avatar:
         with self.session_factory() as session:
-            avatar = Avatar(**data.model_dump())
+            payload = data.model_dump()
+            payload.setdefault("luck", 0)
+            avatar = Avatar(**payload)
             session.add(avatar)
             session.commit()
             session.refresh(avatar)
@@ -69,6 +71,7 @@ class AvatarService:
                     "intelligence",
                     "creativity",
                     "discipline",
+                    "luck",
                 } and value is not None:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:

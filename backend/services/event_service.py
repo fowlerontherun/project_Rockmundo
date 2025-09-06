@@ -42,15 +42,20 @@ def _ensure_schema() -> None:
         conn.commit()
 
 
-def roll_for_daily_event(user_id, lifestyle_data, active_skills):
-    """Determine if a daily event triggers for the user."""
+def roll_for_daily_event(user_id, lifestyle_data, active_skills, *, luck: int = 0):
+    """Determine if a daily event triggers for the user.
+
+    ``luck`` scales the probability of negative outcomes. A higher value
+    reduces the chance of detrimental events.
+    """
 
     vocals_id = SKILL_NAME_TO_ID["vocals"]
     guitar_id = SKILL_NAME_TO_ID["guitar"]
 
     # Sample logic: if drinking high and vocals practiced 5 days in a row
+    luck_factor = max(0.0, 1 - luck / 100)
     if lifestyle_data.get("drinking") == "high" and vocals_id in active_skills:
-        if random.random() < 0.15:
+        if random.random() < 0.15 * luck_factor:
             return {
                 "event": "vocal fatigue",
                 "effect": "freeze_progress",
@@ -58,7 +63,7 @@ def roll_for_daily_event(user_id, lifestyle_data, active_skills):
                 "duration": 3,
             }
 
-    if random.random() < 0.01:
+    if random.random() < 0.01 * luck_factor:
         return {
             "event": "sprained wrist",
             "effect": "block_skill",
