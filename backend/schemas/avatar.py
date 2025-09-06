@@ -33,6 +33,7 @@ class AvatarBase(BaseModel):
     luck: int = 0
     social_media: int = 0
     tech_savvy: int = 0
+    networking: int = 0
 
 
 class AvatarCreate(AvatarBase):
@@ -66,6 +67,7 @@ class AvatarUpdate(BaseModel):
     luck: Optional[int] = None
     social_media: Optional[int] = None
     tech_savvy: Optional[int] = None
+    networking: Optional[int] = None
 
     @field_validator(
         "stamina",
@@ -76,6 +78,7 @@ class AvatarUpdate(BaseModel):
         "luck",
         "social_media",
         "tech_savvy",
+        "networking",
     )
     @classmethod
     def _validate_stats(cls, v: int | None) -> int | None:
