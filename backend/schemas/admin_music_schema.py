@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class SkillSchema(BaseModel):
-    id: int
+    id: Optional[int] = None
     name: str
     category: str
     parent_id: Optional[int] = None
