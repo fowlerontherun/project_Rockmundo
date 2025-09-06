@@ -120,10 +120,12 @@ def test_skill_decay() -> None:
 
 def _setup_device() -> int:
     """Create an internet device item and reset inventory state."""
-
-    item_service._items.clear()
-    item_service._inventories.clear()
-    item_service._id_seq = 1
+    with sqlite3.connect(item_service.db_path) as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM user_items")
+        cur.execute("DELETE FROM items")
+        conn.commit()
+    item_service.ensure_schema()
     device = item_service.create_item(
         Item(id=None, name="internet device", category="tech")
     )
@@ -240,4 +242,23 @@ def test_synergy_bonus_applied() -> None:
     svc.train(1, theory, 200)
     updated = svc.train(1, guitar, 100)
     assert updated.xp == 150
+
+
+def test_prerequisite_requirements() -> None:
+    svc = SkillService()
+    keyboard = Skill(id=40, name="keyboard", category="instrument")
+    piano = Skill(
+        id=41,
+        name="piano",
+        category="instrument",
+        parent_id=40,
+        prerequisites={40: 100},
+    )
+
+    with pytest.raises(ValueError):
+        svc.train_with_method(1, piano, LearningMethod.PRACTICE, 1)
+
+    svc.train(1, keyboard, 9900)
+    updated = svc.train_with_method(1, piano, LearningMethod.PRACTICE, 1)
+    assert updated.xp > 0
 

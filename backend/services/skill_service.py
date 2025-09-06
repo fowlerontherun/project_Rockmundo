@@ -109,10 +109,13 @@ class SkillService:
                 category=skill.category,
                 parent_id=skill.parent_id,
                 specializations=skill.specializations,
+                prerequisites=skill.prerequisites,
             )
         else:
             if skill.specializations:
                 self._skills[key].specializations = skill.specializations
+            if skill.prerequisites:
+                self._skills[key].prerequisites = skill.prerequisites
         return self._skills[key]
 
     def _synergy_bonus(self, user_id: int, skill: Skill) -> float:
@@ -213,8 +216,13 @@ class SkillService:
 
         The method defines XP and cost rates along with level restrictions.
         """
-
         profile = METHOD_PROFILES[method]
+
+        # Ensure prerequisite skills are met before training
+        for prereq_id, required in skill.prerequisites.items():
+            prereq = self._skills.get((user_id, prereq_id))
+            if not prereq or prereq.level < required:
+                raise ValueError("missing prerequisite skills")
 
         inst = self._get_skill(user_id, skill)
 
