@@ -34,6 +34,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     # Image and style skills
     ("fashion", "image", None, {}),
     ("image_management", "image", None, {}),
+    ("content_creation", "image", None, {}),
     # Business skills
     ("marketing", "business", None, {}),
     ("public_relations", "business", None, {}),

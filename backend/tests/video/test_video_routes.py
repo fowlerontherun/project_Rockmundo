@@ -1,9 +1,11 @@
 import tempfile
+import tempfile
 
 from fastapi import HTTPException
-
+import tempfile
 from routes import video_routes
 from services.economy_service import EconomyService
+from services.skill_service import SkillService
 from services.video_service import VideoService
 
 
@@ -19,7 +21,7 @@ def setup_services():
     economy = EconomyService(tmp.name)
     economy.ensure_schema()
     video_routes._economy = economy
-    video_routes._video_service = VideoService(economy)
+    video_routes._video_service = VideoService(economy, SkillService())
     return economy
 
 
