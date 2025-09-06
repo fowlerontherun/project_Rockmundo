@@ -1,11 +1,15 @@
 # File: backend/services/streaming_service.py
+import asyncio
 import aiosqlite
 from datetime import datetime
 from backend.database import DB_PATH
 from backend.services.song_popularity_service import add_event
+from backend.models.skill import Skill
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.skill_service import skill_service
 
 
-async def stream_song(user_id: int, song_id: int) -> dict:
+async def _stream_song(user_id: int, song_id: int) -> dict:
     conn = await aiosqlite.connect(DB_PATH)
     try:
         await conn.execute(
@@ -43,6 +47,12 @@ async def stream_song(user_id: int, song_id: int) -> dict:
         await conn.close()
     add_event(song_id, 1.0, "stream")
     return {"status": "ok", "revenue": round(revenue, 4)}
+
+
+def stream_song(user_id: int, song_id: int) -> dict:
+    """Synchronously record a song stream."""
+
+    return asyncio.run(_stream_song(user_id, song_id))
 
 
 async def get_stream_count(song_id: int) -> int:
@@ -100,3 +110,32 @@ async def get_user_stream_history(user_id: int) -> list:
         return [dict(zip(["song_title", "timestamp"], row)) for row in rows]
     finally:
         await conn.close()
+
+
+LIVE_STREAMING_SKILL = Skill(
+    id=SKILL_NAME_TO_ID["live_streaming"],
+    name="live_streaming",
+    category="performance",
+)
+
+
+def perform_live_stream(
+    user_id: int,
+    duration_minutes: int,
+    base_viewers: int = 100,
+) -> dict:
+    """Simulate a live stream and award XP.
+
+    The viewer retention and tips are influenced by the user's
+    ``live_streaming`` skill level. Each minute grants one XP.
+    """
+
+    skill = skill_service.train(user_id, LIVE_STREAMING_SKILL, duration_minutes)
+    retention_rate = min(1.0, 0.4 + 0.02 * skill.level)
+    retained = int(base_viewers * retention_rate)
+    tips = round(retained * 0.1 * (1 + skill.level / 100), 2)
+    return {
+        "retained_viewers": retained,
+        "tips": tips,
+        "skill_level": skill.level,
+    }
