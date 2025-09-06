@@ -32,6 +32,7 @@ class LivePerformanceCreate(BaseModel):
 class LivePerformanceResponse(LivePerformanceCreate):
     id: int
     performance_score: float
+    song_scores: dict[int, float] | None = None
     crowd_engagement: float
     fame_gain: float
     skill_gain: float

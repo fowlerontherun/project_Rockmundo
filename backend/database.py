@@ -57,6 +57,11 @@ def init_db():
             stress REAL DEFAULT 0.0,
             training_discipline REAL DEFAULT 50.0,
             mental_health REAL DEFAULT 100.0,
+            nutrition REAL DEFAULT 70.0,
+            fitness REAL DEFAULT 70.0,
+            appearance_score REAL DEFAULT 50.0,
+            exercise_minutes REAL DEFAULT 0.0,
+            last_exercise TEXT,
             last_updated TEXT,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
@@ -369,6 +374,10 @@ def init_db():
             current_challenge TEXT,
             challenge_progress INTEGER DEFAULT 0,
             reward_claimed INTEGER DEFAULT 0,
+            catch_up_tokens INTEGER DEFAULT 0,
+            challenge_tier INTEGER DEFAULT 1,
+            weekly_goal_count INTEGER DEFAULT 0,
+            tier_progress INTEGER DEFAULT 0,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
         """)
@@ -545,6 +554,56 @@ def init_db():
             CREATE TABLE IF NOT EXISTS user_energy (
                 user_id INTEGER PRIMARY KEY,
                 energy INTEGER NOT NULL DEFAULT 100,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+
+        # Substance tracking
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS drug_categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS drugs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                category_id INTEGER NOT NULL,
+                description TEXT,
+                FOREIGN KEY(category_id) REFERENCES drug_categories(id)
+            )
+            """
+        )
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS addictions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                drug_id INTEGER NOT NULL,
+                severity INTEGER NOT NULL DEFAULT 0,
+                started_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(user_id) REFERENCES users(id),
+                FOREIGN KEY(drug_id) REFERENCES drugs(id)
+            )
+            """
+        )
+
+        # Support tickets allow players to file issues and admins to resolve them
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS support_tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                body TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT DEFAULT (datetime('now')),
+                resolved_at TEXT,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
             """

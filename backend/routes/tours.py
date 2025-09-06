@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from sqlalchemy.orm import Session
 from database import get_db
 from models.tours import Tour, TourStop
@@ -9,7 +9,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/tours/create", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/tours/create", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def create_tour(tour_data: TourCreate, db: Session = Depends(get_db, user_id: int = Depends(get_current_user_id))):
     new_tour = Tour(**tour_data.dict())
     db.add(new_tour)

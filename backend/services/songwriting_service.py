@@ -71,6 +71,36 @@ class SongwritingService:
         self._versions: Dict[int, List[SongDraftVersion]] = {}
         self._counter = 1
 
+    def generate_lyrics(self, themes: List[str], *, lines: int = 4) -> str:
+        """Generate simple placeholder lyrics referencing the provided themes.
+
+        This utility does not rely on an LLM which keeps it deterministic for
+        tests and offline usage.  It returns a newline separated string and
+        guarantees each theme appears at least once in the lyrics.  Exactly
+        three themes must be provided.
+        """
+
+        if len(themes) != 3:
+            raise ValueError("exactly_three_themes_required")
+        if any(t not in THEMES for t in themes):
+            raise ValueError("unknown_theme")
+
+        base_lines = [
+            f"{themes[0]} and {themes[1]} we wander through the day",
+            f"Dreams of {themes[2]} guide us on our way",
+            f"{themes[0]} echoes softly in the night",
+            f"{themes[2]} keeps our hearts alight",
+        ]
+
+        if lines <= 4:
+            return "\n".join(base_lines[:lines])
+
+        extra = [
+            f"{themes[i % 3]} and {themes[(i + 1) % 3]} help us stay"
+            for i in range(lines - 4)
+        ]
+        return "\n".join(base_lines + extra)
+
     async def generate_draft(
         self,
         creator_id: int,

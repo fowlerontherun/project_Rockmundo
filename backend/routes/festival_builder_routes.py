@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from backend.models.festival_builder import FestivalBuilder
 from backend.services.festival_builder_service import (
     BookingConflictError,
@@ -20,7 +20,7 @@ def get_service() -> FestivalBuilderService:
 
 
 # ----------- Admin endpoints -----------
-@router.post("/admin/festivals", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/admin/festivals", dependencies=[Depends(require_permission(["admin"]))])
 def create_festival(payload: dict, svc: FestivalBuilderService = Depends(get_service)) -> dict:
     fid = svc.create_festival(
         name=payload["name"],
@@ -35,7 +35,7 @@ def create_festival(payload: dict, svc: FestivalBuilderService = Depends(get_ser
 
 @router.post(
     "/admin/festivals/{festival_id}/book",
-    dependencies=[Depends(require_role(["admin"]))],
+    dependencies=[Depends(require_permission(["admin"]))],
 )
 def book_act(
     festival_id: int,
@@ -59,7 +59,7 @@ def book_act(
 
 @router.get(
     "/admin/festivals/{festival_id}/finances",
-    dependencies=[Depends(require_role(["admin"]))],
+    dependencies=[Depends(require_permission(["admin"]))],
 )
 def get_finances(
     festival_id: int, svc: FestivalBuilderService = Depends(get_service)

@@ -1,8 +1,9 @@
 # services/event_service.py
+import json
 import logging
 import random
 import sqlite3
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
@@ -139,6 +140,191 @@ def adjust_event_attendance(base_attendance: int, region: str) -> int:
     # apply city economic modifier
     attendance = int(attendance * city_service.get_event_modifier(region))
     return attendance
+
+
+# ---------------------------------------------------------------------------
+# Shop events
+# ---------------------------------------------------------------------------
+
+
+def _ensure_shop_event_schema() -> None:
+    """Create the table storing scheduled shop events."""
+    with _conn() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS shop_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                banner TEXT NOT NULL,
+                shop_id INTEGER NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                inventory_json TEXT,
+                price_modifier REAL NOT NULL DEFAULT 1.0,
+                active INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.commit()
+
+
+def schedule_shop_event(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Persist a shop event and schedule start/end tasks."""
+
+    _ensure_shop_event_schema()
+    inventory_json = json.dumps(data.get("inventory", {}))
+    with _conn() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO shop_events
+            (name, banner, shop_id, start_time, end_time, inventory_json, price_modifier)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data["name"],
+                data.get("banner", ""),
+                data["shop_id"],
+                data["start_time"],
+                data["end_time"],
+                inventory_json,
+                float(data.get("price_modifier", 1.0)),
+            ),
+        )
+        event_id = cur.lastrowid
+        conn.commit()
+
+    from .scheduler_service import schedule_task  # local import to avoid cycle
+
+    schedule_task(
+        "shop_event_start",
+        {"event_id": event_id},
+        data["start_time"],
+    )
+    schedule_task(
+        "shop_event_end",
+        {"event_id": event_id},
+        data["end_time"],
+    )
+    return {"status": "scheduled", "event_id": event_id}
+
+
+def _apply_inventory(conn: sqlite3.Connection, shop_id: int, items: Dict[str, int]) -> None:
+    cur = conn.cursor()
+    for item_id, qty in items.items():
+        cur.execute(
+            """
+            UPDATE shop_items
+               SET quantity = quantity + ?
+             WHERE shop_id = ? AND item_id = ?
+            """,
+            (qty, shop_id, int(item_id)),
+        )
+
+
+def start_shop_event(event_id: int) -> Dict[str, str]:
+    """Handler to activate a shop event."""
+
+    _ensure_shop_event_schema()
+    with _conn() as conn:
+        cur = conn.execute(
+            "SELECT shop_id, inventory_json, price_modifier FROM shop_events WHERE id = ?",
+            (event_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"error": "event not found"}
+        shop_id, inventory_json, price_modifier = row
+        if inventory_json:
+            _apply_inventory(conn, shop_id, json.loads(inventory_json))
+        if price_modifier and price_modifier != 1.0:
+            conn.execute(
+                "UPDATE shop_items SET price_cents = CAST(price_cents * ? AS INTEGER) WHERE shop_id = ?",
+                (price_modifier, shop_id),
+            )
+        conn.execute("UPDATE shop_events SET active = 1 WHERE id = ?", (event_id,))
+        conn.commit()
+    return {"status": "started"}
+
+
+def end_shop_event(event_id: int) -> Dict[str, str]:
+    """Handler to deactivate a shop event and revert pricing."""
+
+    _ensure_shop_event_schema()
+    with _conn() as conn:
+        cur = conn.execute(
+            "SELECT shop_id, price_modifier FROM shop_events WHERE id = ?",
+            (event_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return {"error": "event not found"}
+        shop_id, price_modifier = row
+        if price_modifier and price_modifier != 1.0:
+            conn.execute(
+                "UPDATE shop_items SET price_cents = CAST(price_cents / ? AS INTEGER) WHERE shop_id = ?",
+                (price_modifier, shop_id),
+            )
+        conn.execute("UPDATE shop_events SET active = 0 WHERE id = ?", (event_id,))
+        conn.commit()
+    return {"status": "ended"}
+
+
+def get_active_shop_event() -> Dict[str, Any] | None:
+    """Return the currently active shop event, if any."""
+
+    _ensure_shop_event_schema()
+    with _conn() as conn:
+        cur = conn.execute(
+            """
+            SELECT id, name, banner, end_time
+              FROM shop_events
+             WHERE active = 1
+             ORDER BY start_time DESC
+             LIMIT 1
+            """
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "name": row[1],
+        "banner": row[2],
+        "end_time": row[3],
+    }
+
+
+def list_shop_events() -> List[Dict[str, Any]]:
+    """List all scheduled shop events."""
+
+    _ensure_shop_event_schema()
+    with _conn() as conn:
+        cur = conn.execute(
+            """
+            SELECT id, name, banner, shop_id, start_time, end_time,
+                   inventory_json, price_modifier, active
+              FROM shop_events
+             ORDER BY start_time
+            """
+        )
+        rows = cur.fetchall()
+    events: List[Dict[str, Any]] = []
+    for r in rows:
+        events.append(
+            {
+                "id": r[0],
+                "name": r[1],
+                "banner": r[2],
+                "shop_id": r[3],
+                "start_time": r[4],
+                "end_time": r[5],
+                "inventory": json.loads(r[6] or "{}"),
+                "price_modifier": r[7],
+                "active": bool(r[8]),
+            }
+        )
+    return events
 
 
 # ---------------------------------------------------------------------------

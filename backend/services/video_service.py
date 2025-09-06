@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from backend.models.video import Video
 from backend.services.economy_service import EconomyService
+from backend.services.media_moderation_service import media_moderation_service
 from backend.utils.metrics import _REGISTRY, Histogram
 
 if "service_latency_ms" in _REGISTRY:
@@ -30,6 +31,9 @@ class VideoService:
 
     # -------------------- CRUD --------------------
     def upload_video(self, owner_id: int, title: str, filename: str) -> Video:
+        # Ensure the title/filename do not contain disallowed terms
+        media_moderation_service.ensure_clean(text=title, filename=filename)
+
         video = Video(
             id=self._next_id,
             owner_id=owner_id,

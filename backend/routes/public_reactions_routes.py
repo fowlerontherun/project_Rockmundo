@@ -1,9 +1,9 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 
 router = APIRouter()
 
-@router.post("/press/event", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/press/event", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 async def log_press_event(event: dict):
     return {"message": "Press event logged", "event": event}
 

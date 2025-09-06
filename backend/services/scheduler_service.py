@@ -4,19 +4,20 @@ from datetime import date, datetime, timedelta
 
 from backend.database import DB_PATH
 from backend.models import daily_loop
-from backend.services import chart_service, fan_service, song_popularity_service
-from backend.services.activity_processor import process_previous_day
-from backend.services.schedule_service import schedule_service
-from backend.services.books_service import books_service
-from backend.services.peer_learning_service import run_scheduled_session
-from backend.services.skill_service import skill_service
-from backend.services.social_sentiment_service import social_sentiment_service
-from backend.services.song_popularity_forecast import forecast_service
-from backend.services.shop_restock_service import restock_handler
 from backend.models.notification_models import (
     alert_no_plan,
     alert_pending_outcomes,
 )
+from backend.services import chart_service, fan_service, song_popularity_service
+from backend.services.activity_processor import process_previous_day
+from backend.services.books_service import books_service
+from backend.services.event_service import end_shop_event, start_shop_event
+from backend.services.peer_learning_service import run_scheduled_session
+from backend.services.schedule_service import schedule_service
+from backend.services.shop_restock_service import restock_handler
+from backend.services.skill_service import skill_service
+from backend.services.social_sentiment_service import social_sentiment_service
+from backend.services.song_popularity_forecast import forecast_service
 
 
 def _plan_reminder(user_id: int, day: str) -> dict:
@@ -122,12 +123,13 @@ EVENT_HANDLERS = {
     "social_sentiment": social_sentiment_service.process_song,
     "complete_reading": books_service.complete_reading,
     "peer_learning": run_scheduled_session,
-    "daily_loop_reset": daily_loop.rotate_daily_challenge,
     "daily_activity_resolution": process_previous_day,
     "daily_loop_reset": _daily_loop_reset_wrapper,
     "plan_reminder": _plan_reminder,
     "outcome_reminder": _outcome_reminder,
     "shop_restock": restock_handler,
+    "shop_event_start": start_shop_event,
+    "shop_event_end": end_shop_event,
     # Add more event handlers here as needed
 }
 

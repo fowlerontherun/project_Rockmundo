@@ -2,7 +2,7 @@ import json
 import sqlite3
 from typing import Dict, List
 
-from backend.database import DB_PATH
+from backend import database
 
 
 def _ensure_row(cur: sqlite3.Cursor, user_id: int) -> None:
@@ -16,7 +16,7 @@ def _ensure_row(cur: sqlite3.Cursor, user_id: int) -> None:
 
 
 def get_settings(user_id: int) -> Dict:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(database.DB_PATH)
     cur = conn.cursor()
     _ensure_row(cur, user_id)
     cur.execute(
@@ -42,7 +42,7 @@ def set_settings(
     timezone: str,
     auto_reschedule: bool = True,
 ) -> None:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(database.DB_PATH)
     cur = conn.cursor()
     cur.execute(
         """

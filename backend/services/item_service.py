@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Dict, List
 
 from backend.models.item import Item, ItemCategory
-
+from backend.services.addiction_service import addiction_service
+from backend.models import notification_models
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -53,11 +54,19 @@ class ItemService:
                     user_id INTEGER NOT NULL,
                     item_id INTEGER NOT NULL,
                     quantity INTEGER NOT NULL,
+                    durability INTEGER NOT NULL DEFAULT 100,
                     PRIMARY KEY (user_id, item_id),
                     FOREIGN KEY (item_id) REFERENCES items(id)
                 )
                 """,
             )
+            # Ensure durability column exists for legacy tables
+            cur.execute("PRAGMA table_info(user_items)")
+            cols = [r[1] for r in cur.fetchall()]
+            if "durability" not in cols:
+                cur.execute(
+                    "ALTER TABLE user_items ADD COLUMN durability INTEGER NOT NULL DEFAULT 100"
+                )
             conn.commit()
 
     # ------------------------------------------------------------------
@@ -186,7 +195,9 @@ class ItemService:
     # ------------------------------------------------------------------
     # Inventory management
     # ------------------------------------------------------------------
-    def add_to_inventory(self, user_id: int, item_id: int, quantity: int = 1) -> None:
+    def add_to_inventory(
+        self, user_id: int, item_id: int, quantity: int = 1, durability: int = 100
+    ) -> None:
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute("SELECT id FROM items WHERE id = ?", (item_id,))
@@ -194,11 +205,11 @@ class ItemService:
                 raise ValueError("invalid item")
             cur.execute(
                 """
-                INSERT INTO user_items (user_id, item_id, quantity)
-                VALUES (?, ?, ?)
-                ON CONFLICT(user_id, item_id) DO UPDATE SET quantity = quantity + excluded.quantity
+                INSERT INTO user_items (user_id, item_id, quantity, durability)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_id, item_id) DO UPDATE SET quantity = user_items.quantity + excluded.quantity
                 """,
-                (user_id, item_id, quantity),
+                (user_id, item_id, quantity, durability),
             )
             conn.commit()
 
@@ -225,6 +236,19 @@ class ItemService:
                 )
             conn.commit()
 
+    def consume_drug(self, user_id: int, item_id: int) -> Dict[str, object]:
+        """Consume a drug item and apply its effects."""
+
+        item = self.get_item(item_id)
+        if item.category != "drug":
+            raise ValueError("not a drug")
+        self.remove_from_inventory(user_id, item_id, 1)
+        result = addiction_service.update_addiction(user_id, item.name)
+        notification_models.notifications.record_event(
+            user_id, "Missed show due to addiction"
+        )
+        return result
+
     def get_inventory(self, user_id: int) -> Dict[int, int]:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -234,6 +258,40 @@ class ItemService:
                 (user_id,),
             )
             return {r["item_id"]: r["quantity"] for r in cur.fetchall()}
+
+    def get_inventory_item(self, user_id: int, item_id: int) -> Dict[str, int]:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT quantity, durability FROM user_items WHERE user_id = ? AND item_id = ?",
+                (user_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("item not in inventory")
+            return {"quantity": row[0], "durability": row[1]}
+
+    def repair_item(self, user_id: int, item_id: int, amount: int | None = None) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT durability FROM user_items WHERE user_id = ? AND item_id = ?",
+                (user_id, item_id),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise ValueError("item not in inventory")
+            current = row[0]
+            if amount is None:
+                new_dur = 100
+            else:
+                new_dur = min(100, current + amount)
+            cur.execute(
+                "UPDATE user_items SET durability = ? WHERE user_id = ? AND item_id = ?",
+                (new_dur, user_id, item_id),
+            )
+            conn.commit()
+            return new_dur
 
     # helper for routes
     def asdict(self, item: Item) -> Dict:

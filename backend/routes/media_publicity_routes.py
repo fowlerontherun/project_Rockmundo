@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, HTTPException
 from models import media_publicity_models
 from schemas import media_publicity_schemas
@@ -8,7 +8,7 @@ from fastapi import Depends
 
 router = APIRouter()
 
-@router.post("/event/", dependencies=[Depends(require_role(["admin"]))])
+@router.post("/event/", dependencies=[Depends(require_permission(["admin"]))])
 def create_media_event(event: media_publicity_schemas.MediaEventCreate, db: Session = Depends(get_db)):
     db_event = media_publicity_models.MediaEvent(**event.dict())
     db.add(db_event)

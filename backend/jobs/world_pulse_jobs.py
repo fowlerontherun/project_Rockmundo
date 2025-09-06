@@ -307,6 +307,38 @@ def run_weekly(
         raise
 
 
+def reset_band_recordings(conn):
+    """Reset the per-band recorded show counter."""
+    conn.execute("UPDATE bands SET recorded_shows_year = 0")
+
+
+def run_yearly(today: Optional[str] = None, conn_override=None):
+    """Yearly job: reset recording counters on January 1."""
+    conn = conn_override or get_conn()
+    try:
+        if today is None:
+            today = _today_str()
+        dt = datetime.strptime(today, ISO_DATE).date()
+        if dt.month == 1 and dt.day == 1:
+            with conn:
+                reset_band_recordings(conn)
+                _log_job(
+                    conn,
+                    job_name="world_pulse_yearly",
+                    status="ok",
+                    details={"date": today},
+                )
+    except Exception as e:
+        with conn:
+            _log_job(
+                conn,
+                job_name="world_pulse_yearly",
+                status="error",
+                details={"date": today, "error": str(e)},
+            )
+        raise
+
+
 if __name__ == "__main__":
     # Handy CLI: python -m backend.jobs.world_pulse_jobs daily 2025-08-25
     import sys
@@ -316,5 +348,7 @@ if __name__ == "__main__":
         run_daily(target_date=arg)
     elif cmd == "weekly":
         run_weekly(week_start=arg)
+    elif cmd == "yearly":
+        run_yearly(today=arg)
     else:
-        print("Usage: daily [YYYY-MM-DD] | weekly [YYYY-MM-DD(Mon)]")
+        print("Usage: daily [YYYY-MM-DD] | weekly [YYYY-MM-DD(Mon)] | yearly [YYYY-MM-DD]")

@@ -8,8 +8,12 @@ from core.errors import AppError, VenueConflictError, TourMinStopsError
 from services.achievement_service import AchievementService
 from services.weather_service import WeatherService
 from services.economy_service import EconomyService
+from services.fame_service import FameService
 from models.economy_config import get_config
 from models.tour import Tour as TourModel, TourLeg, TicketTier, Expense
+
+RECORDING_FAME_THRESHOLD = 1000
+MAX_RECORDINGS_PER_YEAR = 5
 
 class TourService:
     """Service handling both legacy DB backed operations and lightweight tour
@@ -27,12 +31,14 @@ class TourService:
         achievements: Optional[AchievementService] = None,
         weather: Optional[WeatherService] = None,
         economy: Optional[EconomyService] = None,
+        fame: Optional[FameService] = None,
     ):
         self.db_path = db_path
         self.availability = VenueAvailabilityService(self.db_path)
         self.achievements = achievements or AchievementService(self.db_path)
         self.weather = weather or WeatherService()
         self.economy = economy or EconomyService(self.db_path)
+        self.fame = fame
         # Ensure economy tables exist for simulations
         try:
             self.economy.ensure_schema()
@@ -41,6 +47,46 @@ class TourService:
 
         # in-memory storage for simulated tours
         self.tours: Dict[int, TourModel] = {}
+
+    # --- Band recording counters -------------------------------------------------
+    def get_band_recorded_count(self, band_id: int) -> int:
+        """Return how many shows the band has recorded this year."""
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT recorded_shows_year FROM bands WHERE id=?", (band_id,)
+            )
+            row = c.fetchone()
+            return int(row[0] or 0) if row else 0
+
+    def _change_band_recorded_count(self, band_id: int, delta: int) -> None:
+        """Increment or decrement the band's recorded show counter."""
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT recorded_shows_year FROM bands WHERE id=?", (band_id,)
+            )
+            row = c.fetchone()
+            current = int(row[0] or 0) if row else 0
+            new_val = max(0, current + delta)
+            c.execute(
+                "UPDATE bands SET recorded_shows_year=? WHERE id=?",
+                (new_val, band_id),
+            )
+
+    def _assert_recording_allowed(self, band_id: int, date_str: str) -> None:
+        fame_total = self.fame.get_total_fame(band_id) if self.fame else 0
+        if fame_total < RECORDING_FAME_THRESHOLD:
+            raise AppError(
+                "Band lacks required fame to record this stop.",
+                code="FAME_TOO_LOW",
+            )
+        count = self.get_band_recorded_count(band_id)
+        if count >= MAX_RECORDINGS_PER_YEAR:
+            raise AppError(
+                "Recording limit reached for this year.",
+                code="RECORDING_LIMIT_REACHED",
+            )
 
     # ---- Tours ----
     def create_tour(
@@ -117,9 +163,18 @@ class TourService:
         return tour
 
     # ---- Stops ----
-    def add_stop(self, tour_id: int, venue_id: int, date_start: str, date_end: str, order_index: int, notes: str = "") -> Dict[str, Any]:
+    def add_stop(
+        self,
+        tour_id: int,
+        venue_id: int,
+        date_start: str,
+        date_end: str,
+        order_index: int,
+        notes: str = "",
+        is_recorded: bool = False,
+    ) -> Dict[str, Any]:
         # Verify tour exists (raises if not)
-        self.get_tour(tour_id)
+        tour = self.get_tour(tour_id)
 
         if not date_start or not date_end:
             raise AppError("date_start and date_end are required.", code="STOP_DATES_REQUIRED")
@@ -131,14 +186,28 @@ class TourService:
             conflicts = self.availability.venue_conflicts(venue_id, date_start, date_end)
             raise VenueConflictError(f"Venue not available in window; conflicts: {conflicts}")
 
+        if is_recorded:
+            self._assert_recording_allowed(tour["band_id"], date_start)
+            self.economy.charge_recording_fee(tour["band_id"])
+
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes)
-                       VALUES (?, ?, ?, ?, ?, 'pending', ?)""",
-                (tour_id, venue_id, date_start, date_end, order_index, notes),
+                """INSERT INTO tour_stops (tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded)
+                       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)""",
+                (
+                    tour_id,
+                    venue_id,
+                    date_start,
+                    date_end,
+                    order_index,
+                    notes,
+                    int(is_recorded),
+                ),
             )
             stop_id = int(c.lastrowid)
+        if is_recorded:
+            self._change_band_recorded_count(tour["band_id"], 1)
         return self.get_stop(stop_id)
 
     def update_stop_status(self, stop_id: int, status: str) -> Dict[str, Any]:
@@ -149,12 +218,37 @@ class TourService:
             c.execute("UPDATE tour_stops SET status=? WHERE id=?", (status, stop_id))
         return self.get_stop(stop_id)
 
+    def update_stop_recording(self, stop_id: int, is_recorded: bool) -> Dict[str, Any]:
+        """Toggle the recording flag for a tour stop.
+
+        This verifies that the band is eligible to record the stop when
+        setting ``is_recorded`` to ``True`` and then persists the change.
+        """
+
+        stop = self.get_stop(stop_id)
+        tour = self.get_tour(stop["tour_id"])
+        if is_recorded and not stop["is_recorded"]:
+            self._assert_recording_allowed(tour["band_id"], stop["date_start"])
+            self.economy.charge_recording_fee(tour["band_id"])
+        with get_conn(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute(
+                "UPDATE tour_stops SET is_recorded=? WHERE id=?",
+                (int(is_recorded), stop_id),
+            )
+        if is_recorded and not stop["is_recorded"]:
+            self._change_band_recorded_count(tour["band_id"], 1)
+        elif not is_recorded and stop["is_recorded"]:
+            self._change_band_recorded_count(tour["band_id"], -1)
+        return self.get_stop(stop_id)
+
     def get_stop(self, stop_id: int) -> Dict[str, Any]:
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes
-                       FROM tour_stops WHERE id=?""", (stop_id,)
+                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded
+                       FROM tour_stops WHERE id=?""",
+                (stop_id,),
             )
             row = c.fetchone()
             if not row:
@@ -166,9 +260,10 @@ class TourService:
         with get_conn(self.db_path) as conn:
             c = conn.cursor()
             c.execute(
-                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes
+                """SELECT id, tour_id, venue_id, date_start, date_end, order_index, status, notes, is_recorded
                        FROM tour_stops WHERE tour_id=?
-                       ORDER BY order_index ASC, date_start ASC""", (tour_id,)
+                       ORDER BY order_index ASC, date_start ASC""",
+                (tour_id,),
             )
             cols = [d[0] for d in c.description]
             return [dict(zip(cols, r)) for r in c.fetchall()]
@@ -212,13 +307,21 @@ class TourService:
         date: str,
         ticket_tiers: Optional[List[TicketTier]] = None,
         expenses: Optional[List[Expense]] = None,
+        is_recorded: bool = False,
     ) -> Dict[str, Any]:
         tour = self.tours.get(tour_id)
         if not tour:
             raise AppError("Tour not found.", code="TOUR_NOT_FOUND")
-        leg = TourLeg(city=city, venue=venue, date=date,
-                      ticket_tiers=ticket_tiers or [],
-                      expenses=expenses or [])
+        if is_recorded:
+            self._assert_recording_allowed(tour.band_id, date)
+        leg = TourLeg(
+            city=city,
+            venue=venue,
+            date=date,
+            ticket_tiers=ticket_tiers or [],
+            expenses=expenses or [],
+            is_recorded=is_recorded,
+        )
         if tour.legs:
             prev_city = tour.legs[-1].city
             leg.travel_distance = self._estimate_distance(prev_city, city)

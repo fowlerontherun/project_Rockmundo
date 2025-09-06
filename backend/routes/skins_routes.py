@@ -1,10 +1,10 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from services.skins_service import *
 
 router = APIRouter()
 
-@router.post("/skins/submit", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/skins/submit", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def submit_skin(payload: dict):
     return submit_new_skin(payload)
 

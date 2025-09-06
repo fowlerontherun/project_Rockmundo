@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
-
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-# SQLAlchemy base for the avatar models
-Base = declarative_base()
-
-# Import the Character model for relationship support. The Character model
-# lives in its own module with a separate ``Base`` registry.  We only need the
-# class here so that SQLAlchemy can map the relationship; the metadata is
-# created separately in tests or application startup.
 try:  # pragma: no cover - optional import for test environments
-    from models.character import Character  # type: ignore
+    from models.character import Base as CharacterBase, Character  # type: ignore  # noqa: I001
+    Base = CharacterBase
 except Exception:  # pragma: no cover
+    Base = declarative_base()
     Character = None  # type: ignore
 
 
@@ -31,7 +23,16 @@ class Avatar(Base):
     __tablename__ = "avatars"
 
     id = Column(Integer, primary_key=True, index=True)
-    character_id = Column(Integer, ForeignKey("characters.id"), nullable=False, unique=True)
+    # ``use_alter`` allows this foreign key to be created even when the
+    # referenced table lives in a separate metadata registry.  SQLAlchemy will
+    # emit an ``ALTER TABLE`` after creation which avoids dependency issues in
+    # testing environments where ``characters`` may be created separately.
+    character_id = Column(
+        Integer,
+        ForeignKey("characters.id", use_alter=True, link_to_name=True),
+        nullable=False,
+        unique=True,
+    )
     nickname = Column(String, nullable=False)
 
     # --- Appearance -------------------------------------------------------
@@ -51,6 +52,10 @@ class Avatar(Base):
     level = Column(Integer, default=1)
     experience = Column(Integer, default=0)
     health = Column(Integer, default=100)
+    # Mood is stored as a simple 0-100 scale where 50 is neutral.  This allows
+    # lightweight persistence of how an avatar is feeling which can then be
+    # influenced by lifestyle scores and random events.
+    mood = Column(Integer, default=50)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

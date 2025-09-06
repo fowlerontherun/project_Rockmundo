@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, conint
 from typing import List, Optional
@@ -48,7 +48,7 @@ class XPItemGiftPayload(BaseModel):
 
 
 # -------- endpoints --------
-@router.post("/digital", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/digital", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def gift_digital(payload: DigitalGiftPayload):
     try:
         gift_id = svc.gift_digital(DigitalGiftIn(**payload.model_dump()))
@@ -57,7 +57,7 @@ def gift_digital(payload: DigitalGiftPayload):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/tickets", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/tickets", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def gift_tickets(payload: TicketGiftPayload):
     try:
         items = [TicketGiftItem(**i.model_dump()) for i in payload.items]
@@ -76,7 +76,7 @@ def gift_tickets(payload: TicketGiftPayload):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/xp-item", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/xp-item", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def gift_xp_item(payload: XPItemGiftPayload):
     try:
         xp_item_service.assign_to_user(payload.recipient_user_id, payload.item_id)
@@ -85,11 +85,11 @@ def gift_xp_item(payload: XPItemGiftPayload):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/inbox/{user_id}", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.get("/inbox/{user_id}", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def gifts_inbox(user_id: int, limit: int = 50, offset: int = 0):
     return svc.list_inbox(user_id, limit, offset)
 
 
-@router.get("/sent/{user_id}", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.get("/sent/{user_id}", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def gifts_sent(user_id: int, limit: int = 50, offset: int = 0):
     return svc.list_sent(user_id, limit, offset)

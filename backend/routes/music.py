@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from sqlalchemy.orm import Session
 
 from models.music import Song, Album, album_song_link
@@ -13,7 +13,7 @@ from utils.i18n import _
 
 router = APIRouter(prefix="/music", tags=["Music"])
 
-@router.post("/songs", response_model=SongResponse, dependencies=[Depends(require_role(["user", "band_member", "moderator", "admin"]))])
+@router.post("/songs", response_model=SongResponse, dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))])
 def create_song(song: SongCreate, db: Session = Depends(get_db, user_id: int = Depends(get_current_user_id))):
     if not (song.band_id or song.collaboration_id):
         raise HTTPException(status_code=400, detail=_("Must provide band_id or collaboration_id"))

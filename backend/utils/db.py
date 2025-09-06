@@ -32,6 +32,49 @@ except Exception:  # pragma: no cover - fallback for tests
     DEFAULT_DB = str(Path(__file__).resolve().parents[1] / "rockmundo.db")
 
 
+# Connection pool -----------------------------------------------------------------
+_pool: Optional[asyncio.Queue[aiosqlite.Connection]] = None
+
+
+async def _init_pool_async(db_path: Optional[str] = None, size: int = 5) -> None:
+    """Create and populate the global connection pool.
+
+    Parameters
+    ----------
+    db_path:
+        Optional database path.  When omitted the default configuration is
+        used.
+    size:
+        Number of connections to create in the pool.
+    """
+
+    global _pool
+    if _pool is not None:  # Pool already initialised
+        return
+
+    path = str(db_path or DEFAULT_DB)
+    queue: asyncio.Queue[aiosqlite.Connection] = asyncio.Queue(maxsize=size)
+    for _ in range(size):
+        conn = await aiosqlite.connect(path)
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA foreign_keys = ON;")
+        await conn.execute("PRAGMA busy_timeout = 5000;")
+        await queue.put(conn)
+
+    _pool = queue
+
+
+def init_pool(db_path: Optional[str] = None, size: int = 5) -> None:
+    """Initialise the connection pool synchronously.
+
+    This helper is intended to be called during application startup from a
+    synchronous context.  It delegates to :func:`_init_pool_async` using
+    ``asyncio.run``.
+    """
+
+    asyncio.run(_init_pool_async(db_path, size))
+
+
 class _SyncCursor:
     """Synchronous wrapper around an ``aiosqlite`` cursor."""
 
@@ -67,8 +110,11 @@ class _SyncConnection:
     def cursor(self) -> _SyncCursor:
         return _SyncCursor(self._conn.cursor())
 
-    def execute(self, sql: str, params: Tuple[Any, ...] = ()):  # pragma: no cover - passthrough
-        return asyncio.run(self._conn.execute(sql, params))
+    def execute(self, sql: str, params: Tuple[Any, ...] = ()):
+        """Execute a query and return a synchronous cursor."""
+
+        cursor = asyncio.run(self._conn.execute(sql, params))
+        return _SyncCursor(cursor)
 
     def executemany(self, sql: str, seq: List[Tuple[Any, ...]]):  # pragma: no cover - passthrough
         return asyncio.run(self._conn.executemany(sql, seq))
@@ -111,21 +157,38 @@ def get_conn(db_path: Optional[str] = None) -> _SyncConnection:
 
 @asynccontextmanager
 async def aget_conn(db_path: Optional[str] = None):
-    """Asynchronously yield a database connection."""
+    """Asynchronously yield a database connection.
 
-    path = str(db_path or DEFAULT_DB)
-    conn = await aiosqlite.connect(path)
-    conn.row_factory = aiosqlite.Row
-    await conn.execute("PRAGMA foreign_keys = ON;")
-    await conn.execute("PRAGMA busy_timeout = 5000;")
-    try:
-        yield conn
-        await conn.commit()
-    except Exception:  # pragma: no cover - rollback on error
-        await conn.rollback()
-        raise
-    finally:
-        await conn.close()
+    If a global pool has been initialised via :func:`init_pool` and no specific
+    ``db_path`` is provided, connections are drawn from the pool.  Otherwise a
+    new temporary connection is created and closed after use.
+    """
+
+    global _pool
+    if db_path is None and _pool is not None:
+        conn = await _pool.get()
+        try:
+            yield conn
+            await conn.commit()
+        except Exception:  # pragma: no cover - rollback on error
+            await conn.rollback()
+            raise
+        finally:
+            await _pool.put(conn)
+    else:
+        path = str(db_path or DEFAULT_DB)
+        conn = await aiosqlite.connect(path)
+        conn.row_factory = aiosqlite.Row
+        await conn.execute("PRAGMA foreign_keys = ON;")
+        await conn.execute("PRAGMA busy_timeout = 5000;")
+        try:
+            yield conn
+            await conn.commit()
+        except Exception:  # pragma: no cover - rollback on error
+            await conn.rollback()
+            raise
+        finally:
+            await conn.close()
 
 
 async def _cached_query_async(
@@ -146,5 +209,5 @@ def cached_query(
     return asyncio.run(_cached_query_async(db_path, query, params))
 
 
-__all__ = ["get_conn", "aget_conn", "cached_query"]
+__all__ = ["get_conn", "aget_conn", "cached_query", "init_pool"]
 

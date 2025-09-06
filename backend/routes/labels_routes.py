@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from auth.dependencies import require_role
+from auth.dependencies import require_permission
 from backend.schemas.labels_schemas import (
     LabelCreateSchema,
     OfferRequestSchema,
@@ -18,7 +18,7 @@ router = APIRouter()
 negotiation_service = ContractNegotiationService()
 
 
-@router.post("/labels/create", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/labels/create", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def create_label(payload: LabelCreateSchema):
     return create_label_service(payload.name, payload.owner_id or 0)
 

@@ -1,6 +1,6 @@
 from typing import List
 
-from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
+from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from backend.services.economy_service import EconomyService
 from backend.services.merch_service import MerchError, MerchService
 from backend.models.merch import ProductIn, SKUIn
@@ -43,7 +43,7 @@ class PurchaseIn(BaseModel):
     shipping_address: str | None = None
 
 
-@router.post("/products", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/products", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def create_product(payload: ProductCreateIn):
     try:
         pid = svc.create_product(ProductIn(**payload.model_dump()))
@@ -53,7 +53,7 @@ def create_product(payload: ProductCreateIn):
 
 
 @router.get(
-    "/products", dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))]
+    "/products", dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))]
 )
 def list_products(
     only_active: bool = True, category: str | None = None, band_id: int | None = None
@@ -62,7 +62,7 @@ def list_products(
 
 
 @router.patch(
-    "/products/{product_id}", dependencies=[Depends(require_role(["admin", "moderator"]))]
+    "/products/{product_id}", dependencies=[Depends(require_permission(["admin", "moderator"]))]
 )
 def update_product(product_id: int, fields: dict):
     try:
@@ -72,7 +72,7 @@ def update_product(product_id: int, fields: dict):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/skus", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/skus", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def create_sku(payload: SKUCreateIn):
     try:
         sid = svc.create_sku(SKUIn(**payload.model_dump()))
@@ -83,13 +83,13 @@ def create_sku(payload: SKUCreateIn):
 
 @router.get(
     "/skus/{product_id}",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 def list_skus(product_id: int, only_active: bool = True):
     return svc.list_skus(product_id, only_active=only_active)
 
 
-@router.patch("/skus/{sku_id}", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.patch("/skus/{sku_id}", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def update_sku(sku_id: int, fields: dict):
     try:
         svc.update_sku(sku_id, **fields)
@@ -99,7 +99,7 @@ def update_sku(sku_id: int, fields: dict):
 
 
 @router.post(
-    "/purchase", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))]
+    "/purchase", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))]
 )
 def purchase(payload: PurchaseIn):
     try:
@@ -113,7 +113,7 @@ def purchase(payload: PurchaseIn):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/refund/{order_id}", dependencies=[Depends(require_role(["admin", "moderator"]))])
+@router.post("/refund/{order_id}", dependencies=[Depends(require_permission(["admin", "moderator"]))])
 def refund(order_id: int, reason: str = ""):
     try:
         return svc.refund_order(order_id, reason)
@@ -123,7 +123,7 @@ def refund(order_id: int, reason: str = ""):
 
 @router.get(
     "/orders/{order_id}",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 def get_order(order_id: int):
     try:
@@ -134,7 +134,7 @@ def get_order(order_id: int):
 
 @router.get(
     "/orders/user/{buyer_user_id}",
-    dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))],
+    dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
 def list_orders_for_user(buyer_user_id: int):
     return svc.list_orders_for_user(buyer_user_id)

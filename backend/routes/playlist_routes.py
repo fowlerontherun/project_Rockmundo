@@ -100,3 +100,16 @@ def get_public_playlist(playlist_id: int) -> PlaylistOut:
     if not pl or not pl.is_public:
         raise HTTPException(status_code=404, detail="Playlist not found")
     return PlaylistOut(**pl.to_dict())
+
+
+# Fan-facing endpoints exposing public playlists
+@router.get("/playlists/fans", response_model=List[PlaylistOut])
+def list_fan_playlists() -> List[PlaylistOut]:
+    """List all playlists created by fans that are marked public."""
+    return list_public_playlists()
+
+
+@router.get("/playlists/fans/{playlist_id}", response_model=PlaylistOut)
+def get_fan_playlist(playlist_id: int) -> PlaylistOut:
+    """Retrieve a specific fan-created public playlist."""
+    return get_public_playlist(playlist_id)

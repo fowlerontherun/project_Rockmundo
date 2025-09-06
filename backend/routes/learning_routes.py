@@ -20,6 +20,14 @@ class SessionRequest(BaseModel):
     duration: int
 
 
+class SpecializationRequest(BaseModel):
+    user_id: int
+    skill_id: int
+    skill_name: str
+    skill_category: str
+    specialization: str
+
+
 @router.post("/sessions")
 def enqueue_session(payload: SessionRequest):
     """Enqueue a learning session (stub)."""
@@ -35,6 +43,18 @@ def enqueue_session(payload: SessionRequest):
 def cancel_session(session_id: int):
     """Cancel a queued session (stub)."""
     return {"status": "cancelled", "session_id": session_id}
+
+
+@router.post("/specializations")
+def choose_specialization(payload: SpecializationRequest):
+    """Select a specialization for a skill."""
+    skill = Skill(
+        id=payload.skill_id,
+        name=payload.skill_name,
+        category=payload.skill_category,
+    )
+    svc.select_specialization(payload.user_id, skill, payload.specialization)
+    return {"status": "selected", "specialization": payload.specialization}
 
 
 __all__ = ["router"]

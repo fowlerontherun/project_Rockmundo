@@ -7,12 +7,12 @@ from services.economy_service import EconomyService
 from services.video_service import VideoService
 
 
-async def _require_role_stub(roles, user_id):
+async def _require_permission_stub(roles, user_id):
     return True
 
 
 def setup_services():
-    video_routes.require_role = _require_role_stub
+    video_routes.require_permission = _require_permission_stub
 
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmp.close()

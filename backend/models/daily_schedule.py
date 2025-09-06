@@ -1,13 +1,59 @@
 import sqlite3
-from typing import List, Dict
+from typing import Dict, List
 
 from backend.database import DB_PATH
+
+# Maximum number of exercise activities permitted in a single day.
+# Additional exercise sessions beyond this limit are rejected when
+# attempting to add or update entries.
+MAX_EXERCISE_ACTIVITIES_PER_DAY = 1
+
+
+def _check_exercise_limit(cur: sqlite3.Cursor, user_id: int, date: str, activity_id: int) -> None:
+    """Ensure the user has not exceeded their daily exercise allowance.
+
+    Parameters
+    ----------
+    cur:
+        Open database cursor.
+    user_id:
+        The id of the user being scheduled.
+    date:
+        The schedule date in ISO format.
+    activity_id:
+        The id of the activity being scheduled.
+
+    Raises
+    ------
+    ValueError
+        If scheduling the activity would exceed the allowed number of
+        exercise sessions for the specified day.
+    """
+
+    cur.execute("SELECT category FROM activities WHERE id = ?", (activity_id,))
+    row = cur.fetchone()
+    if not row or row[0] != "exercise":
+        return
+
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM daily_schedule ds
+        JOIN activities a ON ds.activity_id = a.id
+        WHERE ds.user_id = ? AND ds.date = ? AND a.category = 'exercise'
+        """,
+        (user_id, date),
+    )
+    count = cur.fetchone()[0]
+    if count >= MAX_EXERCISE_ACTIVITIES_PER_DAY:
+        raise ValueError("daily exercise activity limit reached")
 
 
 def add_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
     """Insert or update a schedule entry for a user."""
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
+        _check_exercise_limit(cur, user_id, date, activity_id)
         cur.execute(
             """
             INSERT INTO daily_schedule (user_id, date, slot, hour, activity_id)
@@ -22,6 +68,7 @@ def add_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
 def update_entry(user_id: int, date: str, slot: int, activity_id: int) -> None:
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
+        _check_exercise_limit(cur, user_id, date, activity_id)
         cur.execute(
             "UPDATE daily_schedule SET activity_id = ?, hour = ? WHERE user_id = ? AND date = ? AND slot = ?",
             (activity_id, slot, user_id, date, slot),
@@ -35,6 +82,17 @@ def remove_entry(user_id: int, date: str, slot: int) -> None:
         cur.execute(
             "DELETE FROM daily_schedule WHERE user_id = ? AND date = ? AND slot = ?",
             (user_id, date, slot),
+        )
+        conn.commit()
+
+
+def clear_day(user_id: int, date: str) -> None:
+    """Remove all schedule entries for a user on a given day."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "DELETE FROM daily_schedule WHERE user_id = ? AND date = ?",
+            (user_id, date),
         )
         conn.commit()
 
@@ -101,4 +159,11 @@ def get_schedule(user_id: int, date: str) -> List[Dict]:
     ]
 
 
-__all__ = ["add_entry", "update_entry", "remove_entry", "find_conflicts", "get_schedule"]
+__all__ = [
+    "add_entry",
+    "update_entry",
+    "remove_entry",
+    "clear_day",
+    "find_conflicts",
+    "get_schedule",
+]

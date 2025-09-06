@@ -10,9 +10,9 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from .gateway import hub, get_current_user_id_dep
 
 try:  # pragma: no cover - fallback during tests
-    from auth.dependencies import require_role
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
-    async def require_role(roles, user_id):  # type: ignore
+    async def require_permission(roles, user_id):  # type: ignore
         return True
 
 router = APIRouter(prefix="/admin/realtime", tags=["AdminRealtime"])
@@ -40,7 +40,7 @@ async def admin_ws(
     user_id: int = Depends(get_current_user_id_dep),
 ) -> None:
     await ws.accept()
-    await require_role(["admin", "moderator"], user_id)
+    await require_permission(["admin", "moderator"], user_id)
 
     topic_map = {"economy": ECONOMY_TOPIC, "moderation": MODERATION_TOPIC}
     topic = topic_map.get(channel)

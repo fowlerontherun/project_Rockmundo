@@ -1,7 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from pathlib import Path
+
+# Ensure the default database path used by service exists during import
+Path(__file__).resolve().parents[2].joinpath("database").mkdir(parents=True, exist_ok=True)
 
 from services.band_service import Base, BandMember, BandService
+from services.band_relationship_service import BandRelationshipService
 
 
 def get_service():
@@ -41,4 +46,25 @@ def test_collaboration_split():
     result = svc.split_earnings(band.id, 80, collaboration_band_id=2)
     assert result["band_1_share"] == 40
     assert result["band_2_share"] == 40
+
+
+def test_relationship_modifier_affects_split():
+    svc, _ = get_service()
+    rel_svc = BandRelationshipService()
+    svc.relationship_service = rel_svc
+    band = svc.create_band(user_id=1, band_name="Band1", genre="rock")
+
+    rel_svc.create_relationship(
+        band_a_id=band.id,
+        band_b_id=2,
+        relationship_type="alliance",
+        affinity=80,
+        compatibility=90,
+    )
+
+    result = svc.split_earnings(band.id, 100, collaboration_band_id=2)
+    expected_modifier = 1 + ((80 + 90) / 2 - 50) / 100
+    expected_total = int(100 * expected_modifier)
+    assert result["band_1_share"] + result["band_2_share"] == expected_total
+    assert result["modifier"] == expected_modifier
 

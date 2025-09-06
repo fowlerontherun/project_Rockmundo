@@ -5,7 +5,7 @@ from services.dashboard_service import DashboardService
 DDL = """
 CREATE TABLE IF NOT EXISTS venues (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, city TEXT, country TEXT, capacity INTEGER, created_at TEXT DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS tours (id INTEGER PRIMARY KEY AUTOINCREMENT, band_id INTEGER, name TEXT, status TEXT DEFAULT 'draft', created_at TEXT DEFAULT (datetime('now')));
-CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, tour_id INTEGER, venue_id INTEGER, date_start TEXT, date_end TEXT, order_index INTEGER, status TEXT DEFAULT 'pending', notes TEXT, created_at TEXT DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, tour_id INTEGER, venue_id INTEGER, date_start TEXT, date_end TEXT, order_index INTEGER, status TEXT DEFAULT 'pending', notes TEXT, is_recorded INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, type TEXT, title TEXT, body TEXT, created_at TEXT DEFAULT (datetime('now')), read_at TEXT);
 CREATE TABLE IF NOT EXISTS sales_digital (id INTEGER PRIMARY KEY AUTOINCREMENT, quantity INTEGER, revenue REAL, created_at TEXT DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS sales_vinyl (id INTEGER PRIMARY KEY AUTOINCREMENT, quantity INTEGER, revenue REAL, created_at TEXT DEFAULT (datetime('now')));

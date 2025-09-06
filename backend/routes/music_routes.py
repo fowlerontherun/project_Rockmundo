@@ -1,7 +1,7 @@
 # File: backend/routes/music_routes.py
 from fastapi import APIRouter, HTTPException
 from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from pydantic import BaseModel, Field
 from typing import Optional
 

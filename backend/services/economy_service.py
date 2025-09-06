@@ -19,6 +19,7 @@ from backend.economy.models import (
     Account,
     Transaction as TransactionModel,
     LedgerEntry,
+    RECORDING_COST,
 )
 
 logger = get_logger(__name__)
@@ -49,6 +50,8 @@ class EconomyService:
         # SQLAlchemy engine/session for ORM-backed tables
         self.engine = create_engine(f"sqlite:///{self.db_path}")
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False, future=True)
+        # Expose recording cost constant
+        self.recording_cost = RECORDING_COST
 
     # ---------------- schema ----------------
     def ensure_schema(self) -> None:
@@ -224,6 +227,35 @@ class EconomyService:
             )
             session.commit()
             xp_reward_service.grant_hidden_xp(to_user_id, reason="transfer")
+
+    def charge_recording_fee(self, user_id: int, currency: str = "USD") -> int:
+        """Deduct recording cost from a user's account and log in the ledger."""
+        amount_cents = self.recording_cost
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account).where(Account.user_id == user_id))
+                .scalar_one_or_none()
+            )
+            if not account or account.balance_cents < amount_cents:
+                raise EconomyError("Insufficient funds")
+            account.balance_cents -= amount_cents
+            tx = TransactionModel(
+                type="recording",
+                amount_cents=amount_cents,
+                currency=currency,
+                src_account_id=account.id,
+            )
+            session.add(tx)
+            session.flush()
+            entry = LedgerEntry(
+                account_id=account.id,
+                transaction_id=tx.id,
+                delta_cents=-amount_cents,
+                balance_after=account.balance_cents,
+            )
+            session.add(entry)
+            session.commit()
+            return account.balance_cents
 
     def list_transactions(self, user_id: int, limit: int = 50) -> list[TransactionRecord]:
         with self.SessionLocal() as session:

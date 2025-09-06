@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from models.skin import Skin, SkinInventory
@@ -8,7 +8,7 @@ from utils.i18n import _
 
 router = APIRouter(prefix="/skins", tags=["Skins"])
 
-@router.post("/", response_model=SkinResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/", response_model=SkinResponse, dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def submit_skin(skin: SkinCreate, db: Session = Depends(get_db)):
     new_skin = Skin(**skin.dict())
     db.add(new_skin)

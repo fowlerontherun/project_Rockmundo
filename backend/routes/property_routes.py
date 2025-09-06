@@ -2,7 +2,7 @@ from services.achievement_service import AchievementService
 from services.economy_service import EconomyService
 from services.property_service import PropertyError, PropertyService
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -20,7 +20,7 @@ class PropertyPurchaseIn(BaseModel):
     base_rent: int
 
 
-@router.post("/buy", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.post("/buy", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def buy_property(
     payload: PropertyPurchaseIn, owner_id: int = Depends(get_current_user_id)
 ):
@@ -40,7 +40,7 @@ def buy_property(
 
 @router.post(
     "/upgrade/{property_id}",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 def upgrade_property(property_id: int, owner_id: int = Depends(get_current_user_id)):
     try:
@@ -51,7 +51,7 @@ def upgrade_property(property_id: int, owner_id: int = Depends(get_current_user_
 
 @router.post(
     "/rent/{property_id}",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 def rent_property(property_id: int, renter_id: int = Depends(get_current_user_id)):
     try:
@@ -62,7 +62,7 @@ def rent_property(property_id: int, renter_id: int = Depends(get_current_user_id
 
 @router.post(
     "/sell/{property_id}",
-    dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))],
+    dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
 def sell_property(property_id: int, owner_id: int = Depends(get_current_user_id)):
     try:
@@ -72,6 +72,6 @@ def sell_property(property_id: int, owner_id: int = Depends(get_current_user_id)
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/list", dependencies=[Depends(require_role(["band_member", "admin", "moderator"]))])
+@router.get("/list", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def list_properties(owner_id: int = Depends(get_current_user_id)):
     return svc.list_properties(owner_id)

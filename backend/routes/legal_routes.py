@@ -5,27 +5,13 @@ from pydantic import BaseModel
 
 from services.economy_service import EconomyService
 from services.legal_service import LegalService
+from services.karma_db import KarmaDB
 from services.karma_service import KarmaService
-
-
-class _KarmaDB:
-    def __init__(self):
-        self.totals = {}
-        self.events = []
-
-    def insert_karma_event(self, event):
-        self.events.append(event)
-
-    def update_user_karma(self, user_id, amount):
-        self.totals[user_id] = self.totals.get(user_id, 0) + amount
-
-    def get_user_karma_total(self, user_id):
-        return self.totals.get(user_id, 0)
 
 
 _economy = EconomyService()
 _economy.ensure_schema()
-_karma = KarmaService(_KarmaDB())
+_karma = KarmaService(KarmaDB())
 svc = LegalService(_economy, _karma)
 
 router = APIRouter(prefix="/legal", tags=["Legal"])

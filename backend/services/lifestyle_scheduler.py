@@ -16,7 +16,7 @@ DECAY = {
 }
 
 # XP modifier ranges
-def lifestyle_xp_modifier(sleep, stress, discipline, mental):
+def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness):
     modifier = 1.0
 
     if sleep < 5:
@@ -27,11 +27,21 @@ def lifestyle_xp_modifier(sleep, stress, discipline, mental):
         modifier *= 0.85
     if mental < 60:
         modifier *= 0.8
+    if nutrition < 40:
+        modifier *= 0.9
+    if fitness < 30:
+        modifier *= 0.9
 
     return round(modifier, 2)
 
-def apply_lifestyle_decay_and_xp_effects():
+def apply_lifestyle_decay_and_xp_effects() -> int:
     from .skill_service import skill_service  # local import to avoid cycle
+    from .lifestyle_service import grant_daily_xp, log_exercise_session
+    from .addiction_service import addiction_service
+    try:
+        from .random_event_service import random_event_service
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency
+        random_event_service = None
 
     event_svc = XPEventService()
     with sqlite3.connect(DB_PATH) as conn:
@@ -63,6 +73,7 @@ def apply_lifestyle_decay_and_xp_effects():
             """
         )
 
+        count = 0
         for row in rows:
             user_id = row[1]
 
@@ -81,6 +92,38 @@ def apply_lifestyle_decay_and_xp_effects():
             stress = min(100, row[4] + DECAY["stress"])
             discipline = max(0, row[5] - DECAY["training_discipline"])
             mental = max(0, row[6] - DECAY["mental_health"])
+
+            # Process scheduled exercise and apply cooldown-based benefits
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(hours), 0)
+                FROM schedule
+                WHERE user_id = ? AND day = ? AND tag = 'exercise'
+                """,
+                (user_id, today),
+            )
+            exercise_hours = cur.fetchone()[0]
+            if exercise_hours > 0:
+                # Convert to minutes for the service call
+                log_exercise_session(user_id, int(exercise_hours * 60), conn)
+
+            # Additional penalties from addictions
+            addiction_level = addiction_service.get_highest_level(user_id)
+            if addiction_level > 0:
+                mental = max(0, mental - addiction_level * 0.1)
+
+                missed = addiction_service.check_for_missed_events(user_id, today)
+                if missed:
+                    from backend.models.daily_schedule import remove_entry
+
+                    for entry in missed:
+                        remove_entry(user_id, today, entry["slot"])
+                    random_event_service.trigger_addiction_event(
+                        user_id, level=addiction_level, date=today
+                    )
+
+                if addiction_level >= 50 and random_event_service:
+                    random_event_service.trigger_addiction_event(user_id)
 
             cur.execute(
                 """
@@ -115,7 +158,9 @@ def apply_lifestyle_decay_and_xp_effects():
                 (new_energy, user_id),
             )
 
-            modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental)
+            nutrition = row[7]
+            fitness = row[8]
+            modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
             modifier *= event_svc.get_active_multiplier()
 
             cur.execute("""
@@ -123,10 +168,24 @@ def apply_lifestyle_decay_and_xp_effects():
                 VALUES (?, ?, ?)
             """, (user_id, modifier, datetime.utcnow().date()))
 
+            data = {
+                "sleep_hours": sleep,
+                "stress": stress,
+                "training_discipline": discipline,
+                "mental_health": mental,
+                "nutrition": nutrition,
+                "fitness": fitness,
+            }
+            grant_daily_xp(user_id, data, conn)
+
+            conn.commit()
+
             # Daily lifestyle decay affects skills slightly
             skill_service.apply_daily_decay(user_id)
 
-        conn.commit()
+            count += 1
+
+        return count
 
 # Optional: simulate daily task
 if __name__ == "__main__":

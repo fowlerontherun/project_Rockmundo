@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -40,6 +41,8 @@ def test_crud_lifecycle():
         )
     )
     assert avatar.id is not None
+    # Default mood should be neutral (50)
+    assert avatar.mood == 50
 
     fetched = svc.get_avatar(avatar.id)
     assert fetched and fetched.nickname == "Hero"
@@ -47,6 +50,12 @@ def test_crud_lifecycle():
     svc.update_avatar(avatar.id, AvatarUpdate(nickname="Legend"))
     updated = svc.get_avatar(avatar.id)
     assert updated and updated.nickname == "Legend"
+
+    # Adjust mood based on lifestyle and events
+    updated = svc.adjust_mood(avatar.id, lifestyle_score=80, events=["burnout"])
+    assert updated and updated.mood == 55
+    # get_mood should reflect persisted value
+    assert svc.get_mood(avatar.id) == 55
 
     assert svc.delete_avatar(avatar.id)
     assert svc.get_avatar(avatar.id) is None

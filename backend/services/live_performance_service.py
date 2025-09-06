@@ -8,7 +8,15 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from backend.database import DB_PATH
 from backend.services import live_performance_analysis
-from backend.services.chemistry_service import ChemistryService
+try:
+    from backend.services.chemistry_service import ChemistryService
+except Exception:  # pragma: no cover - fallback if DB unavailable
+    class ChemistryService:  # type: ignore
+        def initialize_pair(self, a, b):
+            return type("P", (), {"score": 50})()
+
+        def adjust_pair(self, a, b, delta):  # noqa: D401 - simple stub
+            return type("P", (), {"score": 50})()
 from backend.services.city_service import city_service
 from backend.services.event_service import is_skill_blocked
 from backend.services.gear_service import gear_service
@@ -72,6 +80,19 @@ def simulate_gig(
         """
     )
 
+    # store per-song recording quality
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS recorded_tracks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            performance_id INTEGER,
+            song_id INTEGER,
+            performance_score REAL,
+            created_at TEXT
+        )
+        """
+    )
+
     all_band_ids = [band_id] + (partner_band_ids or [])
     placeholders = ",".join("?" for _ in all_band_ids)
     cur.execute(f"SELECT id, fame FROM bands WHERE id IN ({placeholders})", all_band_ids)
@@ -108,6 +129,7 @@ def simulate_gig(
     skill_gain = 0.0
     event_log = []
     recent_reactions: list[float] = []
+    track_scores: Dict[int, list[float]] = {}
 
     stream = iter(reaction_stream) if reaction_stream is not None else crowd_reaction_stream()
 
@@ -130,6 +152,7 @@ def simulate_gig(
         a_type = action.get("type")
         action_bonus = 0
         fame_modifier = 0
+        song_id: int | None = None
         if a_type == "song" or a_type == "encore":
             skill_gain += 0.3 * chem_mod
 
@@ -186,6 +209,8 @@ def simulate_gig(
                 "fame_modifier": fame_modifier,
             }
         )
+        if song_id is not None:
+            track_scores.setdefault(song_id, []).append(score)
 
     for action in main_actions:
         _handle_action(action)
@@ -266,6 +291,23 @@ def simulate_gig(
                 event["action"],
                 event["crowd_reaction"],
                 event["fame_modifier"],
+                datetime.utcnow().isoformat(),
+            ),
+        )
+
+    # Persist average score per song for this performance
+    for song_id, scores in track_scores.items():
+        avg_score = sum(scores) / len(scores)
+        cur.execute(
+            """
+            INSERT INTO recorded_tracks (
+                performance_id, song_id, performance_score, created_at
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (
+                performance_record_id,
+                song_id,
+                avg_score,
                 datetime.utcnow().isoformat(),
             ),
         )

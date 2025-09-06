@@ -1,4 +1,4 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.promotion_schema import PromotionCreate, PromotionResponse
 from typing import List
@@ -7,7 +7,7 @@ router = APIRouter()
 promotions_db = []
 promotion_id_counter = 1
 
-@router.post("/promotions/", response_model=PromotionResponse, dependencies=[Depends(require_role(["admin", "moderator", "band_member"]))])
+@router.post("/promotions/", response_model=PromotionResponse, dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))])
 def create_promotion(promo: PromotionCreate):
     global promotion_id_counter
     new_promo = promo.dict()

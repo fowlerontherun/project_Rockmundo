@@ -5,7 +5,7 @@ import pytest
 
 from backend.models.item import Item
 from backend.models.learning_method import LearningMethod
-from backend.models.skill import Skill
+from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
 from backend.services.item_service import item_service
 from backend.services.skill_service import SkillService
@@ -22,7 +22,7 @@ class DummyXPEvents:
 def _setup_db(
     tmp_path: Path,
     xp_modifier: float = 1.0,
-    lifestyle: tuple[float, float, float, float] = (7, 0, 50, 100),
+    lifestyle: tuple[float, float, float, float, float, float] = (7, 0, 50, 100, 70, 70),
     learning_style: str = "balanced",
 ) -> Path:
     db = tmp_path / "db.sqlite"
@@ -36,10 +36,10 @@ def _setup_db(
         (xp_modifier,),
     )
     cur.execute(
-        "CREATE TABLE lifestyle (user_id INTEGER, sleep_hours REAL, stress REAL, training_discipline REAL, mental_health REAL)"
+        "CREATE TABLE lifestyle (user_id INTEGER, sleep_hours REAL, stress REAL, training_discipline REAL, mental_health REAL, nutrition REAL, fitness REAL)"
     )
     cur.execute(
-        "INSERT INTO lifestyle (user_id, sleep_hours, stress, training_discipline, mental_health) VALUES (1, ?, ?, ?, ?)",
+        "INSERT INTO lifestyle (user_id, sleep_hours, stress, training_discipline, mental_health, nutrition, fitness) VALUES (1, ?, ?, ?, ?, ?, ?)",
         lifestyle,
     )
     cur.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, learning_style TEXT)")
@@ -167,7 +167,7 @@ def test_environment_quality(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_lifestyle_modifier(tmp_path: Path) -> None:
-    db = _setup_db(tmp_path, lifestyle=(4, 90, 50, 100))
+    db = _setup_db(tmp_path, lifestyle=(4, 90, 50, 100, 100, 100))
     svc = SkillService(db_path=db, xp_events=DummyXPEvents(1.0))
     skill = Skill(id=22, name="bass", category="instrument")
     updated = svc.train(1, skill, 10)
@@ -185,4 +185,29 @@ def test_method_burnout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
     updated = svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
     assert updated.xp == 27
+
+
+def test_burnout_recovery(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = _setup_db(tmp_path)
+    svc = SkillService(db_path=db)
+    skill = Skill(id=24, name="piano", category="instrument")
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    svc.reduce_burnout(1, amount=2)
+    updated = svc.train_with_method(1, skill, LearningMethod.PRACTICE, 1)
+    assert updated.xp == 29
+
+
+def test_synergy_bonus_applied() -> None:
+    svc = SkillService()
+    spec = SkillSpecialization(name="lead", related_skills={31: 2}, bonus=0.5)
+    guitar = Skill(id=30, name="guitar", category="instrument", specializations={"lead": spec})
+    theory = Skill(id=31, name="music theory", category="knowledge")
+    svc.select_specialization(1, guitar, "lead")
+    svc.train(1, theory, 200)
+    updated = svc.train(1, guitar, 100)
+    assert updated.xp == 150
 

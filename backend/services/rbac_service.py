@@ -1,4 +1,4 @@
-"""RBAC service with cached user role lookups."""
+"""RBAC service with cached user role and permission lookups."""
 from functools import lru_cache
 from typing import Set
 
@@ -19,11 +19,34 @@ def get_roles_for_user(user_id: int) -> Set[str]:
         ).fetchall()
     return {row["name"] for row in rows}
 
+
+@lru_cache(maxsize=1024)
+def get_permissions_for_user(user_id: int) -> Set[str]:
+    """Return the set of permission names assigned to ``user_id``."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.name FROM user_roles ur
+            JOIN role_permissions rp ON rp.role_id = ur.role_id
+            JOIN permissions p ON p.id = rp.permission_id
+            WHERE ur.user_id = ?
+            """,
+            (user_id,),
+        ).fetchall()
+    return {row["name"] for row in rows}
+
+
+def has_permission(user_id: int, permission: str) -> bool:
+    """Return ``True`` if ``user_id`` has ``permission``."""
+    return permission in get_permissions_for_user(user_id)
+
+
 def clear_role_cache(user_id: int | None = None) -> None:
-    """Invalidate cached role lookups.
+    """Invalidate cached RBAC lookups.
 
     ``functools.lru_cache`` does not provide a way to clear a single entry,
     so the entire cache is cleared. The ``user_id`` argument is accepted to
     make calling sites explicit about which user's roles changed.
     """
     get_roles_for_user.cache_clear()
+    get_permissions_for_user.cache_clear()

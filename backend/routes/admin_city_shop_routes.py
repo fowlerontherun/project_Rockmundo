@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_role
+from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.admin_audit_service import audit_dependency
 from backend.services.city_shop_service import CityShopService
 from backend.services.shop_restock_service import schedule_restock
@@ -13,7 +13,7 @@ svc = CityShopService()
 
 async def _ensure_admin(req: Request) -> None:
     admin_id = await get_current_user_id(req)
-    await require_role(["admin"], admin_id)
+    await require_permission(["admin"], admin_id)
 
 
 @router.post("/")
@@ -21,7 +21,8 @@ async def create_shop(payload: dict, req: Request):
     await _ensure_admin(req)
     city = payload.get("city", "")
     name = payload.get("name", "")
-    return svc.create_shop(city=city, name=name)
+    owner = payload.get("owner_user_id")
+    return svc.create_shop(city=city, name=name, owner_user_id=owner)
 
 
 @router.get("/")
@@ -143,4 +144,24 @@ async def set_book_restock(shop_id: int, book_id: int, payload: dict, req: Reque
     if interval and qty:
         schedule_restock(shop_id, "book", book_id, int(interval), int(qty))
     return {"status": "ok"}
+
+
+@router.post("/{shop_id}/bundles")
+async def add_bundle(shop_id: int, payload: dict, req: Request):
+    await _ensure_admin(req)
+    name = payload.get("name", "")
+    price = int(payload.get("price_cents", 0))
+    items = payload.get("items", [])
+    promo_starts = payload.get("promo_starts")
+    promo_ends = payload.get("promo_ends")
+    bundle_id = svc.add_bundle(
+        shop_id, name, price, items, promo_starts, promo_ends
+    )
+    return {"bundle_id": bundle_id}
+
+
+@router.get("/{shop_id}/bundles")
+async def list_bundles(shop_id: int, req: Request):
+    await _ensure_admin(req)
+    return svc.list_bundles(shop_id)
 

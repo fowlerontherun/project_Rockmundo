@@ -1,7 +1,7 @@
 # File: backend/routes/dashboard_routes.py
 from typing import Optional
 
-from backend.auth.dependencies import get_current_user_id, require_role  # noqa: F401
+from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from backend.services.dashboard_service import DashboardService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request  # noqa: F401
 

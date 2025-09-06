@@ -10,21 +10,113 @@
   <input type="text" name="genre" placeholder="Genre" required />
   <label>Select Tracks:</label>
   <div id="songSelector"></div>
+  <label>Track Order:</label>
+  <ul id="selectedTracks"></ul>
   <select name="distribution_channels" multiple>
     <option value="digital">Digital</option>
     <option value="vinyl">Vinyl</option>
     <option value="streaming">Streaming</option>
   </select>
   <input type="file" name="cover_art" />
+  <img id="coverPreview" style="max-width:200px;display:none" alt="Cover Art Preview" />
   <button type="submit">Create Release</button>
 </form>
 
 <script src="../components/notification.js"></script>
 <script>
+  const orderedTracks = [];
+  const coverInput = document.querySelector('input[name="cover_art"]');
+  const coverPreview = document.getElementById('coverPreview');
+
+  function showCover(src) {
+    if (src) {
+      coverPreview.src = src;
+      coverPreview.style.display = 'block';
+    } else {
+      coverPreview.style.display = 'none';
+      coverPreview.removeAttribute('src');
+    }
+  }
+
+  if (window.initialCoverArt) {
+    showCover(window.initialCoverArt);
+  }
+
+  coverInput.addEventListener('change', function () {
+    const file = coverInput.files[0];
+    if (file) {
+      showCover(URL.createObjectURL(file));
+    } else if (window.initialCoverArt) {
+      showCover(window.initialCoverArt);
+    } else {
+      showCover('');
+    }
+  });
+
+  function renderTracks() {
+    const list = document.getElementById('selectedTracks');
+    list.innerHTML = '';
+    orderedTracks.forEach((id, idx) => {
+      const li = document.createElement('li');
+      li.dataset.id = id;
+
+      const up = document.createElement('button');
+      up.type = 'button';
+      up.textContent = '↑';
+      up.onclick = () => {
+        if (idx > 0) {
+          [orderedTracks[idx - 1], orderedTracks[idx]] = [orderedTracks[idx], orderedTracks[idx - 1]];
+          renderTracks();
+        }
+      };
+
+      const down = document.createElement('button');
+      down.type = 'button';
+      down.textContent = '↓';
+      down.onclick = () => {
+        if (idx < orderedTracks.length - 1) {
+          [orderedTracks[idx + 1], orderedTracks[idx]] = [orderedTracks[idx], orderedTracks[idx + 1]];
+          renderTracks();
+        }
+      };
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '✖';
+      remove.onclick = () => {
+        orderedTracks.splice(idx, 1);
+        const checkbox = document.querySelector(`#songSelector input[value="${id}"]`);
+        if (checkbox) checkbox.checked = false;
+        renderTracks();
+      };
+
+      li.append(up, down, remove);
+      fetch(`/songs/${id}`)
+        .then(r => r.json())
+        .then(data => {
+          li.append(` ${data.title || 'Song ' + id}`);
+        })
+        .catch(() => li.append(` Song ${id}`));
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById('songSelector').addEventListener('change', function(e) {
+    if (e.target.type !== 'checkbox') return;
+    const id = parseInt(e.target.value);
+    if (e.target.checked) {
+      orderedTracks.push(id);
+    } else {
+      const idx = orderedTracks.indexOf(id);
+      if (idx >= 0) orderedTracks.splice(idx, 1);
+    }
+    renderTracks();
+  });
+
   document.getElementById('albumForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const form = e.target;
-    const tracks = Array.from(document.querySelectorAll('#songSelector input[type="checkbox"]:checked')).map(i => i.value);
+    const tracks = orderedTracks.slice();
     const format = form.format.value;
     if (tracks.length === 0) {
       showNotification('Please select at least one track', 'error');
@@ -51,6 +143,8 @@
       if (res.ok) {
         showNotification('Release created successfully', 'success');
         form.reset();
+        orderedTracks.length = 0;
+        renderTracks();
       } else {
         showNotification(data.message || data.error || 'Failed to create release', 'error');
       }

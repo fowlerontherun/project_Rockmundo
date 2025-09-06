@@ -26,6 +26,10 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 
+# Cost to mark a tour stop as recorded, in cents
+RECORDING_COST = 1000
+
+
 class Account(Base):
     """Represents a user's currency account."""
 

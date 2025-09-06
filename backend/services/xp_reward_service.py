@@ -42,7 +42,7 @@ class XPRewardService:
             )
             if cur.fetchone():
                 cur.execute(
-                    "SELECT created_at FROM accounts WHERE user_id = ?", (user_id,)
+                    "SELECT created_at FROM accounts WHERE user_id = ?", (user_id,),
                 )
                 row = cur.fetchone()
                 if row is None:
@@ -63,7 +63,7 @@ class XPRewardService:
             )
             if cur.fetchone():
                 cur.execute(
-                    "SELECT level FROM user_levels WHERE user_id = ?", (user_id,)
+                    "SELECT level FROM user_levels WHERE user_id = ?", (user_id,),
                 )
                 row = cur.fetchone()
                 if row and int(row[0]) <= 5:
@@ -73,7 +73,13 @@ class XPRewardService:
         return False
 
     # ------------------------------------------------------------------
-    def grant_hidden_xp(self, user_id: int, reason: str, amount: int = 10) -> bool:
+    def grant_hidden_xp(
+        self,
+        user_id: int,
+        reason: str,
+        amount: int = 10,
+        conn: sqlite3.Connection | None = None,
+    ) -> bool:
         """Grant hidden XP to the given user if they qualify.
 
         Parameters
@@ -84,40 +90,78 @@ class XPRewardService:
             Context for auditing, e.g. ``gift`` or ``transfer``.
         amount:
             Amount of XP to award. Defaults to 10.
+        conn:
+            Optional existing SQLite connection to use. When provided, the
+            caller is responsible for committing.
         Returns
         -------
         bool
             ``True`` if XP was granted, ``False`` otherwise.
         """
-        with sqlite3.connect(self.db_path) as conn:
-            cur = conn.cursor()
-            self._ensure_schema(cur)
-            if not self._is_new_or_low_level(cur, user_id):
-                return False
-            cur.execute(
-                "INSERT INTO hidden_xp_rewards (user_id, amount, reason) VALUES (?, ?, ?)",
-                (user_id, amount, reason),
-            )
-            # Update user_xp table if present
-            try:
+        if conn is None:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                self._ensure_schema(cur)
+                if not self._is_new_or_low_level(cur, user_id):
+                    return False
                 cur.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='user_xp'"
+                    "INSERT INTO hidden_xp_rewards (user_id, amount, reason) VALUES (?, ?, ?)",
+                    (user_id, amount, reason),
                 )
-                if cur.fetchone():
+                try:
                     cur.execute(
-                        """
-                        INSERT INTO user_xp(user_id, xp)
-                        VALUES (?, ?)
-                        ON CONFLICT(user_id) DO UPDATE SET xp = xp + excluded.xp
-                        """,
-                        (user_id, amount),
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='user_xp'",
                     )
-            except Exception:
-                pass
-            conn.commit()
-            return True
+                    if cur.fetchone():
+                        cur.execute(
+                            """
+                            INSERT INTO user_xp(user_id, xp)
+                            VALUES (?, ?)
+                            ON CONFLICT(user_id) DO UPDATE SET xp = xp + excluded.xp
+                            """,
+                            (user_id, amount),
+                        )
+                except Exception:
+                    pass
+                conn.commit()
+                return True
+
+        cur = conn.cursor()
+        self._ensure_schema(cur)
+        if not self._is_new_or_low_level(cur, user_id):
+            return False
+        cur.execute(
+            "INSERT INTO hidden_xp_rewards (user_id, amount, reason) VALUES (?, ?, ?)",
+            (user_id, amount, reason),
+        )
+        try:
+            cur.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='user_xp'",
+            )
+            if cur.fetchone():
+                cur.execute(
+                    """
+                    INSERT INTO user_xp(user_id, xp)
+                    VALUES (?, ?)
+                    ON CONFLICT(user_id) DO UPDATE SET xp = xp + excluded.xp
+                    """,
+                    (user_id, amount),
+                )
+        except Exception:
+            pass
+        return True
+
+    # ------------------------------------------------------------------
+    def grant_daily_reward(self, user_id: int, tier: int) -> bool:
+        """Award XP for completing the daily challenge.
+
+        The amount scales with the provided ``tier``.
+        """
+        amount = 10 * max(1, int(tier))
+        return self.grant_hidden_xp(user_id, f"daily_tier_{tier}", amount)
 
 
 xp_reward_service = XPRewardService()
 
 __all__ = ["XPRewardService", "xp_reward_service"]
+

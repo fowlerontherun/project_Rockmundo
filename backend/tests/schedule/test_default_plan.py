@@ -64,7 +64,7 @@ def test_scheduler_populates_daily_schedule(tmp_path):
     # User has no login for today
     with sqlite3.connect(database.DB_PATH) as conn:
         conn.execute(
-            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed) VALUES (1,0,'2024-01-01','',0,0)"
+            "INSERT INTO daily_loop (user_id, login_streak, last_login, current_challenge, challenge_progress, reward_claimed, catch_up_tokens, challenge_tier) VALUES (1,0,'2024-01-01','',0,0,0,1)"
         )
         conn.commit()
 

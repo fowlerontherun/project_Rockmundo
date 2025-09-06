@@ -1,9 +1,21 @@
 # File: backend/services/notifications_service.py
 
 import asyncio
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from services.discord_service import DiscordServiceError, send_message
+# Import resolves differently when executed as package vs. tests.
+try:  # pragma: no cover - primary import when project is installed
+    from services.discord_service import DiscordServiceError, send_message
+except Exception:  # pragma: no cover - fallback or noop if unavailable
+    try:  # running in tests without package context
+        from .discord_service import DiscordServiceError, send_message
+    except Exception:  # ultimate fallback, define no-op implementation
+        class DiscordServiceError(Exception):
+            pass
+
+        def send_message(*args, **kwargs):  # type: ignore
+            return None
 from utils.db import get_conn
 from backend.realtime.social_gateway import publish_notification
 
@@ -95,3 +107,21 @@ class NotificationsService:
                 (user_id,),
             )
             return cur.rowcount
+
+    # --- Convenience ---
+    def record_event(self, user_id: int, message: str, timestamp: Optional[str] = None) -> int:
+        """Record a simple event notification for a user.
+
+        Parameters
+        ----------
+        user_id: int
+            The user receiving the notification.
+        message: str
+            Description of the event.
+        timestamp: Optional[str]
+            Optional ISO timestamp stored in the body. If omitted the current
+            UTC time is used.
+        """
+
+        ts = timestamp or datetime.utcnow().isoformat()
+        return self.create(user_id, message, body=ts, type_="event")

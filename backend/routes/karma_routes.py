@@ -1,10 +1,11 @@
-from auth.dependencies import get_current_user_id, require_role
+from auth.dependencies import get_current_user_id, require_permission
 
 from flask import Blueprint, request, jsonify
+from services.karma_db import KarmaDB
 from services.karma_service import KarmaService
 
 karma_routes = Blueprint('karma_routes', __name__)
-karma_service = KarmaService(db=None)
+karma_service = KarmaService(KarmaDB())
 
 @karma_routes.route('/karma/<int:user_id>', methods=['GET'])
 def get_karma(user_id):

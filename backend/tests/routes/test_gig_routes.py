@@ -27,13 +27,13 @@ def load_gig_module(monkeypatch):
     # Stub auth dependencies to avoid auth logic during import
     from auth import dependencies as deps
 
-    def fake_require_role(_roles):
+    def fake_require_permission(_roles):
         def _dep():
             return True
 
         return _dep
 
-    deps.require_role = fake_require_role
+    deps.require_permission = fake_require_permission
     deps.get_current_user_id = lambda: 1
 
     # Provide a simple Gig model to bypass SQLAlchemy

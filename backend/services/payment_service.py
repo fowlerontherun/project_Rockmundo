@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+
+import httpx
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Type
 from uuid import uuid4
@@ -66,6 +69,42 @@ class PayPalGateway(MockGateway):
         super().__init__(prefix="paypal", succeed=succeed)
 
 
+@dataclass
+class StripeAPIGateway(PaymentGateway):
+    """Stripe payment gateway using real HTTP API calls.
+
+    API credentials are read from environment variables:
+
+    ``STRIPE_API_KEY`` – secret API key used for authenticating requests.
+    ``STRIPE_WEBHOOK_SECRET`` – optional secret for webhook verification.
+    """
+
+    base_url: str = "https://api.stripe.com/v1"
+    api_key: str = field(default_factory=lambda: os.environ["STRIPE_API_KEY"])
+    webhook_secret: Optional[str] = field(
+        default_factory=lambda: os.environ.get("STRIPE_WEBHOOK_SECRET")
+    )
+
+    def create_payment(self, amount_cents: int, currency: str) -> str:
+        data = {
+            "amount": amount_cents,
+            "currency": currency,
+            "payment_method_types[]": "card",
+        }
+        resp = httpx.post(
+            f"{self.base_url}/payment_intents", data=data, auth=(self.api_key, "")
+        )
+        resp.raise_for_status()
+        return resp.json()["id"]
+
+    def verify_payment(self, payment_id: str) -> bool:
+        resp = httpx.get(
+            f"{self.base_url}/payment_intents/{payment_id}", auth=(self.api_key, "")
+        )
+        resp.raise_for_status()
+        return resp.json().get("status") == "succeeded"
+
+
 class PaymentService:
     """Main entry point for handling payment operations."""
 
@@ -73,6 +112,7 @@ class PaymentService:
     gateway_registry: Dict[str, Type[PaymentGateway]] = {
         "stripe": StripeGateway,
         "paypal": PayPalGateway,
+        "stripe_api": StripeAPIGateway,
     }
 
     def __init__(self, gateway: Optional[PaymentGateway], economy_service: EconomyService,

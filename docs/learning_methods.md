@@ -39,3 +39,18 @@ Practice Time -> Fatigue -> Burnout -> XP Penalty
 ```
 
 This pipeline illustrates how extended practice sessions can lead to fatigue and eventual burnout, reducing XP gains until the avatar recovers.
+
+## Recovery Actions
+
+Taking breaks restores more than just mood. Certain lifestyle actions now
+directly chip away at the burnout streak that builds up from repeating the
+same learning method. Examples include:
+
+- **Rest** – adds extra sleep, lowers stress and removes two steps from the
+  burnout counter.
+- **Meditation** – improves mental health, eases stress and reduces the
+  counter by one.
+
+Triggering a recovery action refreshes the XP modifier applied in the next
+training session, allowing avatars to rebound to full learning efficiency
+instead of being stuck with diminished gains.

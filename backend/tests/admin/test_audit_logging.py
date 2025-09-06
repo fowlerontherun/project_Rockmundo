@@ -26,11 +26,11 @@ def test_admin_route_logs_action(monkeypatch, tmp_path):
     async def fake_current_user(req: Request):
         return 99
 
-    async def fake_require_role(roles, user_id):
+    async def fake_require_permission(roles, user_id):
         return True
 
     monkeypatch.setattr(media_routes, "get_current_user_id", fake_current_user)
-    monkeypatch.setattr(media_routes, "require_role", fake_require_role)
+    monkeypatch.setattr(media_routes, "require_permission", fake_require_permission)
     monkeypatch.setattr(
         "backend.services.admin_audit_service.get_current_user_id", fake_current_user
     )
