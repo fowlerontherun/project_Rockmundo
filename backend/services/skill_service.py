@@ -24,6 +24,7 @@ from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 from backend.services.xp_event_service import XPEventService
 from backend.services.avatar_service import AvatarService
+from backend.services.perk_service import perk_service
 from backend.schemas.avatar import AvatarUpdate
 from backend.services.xp_item_service import xp_item_service
 
@@ -201,6 +202,8 @@ class SkillService:
 
         inst.xp += gain
         self._check_level(inst)
+        # Evaluate perk requirements after level change
+        perk_service.update_skill(user_id, inst.name, inst.level)
         return inst
 
     def train_with_method(
@@ -285,6 +288,8 @@ class SkillService:
                 user_id, AvatarUpdate(stamina=new_stamina)
             )
 
+        # Perk evaluation occurs within ``train``; ensure latest level stored
+        perk_service.update_skill(user_id, result.name, result.level)
         return result
 
     def reduce_burnout(self, user_id: int, amount: int = 1) -> None:
@@ -320,6 +325,7 @@ class SkillService:
             return None
         inst.xp = max(0, inst.xp - amount)
         self._check_level(inst)
+        perk_service.update_skill(user_id, inst.name, inst.level)
         return inst
 
     def apply_daily_decay(self, user_id: int, amount: int = 1) -> None:

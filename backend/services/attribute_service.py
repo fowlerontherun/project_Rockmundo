@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Dict, Tuple
 
 from backend.models.attribute import Attribute
+from backend.services.perk_service import perk_service
 
 
 class AttributeService:
@@ -38,6 +39,8 @@ class AttributeService:
         gained = max(1, amount - reduction)
         attr.xp += gained
         attr.level = attr.xp // 100 + 1
+        # Evaluate perk requirements after level change
+        perk_service.update_attribute(user_id, stat, attr.level)
         return attr
 
 

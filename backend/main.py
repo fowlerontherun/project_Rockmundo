@@ -51,6 +51,7 @@ from routes import (
     business_training_routes,
     image_training_routes,
     attribute_routes,
+    perk_routes,
     university_routes,
     user_settings_routes,
     venue_sponsorships_routes,
@@ -162,6 +163,7 @@ app.include_router(
     prefix="/api",
     tags=["Attributes"],
 )
+app.include_router(perk_routes.router, prefix="/api", tags=["Perks"])
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
