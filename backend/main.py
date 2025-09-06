@@ -48,6 +48,7 @@ from routes import (
     tour_collab_routes,
     tour_planner_routes,
     trade_routes,
+    business_training_routes,
     university_routes,
     user_settings_routes,
     venue_sponsorships_routes,
@@ -144,6 +145,11 @@ app.include_router(schedule_routes.router, prefix="/api", tags=["Schedule"])
 app.include_router(song_forecast_routes.router)
 app.include_router(tour_collab_routes.router, prefix="/api", tags=["TourCollab"])
 app.include_router(tour_planner_routes.router, prefix="/api", tags=["TourPlanner"])
+app.include_router(
+    business_training_routes.router,
+    prefix="/api/training/business",
+    tags=["BusinessTraining"],
+)
 app.include_router(university_routes.router, prefix="/api", tags=["University"])
 app.include_router(daily_loop_routes.router, prefix="/api", tags=["DailyLoop"])
 app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettings"])
