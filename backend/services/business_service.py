@@ -1,17 +1,24 @@
 """Service layer for user owned businesses."""
+
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .economy_service import EconomyService, EconomyError
+from backend.models.skill import Skill
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.skill_service import skill_service
+
+from .economy_service import EconomyError, EconomyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
 
 class BusinessService:
-    def __init__(self, db_path: Optional[str] = None, economy: Optional[EconomyService] = None) -> None:
+    def __init__(
+        self, db_path: Optional[str] = None, economy: Optional[EconomyService] = None
+    ) -> None:
         self.db_path = str(db_path or DB_PATH)
         self.economy = economy or EconomyService(self.db_path)
         self.economy.ensure_schema()
@@ -131,6 +138,13 @@ class BusinessService:
         if not biz:
             raise ValueError("Business not found")
         amount = int(biz["revenue_rate"])
+        fm_skill = Skill(
+            id=SKILL_NAME_TO_ID.get("financial_management", 0),
+            name="financial_management",
+            category="business",
+        )
+        level = skill_service.train(biz["owner_id"], fm_skill, 0).level
+        amount = int(amount * (1 + 0.05 * max(level - 1, 0)))
         if amount:
             self.economy.deposit(biz["owner_id"], amount)
         return amount

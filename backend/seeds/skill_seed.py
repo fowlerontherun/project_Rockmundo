@@ -30,6 +30,10 @@ SEED_SKILLS = [
     Skill(id=22, name="mastering", category="creative", parent_id=20),
     Skill(id=23, name="music_theory", category="creative"),
     Skill(id=24, name="ear_training", category="creative"),
+    # Business skills
+    Skill(id=25, name="marketing", category="business"),
+    Skill(id=26, name="public_relations", category="business"),
+    Skill(id=27, name="financial_management", category="business"),
 ]
 
 SKILL_NAME_TO_ID = {skill.name: skill.id for skill in SEED_SKILLS}
