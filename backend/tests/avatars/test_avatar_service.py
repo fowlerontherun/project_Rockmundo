@@ -110,6 +110,8 @@ def test_update_validation_and_clamping():
         AvatarUpdate(creativity=120)
     with pytest.raises(ValueError):
         AvatarUpdate(discipline=-5)
+    with pytest.raises(ValueError):
+        AvatarUpdate(tech_savvy=200)
 
     # Bypass validation to ensure service clamps the values
     update_data = AvatarUpdate.model_construct(
@@ -118,6 +120,7 @@ def test_update_validation_and_clamping():
         intelligence=101,
         creativity=120,
         discipline=-5,
+        tech_savvy=150,
     )
     svc.update_avatar(avatar.id, update_data)
     updated = svc.get_avatar(avatar.id)
@@ -128,4 +131,5 @@ def test_update_validation_and_clamping():
         and updated.intelligence == 100
         and updated.creativity == 100
         and updated.discipline == 0
+        and updated.tech_savvy == 100
     )

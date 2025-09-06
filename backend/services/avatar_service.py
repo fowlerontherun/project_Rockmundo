@@ -43,6 +43,7 @@ class AvatarService:
             payload = data.model_dump()
             payload.setdefault("luck", 0)
             payload.setdefault("social_media", 0)
+            payload.setdefault("tech_savvy", 0)
             avatar = Avatar(**payload)
             session.add(avatar)
             session.commit()
@@ -74,6 +75,7 @@ class AvatarService:
                     "discipline",
                     "luck",
                     "social_media",
+                    "tech_savvy",
                 } and value is not None:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:
