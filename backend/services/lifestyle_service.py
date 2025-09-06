@@ -145,7 +145,16 @@ _RECOVERY_ACTIONS = {
 }
 
 
-def apply_recovery_action(user_id: int, data: dict, action: str) -> dict:
+from .avatar_service import AvatarService
+from schemas.avatar import AvatarUpdate
+
+
+def apply_recovery_action(
+    user_id: int,
+    data: dict,
+    action: str,
+    avatar_service: AvatarService | None = None,
+) -> dict:
     """Apply a recovery action to lifestyle data and reduce burnout.
 
     Parameters
@@ -162,6 +171,13 @@ def apply_recovery_action(user_id: int, data: dict, action: str) -> dict:
     if not effects:
         return data
 
+    avatar = None
+    resilience = 0
+    if avatar_service is not None:
+        avatar = avatar_service.get_avatar(user_id)
+        if avatar:
+            resilience = avatar.resilience
+
     burnout_reduction = effects.get("burnout", 1)
 
     # Mutate lifestyle attributes within reasonable bounds
@@ -170,11 +186,26 @@ def apply_recovery_action(user_id: int, data: dict, action: str) -> dict:
             continue
         if key == "sleep_hours":
             data[key] = min(12, data.get(key, 0) + delta)
+        elif key == "stress":
+            if delta > 0:
+                delta = int(delta * (1 - resilience / 100))
+            else:
+                delta = int(delta * (1 + resilience / 100))
+            data[key] = max(0, min(100, data.get(key, 0) + delta))
         else:
             data[key] = max(0, min(100, data.get(key, 0) + delta))
 
     # Recovery actions help relieve burnout from repetitive training
     skill_service.reduce_burnout(user_id, amount=burnout_reduction)
+
+    if action == "rest" and avatar and avatar_service is not None:
+        stamina_gain = 5 + resilience // 20
+        avatar_service.recover_stamina(user_id, stamina_gain)
+        if avatar.resilience < 100:
+            avatar_service.update_avatar(
+                user_id,
+                AvatarUpdate(resilience=min(100, avatar.resilience + 5)),
+            )
 
     return data
 
