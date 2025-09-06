@@ -11,6 +11,7 @@ from backend.database import DB_PATH
 from backend.models.course import Course
 from backend.models.skill import Skill
 from backend.services.skill_service import SkillService
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 class UniversityService:
@@ -120,7 +121,8 @@ class UniversityService:
             )
             conn.commit()
         if done:
-            skill = Skill(id=course_id, name=skill_target, category="academic")
+            skill_id = SKILL_NAME_TO_ID.get(skill_target, course_id)
+            skill = Skill(id=skill_id, name=skill_target, category="academic")
             self.skill_service.train(user_id, skill, duration * 100)
 
 
