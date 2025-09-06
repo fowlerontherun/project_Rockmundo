@@ -26,6 +26,7 @@ class Skill:
     prerequisites: Dict[int, int] = field(default_factory=dict)
     specializations: Dict[str, SkillSpecialization] = field(default_factory=dict)
     specialization: Optional[str] = None
+    prerequisites: Dict[int, int] = field(default_factory=dict)
 
 
 __all__ = ["Skill", "SkillSpecialization"]

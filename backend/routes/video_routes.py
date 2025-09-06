@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.services.economy_service import EconomyService
 from backend.services.video_service import VideoService
+from backend.services.skill_service import SkillService
 
 
 router = APIRouter(prefix="/videos")
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/videos")
 # Create service instances for the simple demo implementation
 _economy = EconomyService()
 _economy.ensure_schema()
-_video_service = VideoService(_economy)
+_video_service = VideoService(_economy, SkillService())
 
 
 async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:

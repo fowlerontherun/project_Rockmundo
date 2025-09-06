@@ -41,8 +41,11 @@ def test_skills_persist_across_restarts(tmp_path, monkeypatch):
 
     req = Request({"type": "http"})
 
+    prereq_id = skill_seed.SEED_SKILLS[0].id
     new_schema = admin_music_routes.SkillSchema(
-        name="persisted_skill", category="instrument"
+        name="persisted_skill",
+        category="instrument",
+        prerequisites={prereq_id: 100},
     )
     asyncio.run(admin_music_routes.add_skill(new_schema, req))
 
@@ -53,7 +56,10 @@ def test_skills_persist_across_restarts(tmp_path, monkeypatch):
     del sys.modules["backend.routes.admin_music_routes"]
     admin_music_routes = importlib.import_module("backend.routes.admin_music_routes")
 
-    assert any(s.name == "persisted_skill" for s in skill_seed.SEED_SKILLS)
+    assert any(
+        s.name == "persisted_skill" and s.prerequisites == {prereq_id: 100}
+        for s in skill_seed.SEED_SKILLS
+    )
 
     # Cleanup
     importlib.reload(skill_seed)

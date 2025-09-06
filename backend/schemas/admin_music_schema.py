@@ -34,3 +34,5 @@ __all__ = [
     "GenreSchema",
     "StageEquipmentSchema",
 ]
+
+__all__ = ["SkillSchema", "GenreSchema", "StageEquipmentSchema"]

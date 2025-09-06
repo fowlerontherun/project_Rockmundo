@@ -40,7 +40,13 @@ class AvatarService:
     # ------------------------------------------------------------------
     def create_avatar(self, data: AvatarCreate) -> Avatar:
         with self.session_factory() as session:
-            avatar = Avatar(**data.model_dump())
+            payload = data.model_dump()
+            payload.setdefault("luck", 0)
+            payload.setdefault("social_media", 0)
+            payload.setdefault("tech_savvy", 0)
+            payload.setdefault("networking", 0)
+            payload.setdefault("resilience", 50)
+            avatar = Avatar(**payload)
             session.add(avatar)
             session.commit()
             session.refresh(avatar)
@@ -69,6 +75,11 @@ class AvatarService:
                     "intelligence",
                     "creativity",
                     "discipline",
+                    "resilience",
+                    "luck",
+                    "social_media",
+                    "tech_savvy",
+                    "networking",
                 } and value is not None:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:
@@ -76,6 +87,15 @@ class AvatarService:
             session.commit()
             session.refresh(avatar)
             return avatar
+
+    # ------------------------------------------------------------------
+    def get_avatar_by_character_id(self, character_id: int) -> Optional[Avatar]:
+        with self.session_factory() as session:
+            return (
+                session.query(Avatar)
+                .filter(Avatar.character_id == character_id)
+                .first()
+            )
 
     # ------------------------------------------------------------------
     def recover_stamina(self, avatar_id: int, amount: int) -> Optional[Avatar]:

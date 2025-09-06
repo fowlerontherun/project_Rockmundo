@@ -18,6 +18,9 @@ def load_skills() -> List[Skill]:
         skills: List[Skill] = []
         for item in data:
             prereqs = {int(k): v for k, v in item.get("prerequisites", {}).items()}
+            prereqs = {
+                int(k): v for k, v in item.get("prerequisites", {}).items()
+            }
             item["prerequisites"] = prereqs
             skills.append(Skill(**item))
         return skills

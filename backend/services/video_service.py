@@ -7,6 +7,8 @@ from typing import Dict, List
 from backend.models.video import Video
 from backend.services.economy_service import EconomyService
 from backend.services.media_moderation_service import media_moderation_service
+from backend.services.skill_service import SkillService
+from backend.seeds.skill_seed import SEED_SKILLS
 from backend.utils.metrics import _REGISTRY, Histogram
 
 if "service_latency_ms" in _REGISTRY:
@@ -20,11 +22,23 @@ else:
     )
 
 
+CONTENT_CREATION_SKILL = next(
+    s for s in SEED_SKILLS if s.name == "content_creation"
+)
+XP_PER_VIEW = 5
+
+
 class VideoService:
     """Service layer handling video operations and monetization."""
 
-    def __init__(self, economy: EconomyService, ad_rate_cents: int = 1):
+    def __init__(
+        self,
+        economy: EconomyService,
+        skill_service: SkillService | None = None,
+        ad_rate_cents: int = 1,
+    ):
         self.economy = economy
+        self.skill_service = skill_service or SkillService()
         self.ad_rate_cents = ad_rate_cents
         self._videos: Dict[int, Video] = {}
         self._next_id = 1
@@ -68,8 +82,18 @@ class VideoService:
             if not video:
                 raise KeyError(f"Video {video_id} not found")
             video.view_count += 1
-            # Deposit ad revenue to the owner
-            self.economy.deposit(video.owner_id, self.ad_rate_cents)
+            skill = self.skill_service._get_skill(
+                video.owner_id, CONTENT_CREATION_SKILL
+            )
+            multiplier = 1 + skill.level / 100
+            # Deposit ad revenue scaled by content creation skill
+            self.economy.deposit(
+                video.owner_id, int(self.ad_rate_cents * multiplier)
+            )
+            # Award XP for content creation
+            self.skill_service.train(
+                video.owner_id, CONTENT_CREATION_SKILL, XP_PER_VIEW
+            )
             return video.view_count
         finally:
             SERVICE_LATENCY_MS.labels("video_service", "record_view").observe(
