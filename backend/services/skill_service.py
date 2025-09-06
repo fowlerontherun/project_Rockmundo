@@ -23,6 +23,7 @@ from backend.models.xp_config import get_config
 from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 from backend.services.xp_event_service import XPEventService
+from backend.services.avatar_service import AvatarService
 
 INTERNET_DEVICE_NAME = "internet device"
 
@@ -37,9 +38,11 @@ class SkillService:
         self,
         xp_events: XPEventService | None = None,
         db_path: Path | None = None,
+        avatar_service: AvatarService | None = None,
     ) -> None:
         self.xp_events = xp_events or XPEventService()
         self.db_path = db_path or DB_PATH
+        self.avatar_service = avatar_service or AvatarService()
         # Keyed by (user_id, skill_id)
         self._skills: Dict[Tuple[int, int], Skill] = {}
         # Track XP earned per day to enforce caps
@@ -294,16 +297,20 @@ class SkillService:
 
     def apply_daily_decay(self, user_id: int, amount: int = 1) -> None:
         """Apply decay to all tracked skills for a user."""
-
+        avatar = self.avatar_service.get_avatar(user_id)
+        factor = 1.0
+        if avatar:
+            factor += max(0, 50 - avatar.stamina) / 50
+        decay = int(amount * factor)
         for (uid, _sid), skill in list(self._skills.items()):
             if uid == user_id:
-                self.apply_decay(uid, skill.id, amount)
+                self.apply_decay(uid, skill.id, decay)
 
     def decay_all(self, amount: int = 1) -> None:
         """Global decay across all users (scheduler hook)."""
-
-        for (uid, sid) in list(self._skills.keys()):
-            self.apply_decay(uid, sid, amount)
+        users = {uid for (uid, _sid) in self._skills.keys()}
+        for uid in users:
+            self.apply_daily_decay(uid, amount)
 
     # ------------------------------------------------------------------
     # Songwriting helpers
