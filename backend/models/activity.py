@@ -1,7 +1,19 @@
 import sqlite3
+from dataclasses import dataclass
 from typing import List, Optional, Dict
 
 from backend.database import DB_PATH
+
+
+@dataclass(frozen=True)
+class Activity:
+    name: str
+    appearance_bonus: int
+
+
+gym = Activity("gym", appearance_bonus=5)
+running = Activity("running", appearance_bonus=3)
+yoga = Activity("yoga", appearance_bonus=4)
 
 
 def create_activity(
@@ -127,6 +139,10 @@ def delete_activity(activity_id: int) -> None:
 
 
 __all__ = [
+    "Activity",
+    "gym",
+    "running",
+    "yoga",
     "create_activity",
     "get_activity",
     "list_activities",

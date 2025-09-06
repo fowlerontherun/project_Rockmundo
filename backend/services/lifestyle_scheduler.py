@@ -96,16 +96,20 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             # Process scheduled exercise and apply cooldown-based benefits
             cur.execute(
                 """
-                SELECT COALESCE(SUM(hours), 0)
+                SELECT tag, SUM(hours)
                 FROM schedule
-                WHERE user_id = ? AND day = ? AND tag = 'exercise'
+                WHERE user_id = ? AND day = ? AND tag IN ('exercise', 'gym', 'running', 'yoga')
+                GROUP BY tag
                 """,
                 (user_id, today),
             )
-            exercise_hours = cur.fetchone()[0]
-            if exercise_hours > 0:
-                # Convert to minutes for the service call
-                log_exercise_session(user_id, int(exercise_hours * 60), conn)
+            exercise_rows = cur.fetchall()
+            for tag, hours in exercise_rows:
+                if hours <= 0:
+                    continue
+                # default to 'gym' if legacy tag used
+                activity = tag if tag in ('gym', 'running', 'yoga') else 'gym'
+                log_exercise_session(user_id, int(hours * 60), activity, conn)
 
             # Additional penalties from addictions
             addiction_level = addiction_service.get_highest_level(user_id)
