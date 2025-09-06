@@ -23,6 +23,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("stage_presence", "performance", None, {}),
     ("crowd_interaction", "performance", None, {}),
     ("pyrotechnics", "performance", None, {}),
+    ("live_streaming", "performance", None, {}),
     # Expanded creative skills
     ("composition", "creative", None, {}),
     ("arrangement", "creative", None, {}),
