@@ -2,6 +2,7 @@ from typing import List
 
 import backend.seeds.genre_seed as genre_seed
 import backend.seeds.skill_seed as skill_seed
+from backend.models.skill_seed_store import load_skills, save_skills
 import backend.seeds.stage_equipment_seed as equipment_seed
 from backend.auth.dependencies import get_current_user_id, require_permission
 from backend.models.genre import Genre
@@ -14,6 +15,12 @@ from backend.schemas.admin_music_schema import (
 )
 from backend.services.admin_audit_service import audit_dependency
 from fastapi import APIRouter, Depends, HTTPException, Request
+
+# Load persisted skills if available
+_loaded_skills = load_skills()
+if _loaded_skills:
+    skill_seed.SEED_SKILLS = _loaded_skills
+    skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
 
 router = APIRouter(
     prefix="/music", tags=["AdminMusic"], dependencies=[Depends(audit_dependency)]
@@ -36,6 +43,7 @@ async def replace_skills(skills: List[SkillSchema], req: Request) -> dict:
     await _ensure_admin(req)
     skill_seed.SEED_SKILLS = [Skill(**s.dict()) for s in skills]
     skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
+    save_skills(skill_seed.SEED_SKILLS)
     return {"status": "updated", "count": len(skill_seed.SEED_SKILLS)}
 
 
@@ -57,6 +65,7 @@ async def add_skill(skill: SkillSchema, req: Request) -> dict:
     )
     skill_seed.SEED_SKILLS.append(new_skill)
     skill_seed.SKILL_NAME_TO_ID[new_skill.name] = new_skill.id
+    save_skills(skill_seed.SEED_SKILLS)
     return new_skill.__dict__
 
 
@@ -67,6 +76,7 @@ async def delete_skill(skill_id: int, req: Request) -> dict:
         if s.id == skill_id:
             skill_seed.SEED_SKILLS.pop(i)
             skill_seed.SKILL_NAME_TO_ID = {s.name: s.id for s in skill_seed.SEED_SKILLS}
+            save_skills(skill_seed.SEED_SKILLS)
             return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Skill not found")
 
