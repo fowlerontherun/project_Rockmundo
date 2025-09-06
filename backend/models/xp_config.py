@@ -13,6 +13,7 @@ class XPConfig:
     """Runtime tunable experience settings."""
 
     daily_cap: int = 0
+    level_cap: int = 100
     new_player_multiplier: float = 1.0
     rested_xp_rate: float = 1.0
 
