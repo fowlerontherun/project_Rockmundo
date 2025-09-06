@@ -30,6 +30,9 @@ SEED_SKILLS = [
     Skill(id=22, name="mastering", category="creative", parent_id=20),
     Skill(id=23, name="music_theory", category="creative"),
     Skill(id=24, name="ear_training", category="creative"),
+    # Image and style skills
+    Skill(id=25, name="fashion", category="image"),
+    Skill(id=26, name="image_management", category="image"),
     # Business skills
     Skill(id=25, name="marketing", category="business"),
     Skill(id=26, name="public_relations", category="business"),

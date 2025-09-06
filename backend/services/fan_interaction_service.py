@@ -1,6 +1,21 @@
 import sqlite3
 from datetime import datetime
 from backend.database import DB_PATH
+from backend.services import fan_service
+from backend.services.skill_service import skill_service
+from backend.seeds.skill_seed import SEED_SKILLS
+
+FASHION_SKILL = next(s for s in SEED_SKILLS if s.name == "fashion")
+IMAGE_MANAGEMENT_SKILL = next(
+    s for s in SEED_SKILLS if s.name == "image_management"
+)
+
+
+def _image_bonus(band_id: int) -> int:
+    """Calculate fan bonus from a band's image-related skills."""
+    fashion = skill_service.train(band_id, FASHION_SKILL, 0)
+    management = skill_service.train(band_id, IMAGE_MANAGEMENT_SKILL, 0)
+    return (fashion.level + management.level) // 5
 
 
 def record_interaction(band_id: int, fan_id: int, interaction_type: str, content: str) -> dict:
@@ -14,7 +29,15 @@ def record_interaction(band_id: int, fan_id: int, interaction_type: str, content
 
     conn.commit()
     conn.close()
-    return {"status": "ok", "message": "Interaction recorded"}
+
+    bonus = _image_bonus(band_id)
+    for _ in range(bonus):
+        fan_service.add_fan(None, band_id, "online", "image")
+    return {
+        "status": "ok",
+        "message": "Interaction recorded",
+        "fans_gained": bonus,
+    }
 
 
 def get_band_interactions(band_id: int, interaction_type: str = None) -> list:
