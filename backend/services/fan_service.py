@@ -15,7 +15,8 @@ def add_fan(user_id: int, band_id: int, location: str, source: str = "organic") 
 
     avatar = avatar_service.get_avatar(band_id)
     charisma = avatar.charisma if avatar else 50
-    loyalty_gain = 10 + charisma // 20
+    social_media = getattr(avatar, "social_media", 0) if avatar else 0
+    loyalty_gain = 10 + charisma // 20 + social_media // 25
 
     # Check if fan already exists in that location
     cur.execute(
@@ -36,7 +37,7 @@ def add_fan(user_id: int, band_id: int, location: str, source: str = "organic") 
         )
     else:
         # Create new fan record
-        base_loyalty = 25 + charisma // 10
+        base_loyalty = 25 + charisma // 10 + social_media // 10
         cur.execute(
             """
             INSERT INTO fans (user_id, band_id, location, loyalty, source)
@@ -97,7 +98,8 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
 
     avatar = avatar_service.get_avatar(band_id)
     charisma = avatar.charisma if avatar else 50
-    charisma_bonus = max(1, charisma // 50)
+    social_media = getattr(avatar, "social_media", 0) if avatar else 0
+    charisma_bonus = max(1, (charisma + social_media) // 50)
 
     # Boost existing fans in that location
     cur.execute(
@@ -142,7 +144,8 @@ def boost_fans_after_gig(band_id: int, location: str, attendance: int):
         + 0.05 * max(fashion_level - 1, 0)
         + 0.05 * max(image_level - 1, 0)
     )
-    new_fans = int(base_new * skill_multiplier)
+    social_multiplier = 1 + social_media / 100
+    new_fans = int(base_new * skill_multiplier * social_multiplier)
     for _ in range(new_fans):
         cur.execute(
             """

@@ -1,5 +1,6 @@
 
 from models.stream import Stream
+from backend.services.avatar_service import AvatarService
 
 PLATFORM_PAYOUTS = {
     "Spotify": 0.003,
@@ -9,8 +10,9 @@ PLATFORM_PAYOUTS = {
 }
 
 class StreamService:
-    def __init__(self, db):
+    def __init__(self, db, avatar_service: AvatarService | None = None):
         self.db = db
+        self.avatar_service = avatar_service or AvatarService()
 
     def record_stream(self, data):
         stream = Stream(**data)
@@ -23,7 +25,9 @@ class StreamService:
         song = self.db.get_song_by_id(stream.song_id)
         total_amount = payout
         for band_id, percent in song['royalties_split'].items():
-            revenue = total_amount * (percent / 100)
+            avatar = self.avatar_service.get_avatar(band_id)
+            social_media = getattr(avatar, "social_media", 0) if avatar else 0
+            revenue = total_amount * (percent / 100) * (1 + social_media / 100)
             self.db.add_revenue_entry(band_id, stream.song_id, revenue, stream.timestamp)
 
     def get_band_revenue(self, band_id):
