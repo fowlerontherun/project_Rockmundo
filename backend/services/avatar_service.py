@@ -63,7 +63,10 @@ class AvatarService:
             if not avatar:
                 return None
             for field, value in data.model_dump(exclude_unset=True).items():
-                setattr(avatar, field, value)
+                if field in {"stamina", "charisma", "intelligence"} and value is not None:
+                    setattr(avatar, field, max(0, min(100, value)))
+                else:
+                    setattr(avatar, field, value)
             session.commit()
             session.refresh(avatar)
             return avatar

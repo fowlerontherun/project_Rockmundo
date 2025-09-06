@@ -1,4 +1,5 @@
 # ruff: noqa: I001
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -68,3 +69,41 @@ def test_crud_lifecycle():
 
     assert svc.delete_avatar(avatar.id)
     assert svc.get_avatar(avatar.id) is None
+
+
+def test_update_validation_and_clamping():
+    svc, SessionLocal = get_service()
+    with SessionLocal() as session:
+        char = Character(name="Tester", genre="rock", trait="brave", birthplace="Earth")
+        session.add(char)
+        session.commit()
+        cid = char.id
+
+    avatar = svc.create_avatar(
+        AvatarCreate(
+            character_id=cid,
+            nickname="Hero",
+            body_type="slim",
+            skin_tone="pale",
+            face_shape="oval",
+            hair_style="short",
+            hair_color="black",
+            top_clothing="tshirt",
+            bottom_clothing="jeans",
+            shoes="boots",
+        )
+    )
+
+    # Schema validation should reject out of range values
+    with pytest.raises(ValueError):
+        AvatarUpdate(stamina=150)
+    with pytest.raises(ValueError):
+        AvatarUpdate(charisma=-10)
+    with pytest.raises(ValueError):
+        AvatarUpdate(intelligence=101)
+
+    # Bypass validation to ensure service clamps the values
+    update_data = AvatarUpdate.model_construct(stamina=150, charisma=-10, intelligence=101)
+    svc.update_avatar(avatar.id, update_data)
+    updated = svc.get_avatar(avatar.id)
+    assert updated and updated.stamina == 100 and updated.charisma == 0 and updated.intelligence == 100
