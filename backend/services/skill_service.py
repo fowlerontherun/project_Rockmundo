@@ -183,6 +183,9 @@ class SkillService:
                 self._session_buffs[key] = (buff[0], remaining)
 
         gain = int(base_xp * modifier * buff_mult * self._synergy_bonus(user_id, inst))
+        avatar = self.avatar_service.get_avatar(user_id)
+        discipline = avatar.discipline if avatar else 50
+        gain = int(gain * (1 + (discipline - 50) / 100))
 
         today = date.today()
         cap = get_config().daily_cap
@@ -268,6 +271,7 @@ class SkillService:
         avatar = self.avatar_service.get_avatar(user_id)
         if avatar:
             cost = duration // 2
+            cost = int(cost * (1.5 - avatar.discipline / 100))
             new_stamina = max(0, avatar.stamina - cost)
             self.avatar_service.update_avatar(
                 user_id, AvatarUpdate(stamina=new_stamina)

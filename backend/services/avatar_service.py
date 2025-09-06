@@ -63,7 +63,13 @@ class AvatarService:
             if not avatar:
                 return None
             for field, value in data.model_dump(exclude_unset=True).items():
-                if field in {"stamina", "charisma", "intelligence"} and value is not None:
+                if field in {
+                    "stamina",
+                    "charisma",
+                    "intelligence",
+                    "creativity",
+                    "discipline",
+                } and value is not None:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:
                     setattr(avatar, field, value)

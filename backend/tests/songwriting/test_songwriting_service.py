@@ -357,3 +357,48 @@ def test_intelligence_boosts_quality():
         assert draft.metadata.quality_modifier == pytest.approx(1.3, rel=1e-2)
 
     asyncio.run(run())
+
+
+def test_creativity_boosts_quality():
+    async def run():
+        engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+        CharacterBase.metadata.create_all(bind=engine)
+        AvatarBase.metadata.create_all(bind=engine)
+        SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+        avatar_svc = AvatarService(SessionLocal)
+        with SessionLocal() as session:
+            char = Character(name="Muse", genre="rock", trait="inspired", birthplace="Earth")
+            session.add(char)
+            session.commit()
+            cid = char.id
+        avatar_svc.create_avatar(
+            AvatarCreate(
+                character_id=cid,
+                nickname="Muse",
+                body_type="slim",
+                skin_tone="pale",
+                face_shape="oval",
+                hair_style="short",
+                hair_color="black",
+                top_clothing="tshirt",
+                bottom_clothing="jeans",
+                shoes="boots",
+                creativity=80,
+            )
+        )
+        skills = SkillService()
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            avatar_service=avatar_svc,
+            skill_service=skills,
+        )
+        draft = await svc.generate_draft(
+            creator_id=1,
+            title="Test",
+            genre="rock",
+            themes=["love", "hope", "loss"],
+        )
+        assert draft.metadata.quality_modifier == pytest.approx(1.3, rel=1e-2)
+
+    asyncio.run(run())
