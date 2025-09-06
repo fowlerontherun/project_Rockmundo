@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from backend.models.skill import Skill
+from backend.models.learning_method import LearningMethod
 from backend.schemas.avatar import AvatarCreate
 from backend.services.avatar_service import AvatarService
 from backend.services.skill_service import SkillService
@@ -68,3 +69,19 @@ def test_stamina_scales_daily_decay():
 
     assert low.xp == 84
     assert high.xp == 90
+
+
+def test_training_consumes_and_recovery_restores_stamina():
+    avatar_service = _setup_avatar_service(50, 50)
+    skills = SkillService(avatar_service=avatar_service)
+    skill = Skill(id=2, name="guitar", category="music")
+
+    skills.train_with_method(
+        1, skill, LearningMethod.PRACTICE, duration=4
+    )
+    avatar = avatar_service.get_avatar(1)
+    assert avatar and avatar.stamina == 48
+
+    avatar_service.recover_stamina(1, 5)
+    avatar = avatar_service.get_avatar(1)
+    assert avatar and avatar.stamina == 53

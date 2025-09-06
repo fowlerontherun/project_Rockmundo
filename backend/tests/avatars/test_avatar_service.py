@@ -60,5 +60,11 @@ def test_crud_lifecycle():
     # get_mood should reflect persisted value
     assert svc.get_mood(avatar.id) == 55
 
+    # Stamina recovery should increase stamina but not exceed 100
+    svc.update_avatar(avatar.id, AvatarUpdate(stamina=40))
+    svc.recover_stamina(avatar.id, 15)
+    recovered = svc.get_avatar(avatar.id)
+    assert recovered and recovered.stamina == 55
+
     assert svc.delete_avatar(avatar.id)
     assert svc.get_avatar(avatar.id) is None

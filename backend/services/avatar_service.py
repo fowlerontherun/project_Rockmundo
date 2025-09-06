@@ -69,6 +69,19 @@ class AvatarService:
             return avatar
 
     # ------------------------------------------------------------------
+    def recover_stamina(self, avatar_id: int, amount: int) -> Optional[Avatar]:
+        """Increase an avatar's stamina by ``amount`` up to a maximum of 100."""
+
+        with self.session_factory() as session:
+            avatar = session.get(Avatar, avatar_id)
+            if not avatar:
+                return None
+            avatar.stamina = min(100, avatar.stamina + amount)
+            session.commit()
+            session.refresh(avatar)
+            return avatar
+
+    # ------------------------------------------------------------------
     def delete_avatar(self, avatar_id: int) -> bool:
         with self.session_factory() as session:
             avatar = session.get(Avatar, avatar_id)
