@@ -12,4 +12,7 @@ class Lifestyle(BaseModel):
     mental_health: float = 100.0
     nutrition: float = 70.0
     fitness: float = 70.0
+    appearance_score: float = 50.0
+    exercise_minutes: float = 0.0
+    last_exercise: Optional[str] = None
     lifestyle_score: Optional[float] = None

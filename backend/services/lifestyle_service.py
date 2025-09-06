@@ -19,8 +19,20 @@ EXERCISE_COOLDOWN = timedelta(hours=6)
 EXERCISE_FITNESS_BONUS = 5
 
 
+from backend.models import activity as activity_models
+
+_ACTIVITY_MAP = {
+    "gym": activity_models.gym,
+    "running": activity_models.running,
+    "yoga": activity_models.yoga,
+}
+
+
 def log_exercise_session(
-    user_id: int, minutes: int, conn: sqlite3.Connection | None = None
+    user_id: int,
+    minutes: int,
+    activity: str = "gym",
+    conn: sqlite3.Connection | None = None,
 ) -> bool:
     """Record an exercise session and apply fitness gains with cooldown.
 
@@ -45,7 +57,7 @@ def log_exercise_session(
         conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
-        "SELECT fitness, exercise_minutes, last_exercise FROM lifestyle WHERE user_id = ?",
+        "SELECT fitness, appearance_score, exercise_minutes, last_exercise FROM lifestyle WHERE user_id = ?",
         (user_id,),
     )
     row = cur.fetchone()
@@ -54,7 +66,7 @@ def log_exercise_session(
             conn.close()
         return False
 
-    fitness, total_minutes, last = row
+    fitness, appearance, total_minutes, last = row
     full_benefit = True
     if last:
         last_dt = datetime.fromisoformat(last)
@@ -62,14 +74,23 @@ def log_exercise_session(
             full_benefit = False
 
     gain = EXERCISE_FITNESS_BONUS if full_benefit else 0
+    activity_def = _ACTIVITY_MAP.get(activity, activity_models.gym)
+    appearance_gain = activity_def.appearance_bonus if full_benefit else 0
     new_fitness = min(100, fitness + gain)
+    new_appearance = min(100, appearance + appearance_gain)
     cur.execute(
         """
         UPDATE lifestyle
-        SET fitness = ?, exercise_minutes = ?, last_exercise = ?
+        SET fitness = ?, appearance_score = ?, exercise_minutes = ?, last_exercise = ?
         WHERE user_id = ?
         """,
-        (new_fitness, total_minutes + minutes, now.isoformat(), user_id),
+        (
+            new_fitness,
+            new_appearance,
+            total_minutes + minutes,
+            now.isoformat(),
+            user_id,
+        ),
     )
     conn.commit()
     if own_conn:
