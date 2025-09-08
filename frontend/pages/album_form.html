@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
   <title>Album Form</title>
 </head>
 <body>
+<div id="react-root"></div>
 <h2>Create Release</h2>
 <form id="albumForm">
   <input type="text" name="title" placeholder="Title" required />
@@ -29,7 +31,10 @@
   <button type="submit">Create Release</button>
 </form>
 
-<script src="../components/notification.js"></script>
+<script src="../components/globalSearch.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script type="module" src="../dist/index.js"></script>
 <script>
   const orderedTracks = [];
   const coverInput = document.querySelector('input[name="cover_art"]');

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../index.css" />
 </head>
 <body>
-  <header id="main-header"></header>
+  <div id="react-root"></div>
   <h1>Profile</h1>
   <form id="profile-form">
     <div>
@@ -36,7 +36,10 @@
     #chemistry-table .chem-low { background-color: #ffcdd2; }
   </style>
   <script src="../components/themeToggle.js"></script>
-  <script src="../components/header.js"></script>
+  <script src="../components/globalSearch.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script type="module" src="../dist/index.js"></script>
   <script type="module" src="../components/profile.js"></script>
 </body>
 </html>

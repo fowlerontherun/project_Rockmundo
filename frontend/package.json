@@ -23,6 +23,8 @@
     "@testing-library/jest-dom": "^6.0.0",
     "vitest": "^1.6.0",
     "@vitejs/plugin-react": "^4.2.0",
-    "jsdom": "^23.0.1"
+    "jsdom": "^23.0.1",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
   }
 }
