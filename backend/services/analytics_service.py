@@ -15,6 +15,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.seeds.skill_seed import SEED_SKILLS
+from backend.services.skill_service import skill_service
+
 from utils.db import get_conn
 
 from backend import database
@@ -33,6 +36,8 @@ else:
         [50, 100, 250, 500, 1000, 2500, 5000],
         ("service", "operation"),
     )
+
+DATA_ANALYTICS_SKILL = next(s for s in SEED_SKILLS if s.name == "data_analytics")
 
 class AnalyticsService:
     def __init__(self, db_path: Optional[str] = None):
@@ -307,6 +312,27 @@ class AnalyticsService:
                 ORDER BY amount_cents DESC
             """, (run_id,))
             return self._fetchall(cur)
+
+    def sales_forecast(self, user_id: int, history: List[int]) -> Dict[str, Any]:
+        """Forecast upcoming sales using the user's analytics skill.
+
+        Viewing the forecast trains the ``data_analytics`` skill. Higher skill
+        levels yield more accurate predictions and unlock confidence metrics.
+        """
+
+        skill = skill_service.train(user_id, DATA_ANALYTICS_SKILL, 100)
+        avg = sum(history) / len(history)
+        if skill.level >= 5:
+            margin = 0.05
+        elif skill.level >= 3:
+            margin = 0.15
+        else:
+            margin = 0.30
+        forecast = int(avg * (1 + margin))
+        res: Dict[str, Any] = {"forecast": forecast, "skill_level": skill.level}
+        if skill.level >= 5:
+            res["confidence"] = 1 - margin
+        return res
 
 
 def _daterange(start: str, end: str) -> List[str]:

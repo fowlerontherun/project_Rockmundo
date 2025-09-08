@@ -42,6 +42,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("public_relations", "business", None, {}),
     ("financial_management", "business", None, {}),
     ("social_media_management", "business", None, {}),
+    ("data_analytics", "business", None, {}),
 ]
 
 
