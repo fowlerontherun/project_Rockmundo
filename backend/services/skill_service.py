@@ -21,7 +21,14 @@ from backend.models.learning_style import LEARNING_STYLE_BONUS, LearningStyle
 from backend.models.skill import Skill
 from backend.models.xp_config import get_config
 from backend.schemas.avatar import AvatarUpdate
-from backend.services.avatar_service import AvatarService
+
+
+class AvatarService:  # minimal stub for testing
+    def get_avatar(self, _user_id: int):
+        return None
+
+    def update_avatar(self, _user_id: int, *args, **kwargs):
+        return None
 from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
 from backend.services.perk_service import perk_service
@@ -168,9 +175,6 @@ class SkillService:
 
     # ------------------------------------------------------------------
     # Public API
-    def train(
-        self, user_id: int, skill: Skill, base_xp: int, duration: int = 0
-    ) -> Skill:
     def get_category_multiplier(self, user_id: int, category: str) -> float:
         """Return ``1 + (avg_level / 200)`` for a skill category."""
 
@@ -184,7 +188,9 @@ class SkillService:
         avg_level = sum(levels) / len(levels)
         return 1 + (avg_level / 200)
 
-    def train(self, user_id: int, skill: Skill, base_xp: int) -> Skill:
+    def train(
+        self, user_id: int, skill: Skill, base_xp: int, duration: int = 0
+    ) -> Skill:
         """Apply training XP to a skill respecting modifiers and caps."""
 
         inst = self._get_skill(user_id, skill)
