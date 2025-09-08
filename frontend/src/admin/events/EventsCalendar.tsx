@@ -1,4 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Calendar,
+  dateFnsLocalizer,
+  Event as RBCEvent,
+} from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
+import startOfWeek from 'date-fns/startOfWeek';
+import getDay from 'date-fns/getDay';
+import enUS from 'date-fns/locale/en-US';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 interface EventInfo {
   event_id: string;
@@ -8,6 +21,7 @@ interface EventInfo {
   start_date: string;
   end_date: string;
   active: boolean;
+  timezone?: string;
 }
 
 const emptyForm: EventInfo = {
@@ -18,7 +32,12 @@ const emptyForm: EventInfo = {
   start_date: '',
   end_date: '',
   active: false,
+  timezone: 'UTC',
 };
+
+const locales = { 'en-US': enUS };
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+const DragAndDropCalendar = withDragAndDrop(Calendar);
 
 const EventsCalendar: React.FC = () => {
   const [form, setForm] = useState<EventInfo>(emptyForm);
@@ -39,6 +58,7 @@ const EventsCalendar: React.FC = () => {
   }, []);
 
   const schedule = async () => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     await fetch('/admin/events/schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -47,8 +67,9 @@ const EventsCalendar: React.FC = () => {
         name: form.name,
         theme: form.theme,
         description: form.description,
-        start_time: form.start_date,
-        end_time: form.end_date,
+        start_time: new Date(form.start_date).toISOString(),
+        end_time: new Date(form.end_date).toISOString(),
+        timezone: tz,
         modifiers: {},
       }),
     });
@@ -64,6 +85,32 @@ const EventsCalendar: React.FC = () => {
     });
     load();
   };
+
+  const onMove = async ({ event, start, end }: any) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await fetch('/admin/events/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id: (event as EventInfo).event_id,
+        start_time_utc: start.toISOString(),
+        end_time_utc: end.toISOString(),
+        timezone: tz,
+      }),
+    });
+    load();
+  };
+
+  const calendarEvents = useMemo<RBCEvent<EventInfo>[]>(
+    () =>
+      events.map((ev) => ({
+        ...ev,
+        title: ev.name,
+        start: new Date(ev.start_date),
+        end: new Date(ev.end_date),
+      })),
+    [events]
+  );
 
   return (
     <div className="mt-6">
@@ -113,7 +160,18 @@ const EventsCalendar: React.FC = () => {
         </button>
       </div>
       <h3 className="text-lg font-semibold mb-2">Upcoming Events</h3>
-      <ul className="list-disc pl-5">
+      <div className="h-96">
+        <DragAndDropCalendar
+          localizer={localizer}
+          events={calendarEvents}
+          startAccessor="start"
+          endAccessor="end"
+          onEventDrop={onMove}
+          onEventResize={onMove}
+          resizable
+        />
+      </div>
+      <ul className="list-disc pl-5 mt-4">
         {events.map((ev) => (
           <li key={ev.event_id} className="mb-1">
             {ev.name} ({new Date(ev.start_date).toLocaleString()} -

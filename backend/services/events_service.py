@@ -115,6 +115,7 @@ def schedule_event(data: Dict[str, Any]) -> Dict[str, Any]:
         "start_callback": data.get("start_callback"),
         "end_callback": data.get("end_callback"),
         "timers": [],
+        "timezone": data.get("timezone", "UTC"),
     }
 
     now = datetime.utcnow()
@@ -129,6 +130,33 @@ def schedule_event(data: Dict[str, Any]) -> Dict[str, Any]:
     event["timers"] = [start_timer, end_timer]
     scheduled_events[event_id] = event
     return {"status": "scheduled", "event": event}
+
+
+def update_scheduled_event(
+    event_id: str, start_time: str, end_time: str, timezone: str
+) -> Dict[str, Any]:
+    """Update the timing for an existing scheduled event."""
+
+    event = scheduled_events.get(event_id)
+    if not event:
+        return {"error": "event not found"}
+    for t in event.get("timers", []):
+        t.cancel()
+    event["start_date"] = start_time
+    event["end_date"] = end_time
+    event["timezone"] = timezone
+    start_dt = datetime.fromisoformat(start_time)
+    end_dt = datetime.fromisoformat(end_time)
+    now = datetime.utcnow()
+    start_delay = max((start_dt - now).total_seconds(), 0)
+    end_delay = max((end_dt - now).total_seconds(), 0)
+    start_timer = Timer(start_delay, _start_event, args=[event_id])
+    end_timer = Timer(end_delay, _end_event, args=[event_id])
+    start_timer.start()
+    end_timer.start()
+    event["timers"] = [start_timer, end_timer]
+    scheduled_events[event_id] = event
+    return {"status": "updated", "event": event}
 
 
 def cancel_scheduled_event(event_id: str) -> Dict[str, Any]:

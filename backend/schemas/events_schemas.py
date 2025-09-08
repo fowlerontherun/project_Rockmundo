@@ -51,9 +51,19 @@ class ScheduleEventSchema(BaseModel):
     description: str
     start_time: str
     end_time: str
+    timezone: str = "UTC"
     modifiers: Dict[str, Any]
     start_callback: Optional[str] = None
     end_callback: Optional[str] = None
+
+
+class UpdateEventSchema(BaseModel):
+    """Payload for updating the timing of a scheduled event."""
+
+    event_id: str
+    start_time_utc: str
+    end_time_utc: str
+    timezone: str = "UTC"
 
 
 class EventResponse(BaseModel):

@@ -13,6 +13,7 @@ from .admin_book_routes import router as book_router
 from .admin_business_routes import router as business_router
 from .admin_city_shop_routes import router as city_shop_router
 from .admin_course_routes import router as course_router
+from .admin_events_routes import router as events_router
 from .admin_economy_routes import router as economy_router
 from .admin_item_routes import router as item_router
 from .admin_drug_routes import router as drug_router
@@ -79,6 +80,7 @@ router.include_router(lifestyle_router)
 
 router.include_router(course_router)
 router.include_router(book_router)
+router.include_router(events_router)
 router.include_router(workshop_router)
 router.include_router(shop_event_router)
 router.include_router(online_tutorial_router)
