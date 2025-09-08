@@ -18,6 +18,7 @@ from routes import (
     admin_routes,
     apprenticeship_routes,
     avatar,
+    band_routes,
     character,
     chemistry_routes,
     crafting_routes,
@@ -170,6 +171,7 @@ app.include_router(user_settings_routes.router, prefix="/api", tags=["UserSettin
 app.include_router(live_album_routes.router, prefix="/api", tags=["LiveAlbums"])
 app.include_router(avatar.router, prefix="/api", tags=["Avatars"])
 app.include_router(character.router, prefix="/api", tags=["Characters"])
+app.include_router(band_routes.router, prefix="/api", tags=["Bands"])
 app.include_router(playlist_routes.router, prefix="/api", tags=["Playlists"])
 app.include_router(chemistry_routes.router)
 app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])

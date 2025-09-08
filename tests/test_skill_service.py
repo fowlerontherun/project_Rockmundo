@@ -39,8 +39,9 @@ from backend.models.xp_config import XPConfig, get_config, set_config
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import SkillService
 from backend.services.vocal_training_service import VocalTrainingService
-
+from backend.services.recording_service import RecordingService
 item_service = None  # set in _setup_device
+
 
 
 class DummyXPEvents:
@@ -307,6 +308,7 @@ def test_prerequisite_requirements() -> None:
     assert updated.xp > 0
 
 
+
 VOCAL_SUBSKILLS = [
     "breath_control",
     "vibrato_control",
@@ -336,4 +338,36 @@ def test_vocal_prerequisites_and_leveling(
     result = training.practice(1, skill_name, 10)
     assert result.xp == 100
     assert result.level == 2
+=======
+@pytest.mark.parametrize(
+    "skill_name",
+    [
+        "audio_engineering",
+        "multitrack_recording",
+        "microphone_technique",
+        "audio_editing",
+        "sound_design",
+        "beat_programming",
+        "midi_programming",
+        "vocal_tuning",
+        "sample_management",
+        "studio_acoustics",
+    ],
+)
+def test_music_production_subskills_persist(
+    skill_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+    svc = RecordingService()
+    user_id = 100 + SKILL_NAME_TO_ID[skill_name]
+
+    updated = svc.practice_skill(user_id, skill_name, 10)
+    assert updated.xp == 100
+    assert updated.level == 2
+
+    refreshed = svc.practice_skill(user_id, skill_name, 0)
+    assert refreshed.xp == 100
+    assert refreshed.level == 2
 
