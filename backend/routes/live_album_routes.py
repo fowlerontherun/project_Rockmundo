@@ -18,9 +18,9 @@ class TrackUpdateRequest(BaseModel):
 
 
 @router.post("/live_albums/compile")
-def compile_live_album(payload: CompileRequest):
+async def compile_live_album(payload: CompileRequest):
     try:
-        return service.compile_live_album(payload.show_ids, payload.album_title)
+        return await service.compile_live_album(payload.show_ids, payload.album_title)
     except ValueError as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=400, detail=str(exc))
 

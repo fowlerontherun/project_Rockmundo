@@ -1,4 +1,3 @@
-import asyncio
 import json
 import sqlite3
 from datetime import datetime
@@ -25,7 +24,7 @@ class LiveAlbumService:
         self._albums: Dict[int, Dict] = {}
         self._next_id = 1
 
-    def compile_live_album(self, performance_ids: List[int], title: str) -> Dict:
+    async def compile_live_album(self, performance_ids: List[int], title: str) -> Dict:
         if len(performance_ids) != 5:
             raise ValueError("Exactly five performance IDs are required")
         conn = sqlite3.connect(self.db_path)
@@ -128,9 +127,7 @@ class LiveAlbumService:
 
         themes = list(cities | venues)
         try:
-            cover_url = asyncio.run(
-                ai_art_service.generate_album_art(title, themes)
-            )
+            cover_url = await ai_art_service.generate_album_art(title, themes)
         except Exception:
             cover_url = None
 
