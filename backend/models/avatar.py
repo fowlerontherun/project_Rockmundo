@@ -77,4 +77,7 @@ class Avatar(Base):
     # trying to manage the other side which may be defined elsewhere with a
     # different registry.
     character = relationship(Character, lazy="joined", viewonly=True)
+    skins = relationship(
+        "AvatarSkin", back_populates="avatar", cascade="all, delete-orphan"
+    )
 
