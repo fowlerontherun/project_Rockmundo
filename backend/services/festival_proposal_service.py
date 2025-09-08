@@ -38,6 +38,15 @@ class FestivalProposalService:
                 )
                 """
             )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS festival_proposal_votes (
+                    proposal_id INTEGER NOT NULL,
+                    voter_id INTEGER NOT NULL,
+                    PRIMARY KEY (proposal_id, voter_id)
+                )
+                """
+            )
             conn.commit()
 
     def submit_proposal(self, data: ProposalIn) -> int:
@@ -53,9 +62,30 @@ class FestivalProposalService:
             conn.commit()
             return int(cur.lastrowid)
 
-    def vote(self, proposal_id: int) -> int:
+    def vote(self, proposal_id: int, voter_id: int) -> int:
+        """Record a vote for ``proposal_id`` by ``voter_id``.
+
+        Duplicate votes by the same player are ignored and the current
+        vote total is returned.
+        """
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
+            cur.execute(
+                "SELECT 1 FROM festival_proposal_votes WHERE proposal_id=? AND voter_id=?",
+                (proposal_id, voter_id),
+            )
+            if cur.fetchone():
+                cur.execute(
+                    "SELECT vote_count FROM festival_proposals WHERE id = ?",
+                    (proposal_id,),
+                )
+                row = cur.fetchone()
+                return int(row[0]) if row else 0
+
+            cur.execute(
+                "INSERT INTO festival_proposal_votes (proposal_id, voter_id) VALUES (?, ?)",
+                (proposal_id, voter_id),
+            )
             cur.execute(
                 "UPDATE festival_proposals SET vote_count = vote_count + 1 WHERE id = ?",
                 (proposal_id,),

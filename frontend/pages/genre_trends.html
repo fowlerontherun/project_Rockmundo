@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Festival Genre Trends</title>
+</head>
+<body>
+<h2>Festival Genre Trends</h2>
+<ul id="trendList"></ul>
+<script>
+async function loadTrends() {
+  const res = await fetch('/festival/proposals/trends/genres');
+  const data = await res.json();
+  const list = document.getElementById('trendList');
+  list.innerHTML = '';
+  Object.entries(data).forEach(([genre, votes]) => {
+    const li = document.createElement('li');
+    li.innerText = `${genre}: ${votes}`;
+    list.appendChild(li);
+  });
+}
+loadTrends();
+</script>
+</body>
+</html>

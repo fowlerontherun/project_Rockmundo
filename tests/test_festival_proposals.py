@@ -27,9 +27,10 @@ def test_approval_and_trends(tmp_path: Path) -> None:
     pid2 = svc.submit_proposal(
         ProposalIn(proposer_id=2, name="Jazz Fest", description=None, genre="jazz")
     )
-    svc.vote(pid1)
-    svc.vote(pid1)
-    svc.vote(pid2)
+    svc.vote(pid1, voter_id=10)
+    svc.vote(pid1, voter_id=11)
+    svc.vote(pid1, voter_id=10)  # duplicate vote ignored
+    svc.vote(pid2, voter_id=12)
 
     svc.approve(pid1)
     p1 = svc.get(pid1)

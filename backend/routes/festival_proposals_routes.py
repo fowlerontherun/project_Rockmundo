@@ -43,8 +43,10 @@ async def submit_proposal(
 
 
 @router.post("/{proposal_id}/vote")
-async def vote(proposal_id: int) -> dict:
-    votes = svc.vote(proposal_id)
+async def vote(
+    proposal_id: int, user_id: int = Depends(get_current_user_id)
+) -> dict:
+    votes = svc.vote(proposal_id, user_id)
     return {"votes": votes}
 
 
