@@ -146,7 +146,7 @@ export const Planner: React.FC = () => {
             }
           }}
           onDragOver={(e) => e.preventDefault()}
-          style={{ border: '1px solid #ccc', padding: '2px', minHeight: '20px' }}
+          style={{ border: '1px solid var(--border-color)', padding: '2px', minHeight: '20px' }}
         >
           {content}
         </div>
