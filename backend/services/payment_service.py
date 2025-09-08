@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 import httpx
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 from uuid import uuid4
@@ -20,20 +21,24 @@ class PaymentError(Exception):
 
 @dataclass
 class PaymentGateway(ABC):
+    """Minimal gateway interface used for testing.
     """Abstract payment gateway definition.
-
     Concrete subclasses integrate with providers like Stripe or PayPal and
     must implement the methods below.
     """
 
     @abstractmethod
     def create_payment(self, amount_cents: int, currency: str) -> str:
+        """Create a payment request and return its provider identifier."""
+
+    @abstractmethod
+    def verify_payment(self, payment_id: str) -> bool:
+        """Return ``True`` if the payment completed successfully."""
         """Create a remote payment and return its provider identifier."""
 
     @abstractmethod
     def verify_payment(self, payment_id: str) -> bool:
         """Return ``True`` if the payment succeeded on the provider side."""
-
 
 @dataclass
 class MockGateway(PaymentGateway):
@@ -84,10 +89,14 @@ class StripeAPIGateway(PaymentGateway):
     """
 
     base_url: str = "https://api.stripe.com/v1"
-    api_key: str = field(default_factory=lambda: os.environ["STRIPE_API_KEY"])
+    api_key: str = field(default_factory=lambda: os.getenv("STRIPE_API_KEY", ""))
     webhook_secret: Optional[str] = field(
-        default_factory=lambda: os.environ.get("STRIPE_WEBHOOK_SECRET")
+        default_factory=lambda: os.getenv("STRIPE_WEBHOOK_SECRET")
     )
+
+    def __post_init__(self) -> None:
+        if not self.api_key:
+            raise PaymentError("Stripe API key not configured")
 
     def create_payment(self, amount_cents: int, currency: str) -> str:
         data = {
@@ -95,17 +104,26 @@ class StripeAPIGateway(PaymentGateway):
             "currency": currency,
             "payment_method_types[]": "card",
         }
-        resp = httpx.post(
-            f"{self.base_url}/payment_intents", data=data, auth=(self.api_key, "")
-        )
-        resp.raise_for_status()
-        return resp.json()["id"]
+        try:
+            resp = httpx.post(
+                f"{self.base_url}/payment_intents", data=data, auth=(self.api_key, "")
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover - network errors
+            raise PaymentError(f"Stripe create_payment failed: {exc}") from exc
+        try:
+            return resp.json()["id"]
+        except KeyError as exc:
+            raise PaymentError("Stripe response missing id") from exc
 
     def verify_payment(self, payment_id: str) -> bool:
-        resp = httpx.get(
-            f"{self.base_url}/payment_intents/{payment_id}", auth=(self.api_key, "")
-        )
-        resp.raise_for_status()
+        try:
+            resp = httpx.get(
+                f"{self.base_url}/payment_intents/{payment_id}", auth=(self.api_key, "")
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover - network errors
+            raise PaymentError(f"Stripe verify_payment failed: {exc}") from exc
         return resp.json().get("status") == "succeeded"
 
 
