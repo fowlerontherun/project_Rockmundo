@@ -104,6 +104,17 @@ class RecordingService:
         for uid in session.personnel:
             skill_service.train_with_method(uid, skill, LearningMethod.PRACTICE, difficulty)
 
+        # Scale track quality by creative skill levels
+        if session.personnel:
+            mults = [
+                skill_service.get_category_multiplier(uid, "creative")
+                for uid in session.personnel
+            ]
+            quality_mult = sum(mults) / len(mults)
+        else:
+            quality_mult = 1.0
+        session.track_quality[track_id] = session.environment_quality * quality_mult
+
     def get_session(self, session_id: int) -> Optional[RecordingSession]:
         return self.sessions.get(session_id)
 

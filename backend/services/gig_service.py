@@ -100,6 +100,10 @@ def simulate_gig_result(gig_id: int):
     base_attendance = max(0, min(venue_size, base_attendance + randomness))
     attendance = max(0, min(venue_size, int(base_attendance * perf_mult)))
 
+    # Scale outcomes by performance-related skills
+    mult = skill_service.get_category_multiplier(band_id, "performance")
+    attendance = max(0, min(venue_size, int(attendance * mult)))
+
     # === Calculate earnings and fame ===
     earnings = attendance * ticket_price
     fame_gain = int((base_attendance // 20) * perf_mult)

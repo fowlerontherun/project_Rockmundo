@@ -10,17 +10,33 @@ function isAuthenticated(): boolean {
 }
 
 const AdminPage: React.FC = () => {
-  const [authorized, setAuthorized] = useState(false);
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      setAuthorized(true);
-    } else {
+    if (!isAuthenticated()) {
       window.location.href = '/login';
+      return;
     }
+
+    const jwt = localStorage.getItem('jwt');
+
+    Promise.all([
+      fetch('/auth/permissions').then((r) => r.json()),
+      fetch('/auth/me', {
+        headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
+      })
+        .then((r) => (r.ok ? r.json() : { roles: [] }))
+        .catch(() => ({ roles: [] })),
+    ])
+      .then(([available, me]) => {
+        const perms: string[] = available.permissions || available || [];
+        setAuthorized(perms.includes('admin') && me.roles?.includes('admin'));
+      })
+      .catch(() => setAuthorized(false));
   }, []);
 
-  return authorized ? <AdminApp /> : null;
+  if (authorized === null) return null;
+  return authorized ? <AdminApp /> : <div>Access denied</div>;
 };
 
 export default AdminPage;
