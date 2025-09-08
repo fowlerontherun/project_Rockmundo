@@ -19,19 +19,29 @@ class FakeStream:
 
 
 class FakeJamService:
-    def join_session(self, session_id: str, user_id: int) -> None:  # pragma: no cover - trivial
-        pass
+    def __init__(self) -> None:
+        self.sessions: dict[str, set[int]] = {}
+        self.streams: dict[tuple[str, int], FakeStream] = {}
 
-    def leave_session(self, session_id: str, user_id: int) -> None:  # pragma: no cover - trivial
-        pass
+    def join_session(self, session_id: str, user_id: int) -> None:
+        self.sessions.setdefault(session_id, set()).add(user_id)
+
+    def leave_session(self, session_id: str, user_id: int) -> None:
+        users = self.sessions.get(session_id)
+        if users:
+            users.discard(user_id)
+            if not users:
+                self.sessions.pop(session_id, None)
 
     def start_stream(
         self, session_id: str, user_id: int, stream_id: str, codec: str, premium: bool = False
-    ):
-        return FakeStream(user_id, stream_id, codec, premium)
+    ) -> FakeStream:
+        stream = FakeStream(user_id, stream_id, codec, premium)
+        self.streams[(session_id, user_id)] = stream
+        return stream
 
-    def stop_stream(self, session_id: str, user_id: int) -> None:  # pragma: no cover - trivial
-        pass
+    def stop_stream(self, session_id: str, user_id: int) -> None:
+        self.streams.pop((session_id, user_id), None)
 
 
 # Inject our fake JamService module before importing the gateway
@@ -54,15 +64,27 @@ def create_app() -> FastAPI:
 
 def test_jam_gateway_ping_and_stream():
     app = create_app()
+    service = jam_gateway.jam_service
     client = TestClient(app)
     with client.websocket_connect("/jam/ws/s1") as ws:
         joined = ws.receive_json()
         assert joined == {"type": "joined", "user_id": 1}
+        assert service.sessions == {"s1": {1}}
+
         ws.send_json({"op": "ping"})
         assert ws.receive_json() == {"op": "pong"}
+
         ws.send_json({"op": "start_stream", "stream_id": "sA", "codec": "opus", "premium": True})
         started = ws.receive_json()
         assert started["type"] == "stream_started"
         assert started["user_id"] == 1
         assert started["stream"]["stream_id"] == "sA"
+        assert service.streams[("s1", 1)].stream_id == "sA"
+
+        ws.send_json({"op": "stop_stream"})
+        stopped = ws.receive_json()
+        assert stopped == {"type": "stream_stopped", "user_id": 1}
+        assert ("s1", 1) not in service.streams
+
+    assert service.sessions == {}
 
