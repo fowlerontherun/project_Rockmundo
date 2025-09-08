@@ -16,17 +16,21 @@ class SongService:
         self.db = db or DB_PATH
 
     # Allowed columns that can be updated via ``update_song``.
+    #
+    # This whitelist is used to ensure that only known columns are updated and
+    # guards against SQL injection on column names.  Values are always bound via
+    # parameter substitution.
     _UPDATABLE_FIELDS = {
-        "band_id": "band_id = ?",
-        "title": "title = ?",
-        "duration_sec": "duration_sec = ?",
-        "genre": "genre = ?",
-        "play_count": "play_count = ?",
-        "original_song_id": "original_song_id = ?",
-        "license_fee": "license_fee = ?",
-        "royalty_rate": "royalty_rate = ?",
-        "legacy_state": "legacy_state = ?",
-        "original_release_date": "original_release_date = ?",
+        "band_id",
+        "title",
+        "duration_sec",
+        "genre",
+        "play_count",
+        "original_song_id",
+        "license_fee",
+        "royalty_rate",
+        "legacy_state",
+        "original_release_date",
     }
 
     # ------------------------------------------------------------------
@@ -177,11 +181,10 @@ class SongService:
         set_parts = []
         params: list = []
         for field, value in updates.items():
-            clause = self._UPDATABLE_FIELDS.get(field)
-            if clause is None:
+            if field not in self._UPDATABLE_FIELDS:
                 conn.close()
                 raise ValueError(f"Field '{field}' cannot be updated")
-            set_parts.append(clause)
+            set_parts.append(f"{field} = ?")
             params.append(value)
 
         if not set_parts:
