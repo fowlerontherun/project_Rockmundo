@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Avatar Editor</title>
+  </head>
+  <body>
+    <h1>Avatar Editor</h1>
+    <form id="avatarForm">
+      <label>
+        Avatar ID
+        <input id="avatarId" type="number" required />
+      </label>
+      <label>
+        Nickname
+        <input id="nickname" />
+      </label>
+      <label>
+        Body Type
+        <input id="bodyType" />
+      </label>
+      <button type="submit">Save</button>
+    </form>
+
+    <script>
+      const form = document.getElementById('avatarForm');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('avatarId').value;
+        const payload = {
+          display_name: document.getElementById('nickname').value || undefined,
+          body_type: document.getElementById('bodyType').value || undefined,
+        };
+        await fetch(`/api/avatars/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        alert('Avatar updated');
+      });
+    </script>
+  </body>
+</html>
+

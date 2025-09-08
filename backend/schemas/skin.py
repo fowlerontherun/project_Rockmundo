@@ -1,5 +1,8 @@
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
 
 class SkinBase(BaseModel):
     name: str
@@ -10,8 +13,28 @@ class SkinBase(BaseModel):
     author: str
     price: int
 
+
 class SkinCreate(SkinBase):
+    """Schema for creating new skins."""
+
     pass
+
+
+class SkinUpdate(BaseModel):
+    """Schema for updating existing skins.
+
+    All fields are optional so callers may perform partial updates.
+    """
+
+    name: Optional[str] = None
+    category: Optional[str] = None
+    mesh_url: Optional[str] = None
+    texture_url: Optional[str] = None
+    rarity: Optional[str] = None
+    author: Optional[str] = None
+    price: Optional[int] = None
+    is_approved: Optional[bool] = None
+    is_official: Optional[bool] = None
 
 class SkinResponse(SkinBase):
     id: int

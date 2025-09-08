@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Skin Marketplace</title>
+  </head>
+  <body>
+    <h1>Skin Marketplace</h1>
+    <ul id="skinList"></ul>
+
+    <script>
+      async function loadSkins() {
+        const res = await fetch('/api/skins');
+        const skins = await res.json();
+        const list = document.getElementById('skinList');
+        list.innerHTML = '';
+        skins.forEach((skin) => {
+          const item = document.createElement('li');
+          item.textContent = `${skin.name} - ${skin.price}`;
+          const btn = document.createElement('button');
+          btn.textContent = 'Buy';
+          btn.onclick = async () => {
+            await fetch(`/api/skins/${skin.id}/purchase`, { method: 'POST' });
+            alert('Purchased ' + skin.name);
+          };
+          item.appendChild(btn);
+          list.appendChild(item);
+        });
+      }
+
+      loadSkins();
+    </script>
+  </body>
+</html>
+
