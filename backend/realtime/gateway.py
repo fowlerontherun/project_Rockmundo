@@ -20,6 +20,12 @@ from fastapi.responses import StreamingResponse
 from backend.core.config import settings
 
 from .hub import InMemoryHub, RealtimeHub, RedisHub
+from backend.monitoring.websocket import (
+    TOPIC as METRICS_TOPIC,
+    track_connect,
+    track_disconnect,
+    track_message,
+)
 
 router = APIRouter(prefix="/realtime", tags=["realtime"])
 
@@ -116,6 +122,7 @@ async def websocket_gateway(ws: WebSocket, user_id: int = Depends(get_current_us
     Server never trusts client for user:<other_id> topics.
     """
     await ws.accept()
+    await track_connect()
     sub = _Subscriber()
 
     # Track topics for this connection
@@ -146,6 +153,7 @@ async def websocket_gateway(ws: WebSocket, user_id: int = Depends(get_current_us
     try:
         while True:
             raw = await ws.receive_text()
+            await track_message()
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -158,7 +166,7 @@ async def websocket_gateway(ws: WebSocket, user_id: int = Depends(get_current_us
             elif op == "subscribe":
                 for t in msg.get("topics", []):
                     # Only allow whitelisted non-user topics
-                    if t in (PULSE_TOPIC, ADMIN_JOBS_TOPIC) or t == topic_for_user(user_id):
+                    if t in (PULSE_TOPIC, ADMIN_JOBS_TOPIC, METRICS_TOPIC) or t == topic_for_user(user_id):
                         await _join(t)
                 await ws.send_text(json.dumps({"ok": True, "subscribed": list(sorted(topics))}))
             elif op == "unsubscribe":
@@ -178,6 +186,7 @@ async def websocket_gateway(ws: WebSocket, user_id: int = Depends(get_current_us
                 await hub.unsubscribe(t, sub)
             except Exception:
                 pass
+        await track_disconnect()
 
 # --- Server-Sent Events endpoint ---------------------------------------------
 

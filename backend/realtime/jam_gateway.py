@@ -13,6 +13,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
 
 from backend.services.jam_service import JamService
 from .gateway import get_current_user_id_dep
+from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jam", tags=["realtime"])
@@ -68,6 +69,7 @@ hub = JamSessionHub()
 @router.websocket("/ws/{session_id}")
 async def jam_ws(ws: WebSocket, session_id: str, user_id: int = Depends(get_current_user_id_dep)) -> None:
     await ws.accept()
+    await track_connect()
     if jam_service is None:  # pragma: no cover - init failure
         raise RuntimeError("JamService unavailable")
     sub = _Subscriber()
@@ -84,6 +86,7 @@ async def jam_ws(ws: WebSocket, session_id: str, user_id: int = Depends(get_curr
     try:
         while True:
             raw = await ws.receive_text()
+            await track_message()
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -126,3 +129,4 @@ async def jam_ws(ws: WebSocket, session_id: str, user_id: int = Depends(get_curr
         jam_service.leave_session(session_id, user_id)
         await hub.publish(session_id, {"type": "left", "user_id": user_id})
         outbound_task.cancel()
+        await track_disconnect()
