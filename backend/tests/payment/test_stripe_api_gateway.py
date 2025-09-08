@@ -7,7 +7,11 @@ import pytest
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from backend.services.economy_service import EconomyService
-from backend.services.payment_service import PaymentError, PaymentService
+from backend.services.payment_service import (
+    PaymentError,
+    PaymentService,
+    StripeAPIGateway,
+)
 
 
 def setup_service(monkeypatch, tmp_path, success: bool):
@@ -42,7 +46,8 @@ def setup_service(monkeypatch, tmp_path, success: bool):
     monkeypatch.setattr(httpx, "post", fake_post)
     monkeypatch.setattr(httpx, "get", fake_get)
 
-    svc = PaymentService(None, econ, gateway_name="stripe_api")
+    gateway = StripeAPIGateway()
+    svc = PaymentService(gateway, econ)
     return svc, econ
 
 
