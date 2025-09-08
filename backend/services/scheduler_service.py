@@ -114,6 +114,17 @@ def _daily_loop_reset_wrapper() -> None:
                     pass
 
 
+def _weekly_loop_reset_wrapper() -> None:
+    """Reset weekly milestones for all users."""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT user_id FROM daily_loop")
+    users = [row[0] for row in cur.fetchall()]
+    conn.close()
+    for uid in users:
+        daily_loop.reset_weekly_milestones(uid)
+
+
 EVENT_HANDLERS = {
     "fan_decay": fan_service.decay_fan_loyalty,
     "weekly_charts": chart_service.calculate_weekly_chart,
@@ -125,6 +136,7 @@ EVENT_HANDLERS = {
     "peer_learning": run_scheduled_session,
     "daily_activity_resolution": process_previous_day,
     "daily_loop_reset": _daily_loop_reset_wrapper,
+    "weekly_loop_reset": _weekly_loop_reset_wrapper,
     "plan_reminder": _plan_reminder,
     "outcome_reminder": _outcome_reminder,
     "shop_restock": restock_handler,
@@ -243,6 +255,24 @@ def schedule_daily_loop_reset() -> dict:
         next_run.isoformat(),
         recurring=True,
         interval_days=1,
+    )
+
+
+def schedule_weekly_loop_reset() -> dict:
+    """Ensure a weekly task exists to reset loop milestones."""
+    tasks = get_scheduled_tasks()
+    for task in tasks:
+        if task["event_type"] == "weekly_loop_reset":
+            return {"status": "exists"}
+    next_run = datetime.utcnow().replace(hour=0, minute=15, second=0, microsecond=0)
+    while next_run.weekday() != 0:
+        next_run += timedelta(days=1)
+    return schedule_task(
+        "weekly_loop_reset",
+        {},
+        next_run.isoformat(),
+        recurring=True,
+        interval_days=7,
     )
 
 
