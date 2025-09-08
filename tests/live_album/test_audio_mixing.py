@@ -3,8 +3,11 @@ import sqlite3
 
 import pytest
 
+from backend.models.skill import Skill
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services import audio_mixing_service
 from backend.services.live_album_service import LiveAlbumService
+from backend.services.skill_service import skill_service
 
 
 def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
@@ -146,3 +149,15 @@ def test_missing_recording_raises_error(tmp_path):
         service.compile_live_album([1, 2, 3, 4, 5], "Live")
     assert "5" in str(exc.value)
     assert "2" in str(exc.value)
+
+
+def test_mixing_awards_sound_design_xp():
+    skill_service._skills.clear()
+    user_id = 1
+    audio_mixing_service.mix_tracks([1, 2, 3], user_id=user_id)
+    skill = skill_service.train(
+        user_id,
+        Skill(id=SKILL_NAME_TO_ID["sound_design"], name="sound_design", category="creative"),
+        0,
+    )
+    assert skill.xp > 0
