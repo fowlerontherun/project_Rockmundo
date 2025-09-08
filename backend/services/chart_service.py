@@ -154,7 +154,10 @@ def get_historical_charts(chart_type: str, region: str, weeks: int = 4) -> dict:
 
 
 def calculate_album_chart(
-    album_type: str = "studio", start_date: str | None = None, fame_service=None
+    album_type: str = "studio",
+    start_date: str | None = None,
+    region: str = "global",
+    fame_service=None,
 ) -> dict:
     """Generate a simple album chart based on digital sales revenue.
 
@@ -165,6 +168,8 @@ def calculate_album_chart(
     fame_service:
         Optional service providing ``award_fame`` used to grant fame to the
         chart topper.
+    region:
+        Geographic region or country code for which to generate the chart.
     """
 
     conn = sqlite3.connect(DB_PATH)
@@ -199,10 +204,11 @@ def calculate_album_chart(
             """
             INSERT INTO chart_entries
             (chart_type, region, week_start, position, song_id, band_name, score, generated_at)
-            VALUES (?, 'global', ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 f"{album_type.title()} Album Chart",
+                region,
                 start_date,
                 position,
                 album_id,
@@ -226,7 +232,7 @@ def calculate_album_chart(
     entries = [(a, t, b, r) for (a, t, _, b, r) in top]
     return {
         "chart_type": f"{album_type.title()} Album Chart",
-        "region": "global",
+        "region": region,
         "week_start": start_date,
         "entries": entries,
     }
