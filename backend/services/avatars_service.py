@@ -143,24 +143,55 @@ class AvatarsService:
             return [dict(r) for r in cur.fetchall()]
 
     def update_avatar(self, avatar_id: int, fields: Dict[str, Any]) -> None:
+        """Update an avatar and return the updated record.
+
+        ``fields`` is a dictionary of column names to update.  Only a
+        predefined set of columns may be modified and any unknown keys are
+        ignored.  When the update succeeds the freshly updated avatar is
+        returned.  If ``fields`` is empty the current avatar state is
+        returned unchanged.
+        """
+
         if not fields:
-            return
+            # Nothing to update; simply return the current record for
+            # convenience so callers always receive avatar data.
+            return self.get_avatar(avatar_id)
+
         self._validate_fields(fields)
-        allowed = ["display_name","body_type","face","hair","hair_color","eye_color","skin_tone","instrument","outfit_theme","pose","render_seed"]
+        allowed = [
+            "display_name",
+            "body_type",
+            "face",
+            "hair",
+            "hair_color",
+            "eye_color",
+            "skin_tone",
+            "instrument",
+            "outfit_theme",
+            "pose",
+            "render_seed",
+        ]
         sets, vals = [], []
         for k in allowed:
             if k in fields:
                 sets.append(f"{k} = ?")
                 vals.append(fields[k])
+
         if not sets:
-            return
+            return self.get_avatar(avatar_id)
+
         vals.append(avatar_id)
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute(f"UPDATE avatars SET {', '.join(sets)}, updated_at = datetime('now') WHERE id = ?", vals)
+            cur.execute(
+                f"UPDATE avatars SET {', '.join(sets)}, updated_at = datetime('now') WHERE id = ?",
+                vals,
+            )
             if cur.rowcount == 0:
                 raise AvatarError("Avatar not found")
             conn.commit()
+
+        return self.get_avatar(avatar_id)
 
     def delete_avatar(self, avatar_id: int) -> None:
         with sqlite3.connect(self.db_path) as conn:
