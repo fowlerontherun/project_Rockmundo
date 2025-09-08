@@ -10,6 +10,8 @@ import os
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
+from backend.services.season_service import SeasonScheduler
+
 try:
     # Preferred: shared project connection helper
     from backend.database import get_conn  # type: ignore
@@ -87,13 +89,15 @@ def compute_daily(
     conn,
     target_date: str,
     weights: Optional[Tuple[float, float, float]] = None,
+    season: Optional[str] = None,
+    multiplier: float = 1.0,
 ) -> List[Dict]:
     """
     Compute per-artist daily metrics for target_date from music_events.
     Expects music_events columns:
       event_time TEXT (ISO or date), artist_id INT, streams INT, sales_digital INT, sales_vinyl INT
     Writes to world_pulse_metrics (UPSERT by (date, artist_id)).
-    Returns list of {'artist_id', 'streams','sales_digital','sales_vinyl','score'}.
+    Returns list of {'artist_id', 'streams','sales_digital','sales_vinyl','score','season'}.
     """
     if weights is None:
         weights = _load_weights(conn)
@@ -121,17 +125,19 @@ def compute_daily(
         sd = int(r["sales_digital"])
         sv = int(r["sales_vinyl"])
         score = streams * w_streams + sd * w_digital + sv * w_vinyl
+        score *= multiplier
         conn.execute(
             """\
-            INSERT INTO world_pulse_metrics(date, artist_id, streams, sales_digital, sales_vinyl, score)
-            VALUES(?,?,?,?,?,?)
+            INSERT INTO world_pulse_metrics(date, artist_id, streams, sales_digital, sales_vinyl, score, season)
+            VALUES(?,?,?,?,?,?,?)
             ON CONFLICT(date, artist_id) DO UPDATE SET
               streams=excluded.streams,
               sales_digital=excluded.sales_digital,
               sales_vinyl=excluded.sales_vinyl,
-              score=excluded.score
+              score=excluded.score,
+              season=excluded.season
             """,
-            (target_date, r["artist_id"], streams, sd, sv, float(score)),
+            (target_date, r["artist_id"], streams, sd, sv, float(score), season),
         )
         results.append(
             {
@@ -140,6 +146,7 @@ def compute_daily(
                 "sales_digital": sd,
                 "sales_vinyl": sv,
                 "score": float(score),
+                "season": season,
             }
         )
 
@@ -152,33 +159,57 @@ def _pct_change(curr: Optional[float], prev: Optional[float]) -> Optional[float]
     return (curr - prev) / prev
 
 
-def write_daily_rankings(conn, target_date: str):
+def write_daily_rankings(conn, target_date: str, season: Optional[str] = None):
     """
-    Build rankings for target_date from world_pulse_metrics.
+    Build rankings for target_date and season from world_pulse_metrics.
     pct_change is vs previous day score for the same artist.
     """
-    prev_date = (datetime.strptime(target_date, ISO_DATE).date() - timedelta(days=1)).strftime(ISO_DATE)
+    prev_date = (
+        datetime.strptime(target_date, ISO_DATE).date() - timedelta(days=1)
+    ).strftime(ISO_DATE)
 
     # Read today's scores
-    today = conn.execute(
-        """\
-        SELECT m.artist_id, m.score
-        FROM world_pulse_metrics m
-        WHERE m.date = ?
-        ORDER BY m.score DESC, m.artist_id ASC
-        """,
-        (target_date,),
-    ).fetchall()
-
-    # Map previous day's scores
-    prev = conn.execute(
-        "SELECT artist_id, score FROM world_pulse_metrics WHERE date = ?",
-        (prev_date,),
-    ).fetchall()
+    if season is None:
+        today = conn.execute(
+            """\
+            SELECT m.artist_id, m.score
+            FROM world_pulse_metrics m
+            WHERE m.date = ? AND m.season IS NULL
+            ORDER BY m.score DESC, m.artist_id ASC
+            """,
+            (target_date,),
+        ).fetchall()
+        prev = conn.execute(
+            "SELECT artist_id, score FROM world_pulse_metrics WHERE date = ? AND season IS NULL",
+            (prev_date,),
+        ).fetchall()
+    else:
+        today = conn.execute(
+            """\
+            SELECT m.artist_id, m.score
+            FROM world_pulse_metrics m
+            WHERE m.date = ? AND m.season = ?
+            ORDER BY m.score DESC, m.artist_id ASC
+            """,
+            (target_date, season),
+        ).fetchall()
+        prev = conn.execute(
+            "SELECT artist_id, score FROM world_pulse_metrics WHERE date = ? AND season = ?",
+            (prev_date, season),
+        ).fetchall()
     prev_map = {p["artist_id"]: float(p["score"]) for p in prev}
 
     # Clear existing rankings for idempotency
-    conn.execute("DELETE FROM world_pulse_rankings WHERE date = ?", (target_date,))
+    if season is None:
+        conn.execute(
+            "DELETE FROM world_pulse_rankings WHERE date = ? AND season IS NULL",
+            (target_date,),
+        )
+    else:
+        conn.execute(
+            "DELETE FROM world_pulse_rankings WHERE date = ? AND season = ?",
+            (target_date, season),
+        )
 
     # Write ranked list
     for idx, r in enumerate(today, start=1):
@@ -188,10 +219,18 @@ def write_daily_rankings(conn, target_date: str):
         pct = _pct_change(score, prev_score)
         conn.execute(
             """\
-            INSERT INTO world_pulse_rankings(date, rank, artist_id, name, pct_change, score)
-            VALUES(?,?,?,?,?,?)
+            INSERT INTO world_pulse_rankings(date, season, rank, artist_id, name, pct_change, score)
+            VALUES(?,?,?,?,?,?,?)
             """,
-            (target_date, idx, artist_id, _artist_name(conn, artist_id), pct, score),
+            (
+                target_date,
+                season,
+                idx,
+                artist_id,
+                _artist_name(conn, artist_id),
+                pct,
+                score,
+            ),
         )
 
 
@@ -202,15 +241,18 @@ def run_daily(
 ):
     """
     Daily: compute metrics and rankings for target_date.
+    Applies seasonal score multipliers when configured.
     Writes job_metadata on success/failure.
     """
     conn = conn_override or get_conn()
+    scheduler = SeasonScheduler(conn)
     try:
         if target_date is None:
             target_date = _today_str()
+        season, mult = scheduler.active_season(target_date)
         with conn:
-            data = compute_daily(conn, target_date, weights)
-            write_daily_rankings(conn, target_date)
+            data = compute_daily(conn, target_date, weights, season, mult)
+            write_daily_rankings(conn, target_date, season)
             _log_job(
                 conn,
                 job_name="world_pulse_daily",
@@ -218,6 +260,7 @@ def run_daily(
                 details={
                     "date": target_date,
                     "artists": len(data),
+                    "season": season,
                 },
             )
     except Exception as e:

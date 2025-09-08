@@ -50,17 +50,19 @@ CREATE TABLE world_pulse_metrics (
   sales_digital  INTEGER NOT NULL DEFAULT 0,
   sales_vinyl    INTEGER NOT NULL DEFAULT 0,
   score          REAL    NOT NULL DEFAULT 0,
+  season         TEXT,
   PRIMARY KEY (date, artist_id)
 );
 
 CREATE TABLE world_pulse_rankings (
   date        TEXT    NOT NULL,
+  season      TEXT,
   rank        INTEGER NOT NULL,
   artist_id   INTEGER NOT NULL,
   name        TEXT    NOT NULL,
   pct_change  REAL,
   score       REAL    NOT NULL,
-  PRIMARY KEY (date, rank)
+  PRIMARY KEY (date, season, rank)
 );
 
 CREATE TABLE world_pulse_weekly_cache (
