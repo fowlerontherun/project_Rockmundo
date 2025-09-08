@@ -32,6 +32,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("mastering", "creative", "music_production", {"music_production": 100}),
     ("music_theory", "creative", None, {}),
     ("ear_training", "creative", None, {}),
+    ("sound_design", "creative", None, {}),
     # Image and style skills
     ("fashion", "image", None, {}),
     ("image_management", "image", None, {}),
@@ -41,6 +42,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("public_relations", "business", None, {}),
     ("financial_management", "business", None, {}),
     ("social_media_management", "business", None, {}),
+    ("data_analytics", "business", None, {}),
 ]
 
 

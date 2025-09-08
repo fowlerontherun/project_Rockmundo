@@ -20,6 +20,7 @@ class RecordingSession:
     environment_quality: float = 1.0
     track_quality: Dict[int, float] = field(default_factory=dict)
     chemistry_avg: float = 50.0
+    track_quality: Dict[int, float] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
     def to_dict(self) -> dict:
