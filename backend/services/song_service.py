@@ -15,6 +15,20 @@ class SongService:
     def __init__(self, db: Optional[str] = None) -> None:
         self.db = db or DB_PATH
 
+    # Allowed columns that can be updated via ``update_song``.
+    _UPDATABLE_FIELDS = {
+        "band_id": "band_id = ?",
+        "title": "title = ?",
+        "duration_sec": "duration_sec = ?",
+        "genre": "genre = ?",
+        "play_count": "play_count = ?",
+        "original_song_id": "original_song_id = ?",
+        "license_fee": "license_fee = ?",
+        "royalty_rate": "royalty_rate = ?",
+        "legacy_state": "legacy_state = ?",
+        "original_release_date": "original_release_date = ?",
+    }
+
     # ------------------------------------------------------------------
     # Creation and queries
     # ------------------------------------------------------------------
@@ -160,8 +174,23 @@ class SongService:
     def update_song(self, song_id: int, updates: Dict) -> Dict:
         conn = sqlite3.connect(self.db)
         cur = conn.cursor()
+        set_parts = []
+        params: list = []
         for field, value in updates.items():
-            cur.execute(f"UPDATE songs SET {field} = ? WHERE id = ?", (value, song_id))
+            clause = self._UPDATABLE_FIELDS.get(field)
+            if clause is None:
+                conn.close()
+                raise ValueError(f"Field '{field}' cannot be updated")
+            set_parts.append(clause)
+            params.append(value)
+
+        if not set_parts:
+            conn.close()
+            return {"status": "ok", "message": "No updates provided"}
+
+        params.append(song_id)
+        sql = "UPDATE songs SET " + ", ".join(set_parts) + " WHERE id = ?"
+        cur.execute(sql, params)
         conn.commit()
         conn.close()
         return {"status": "ok", "message": "Song updated"}
