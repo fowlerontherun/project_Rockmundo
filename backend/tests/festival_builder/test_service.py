@@ -56,6 +56,7 @@ def test_financial_reconciliation():
         owner_id=1,
         stages={"Stage": 1},
         ticket_tiers=[{"name": "GA", "price_cents": 1500, "capacity": 10}],
+        sponsors=[{"name": "Acme", "contribution_cents": 5000}],
     )
     svc.sell_tickets(fid, "GA", 2, buyer_id=5)
     svc.book_act(fid, "Stage", 0, band_id=2, payout_cents=500)
@@ -64,6 +65,8 @@ def test_financial_reconciliation():
     assert finances["payouts"] == 500
     assert svc.economy.get_balance(1) == 3000
     assert svc.economy.get_balance(2) == 500
+    fest = svc.get_festival(fid)
+    assert fest.sponsors[0].name == "Acme"
 
 
 def test_proposals_and_voting():

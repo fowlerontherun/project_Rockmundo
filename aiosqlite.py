@@ -82,6 +82,12 @@ class Connection:
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self._conn.close)
 
+    async def __aenter__(self):  # pragma: no cover - convenience
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):  # pragma: no cover
+        await self.close()
+
     # For synchronous wrapper
     def cursor(self) -> Cursor:  # pragma: no cover - minimal usage
         if self.row_factory is not None:

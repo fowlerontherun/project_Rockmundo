@@ -21,10 +21,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
-DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
+from backend.config.revenue import (
+    STREAM_RATE_MICROCENTS,
+    DAILY_STREAM_CAP_PER_USER_PER_SONG,
+    SPONSOR_IMPRESSION_RATE_CENTS,
+    SPONSOR_PAYOUT_SPLIT,
+)
 
-STREAM_RATE_MICROCENTS = 30000  # 0.30 cents per stream = 30000 microcents
-DAILY_STREAM_CAP_PER_USER_PER_SONG = 50  # anti-fraud cap
+DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
 class RoyaltyJobError(Exception):
     pass
@@ -235,6 +239,43 @@ class RoyaltyJobsService:
                 band_id = self._owner_band_for_work(cur, "album", int(album_id))
                 self._emit_line(cur, run_id, "album", int(album_id), band_id, None, "vinyl", revenue_cents, meta)
 
+    def _process_sponsorships(self, cur, run_id: int, window: RunWindow) -> None:
+        """Aggregate sponsorship ad events into royalty lines."""
+        needed = ["sponsorship_ad_events", "venue_sponsorships"]
+        if not all(self._table_exists(cur, t) for t in needed):
+            return
+        cur.execute(
+            """
+            SELECT vs.venue_id, COUNT(*) as impressions
+            FROM sponsorship_ad_events e
+            JOIN venue_sponsorships vs ON vs.id = e.sponsorship_id
+            WHERE e.event_type = 'impression'
+              AND datetime(e.occurred_at) >= datetime(?)
+              AND datetime(e.occurred_at) <= datetime(?)
+            GROUP BY vs.venue_id
+            """,
+            (f"{window.start} 00:00:00", f"{window.end} 23:59:59"),
+        )
+        for venue_id, impressions in cur.fetchall():
+            impressions = int(impressions or 0)
+            if impressions <= 0:
+                continue
+            gross = impressions * SPONSOR_IMPRESSION_RATE_CENTS
+            venue_share = gross * SPONSOR_PAYOUT_SPLIT.get("venue", 0) // 100
+            if venue_share <= 0:
+                continue
+            self._emit_line(
+                cur,
+                run_id,
+                "venue",
+                int(venue_id),
+                None,
+                None,
+                "sponsorship",
+                venue_share,
+                {"impressions": impressions},
+            )
+
     # -------- public API --------
     def run_royalties(self, period_start: str, period_end: str) -> Dict[str, Any]:
         """
@@ -255,7 +296,7 @@ class RoyaltyJobsService:
                 raise
 
             # Process channels
-            stats = {"streams": 0, "digital": 0, "vinyl": 0, "run_id": run_id}
+            stats = {"streams": 0, "digital": 0, "vinyl": 0, "sponsorship": 0, "run_id": run_id}
             try:
                 cur.execute("BEGIN IMMEDIATE")
                 before = self._count_lines(cur, run_id)
@@ -269,6 +310,10 @@ class RoyaltyJobsService:
                 before = self._count_lines(cur, run_id)
                 self._process_vinyl(cur, run_id, window)
                 after = self._count_lines(cur, run_id); stats["vinyl"] = after - before
+
+                before = self._count_lines(cur, run_id)
+                self._process_sponsorships(cur, run_id, window)
+                after = self._count_lines(cur, run_id); stats["sponsorship"] = after - before
 
                 self._complete_run(cur, run_id, notes=None)
                 conn.commit()
