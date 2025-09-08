@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Set
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from .gateway import hub, get_current_user_id_dep
 
@@ -13,6 +13,8 @@ try:  # pragma: no cover - fallback during tests
     from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
     async def require_permission(roles, user_id):  # type: ignore
+        if user_id != 1:
+            raise HTTPException(status_code=403, detail="Forbidden")
         return True
 
 router = APIRouter(prefix="/admin/realtime", tags=["AdminRealtime"])
@@ -33,23 +35,27 @@ class _Subscriber:
             yield await self.queue.get()
 
 
-@router.websocket("/ws/{channel}")
+@router.websocket("/ws")
 async def admin_ws(
     ws: WebSocket,
-    channel: str,
     user_id: int = Depends(get_current_user_id_dep),
 ) -> None:
+    """Single admin websocket that can subscribe to multiple topics."""
     await ws.accept()
     await require_permission(["admin", "moderator"], user_id)
 
-    topic_map = {"economy": ECONOMY_TOPIC, "moderation": MODERATION_TOPIC}
-    topic = topic_map.get(channel)
-    if not topic:
-        await ws.close()
-        return
-
     sub = _Subscriber()
-    await hub.subscribe(topic, sub)
+    topics: Set[str] = set()
+
+    async def _join(t: str) -> None:
+        if t in (ECONOMY_TOPIC, MODERATION_TOPIC):
+            await hub.subscribe(t, sub)
+            topics.add(t)
+
+    async def _leave(t: str) -> None:
+        if t in topics:
+            await hub.unsubscribe(t, sub)
+            topics.discard(t)
 
     async def pump() -> None:
         async for msg in sub.stream():
@@ -58,13 +64,38 @@ async def admin_ws(
     task = asyncio.create_task(pump())
     try:
         while True:
-            # Ignore client messages; heartbeat via ping/pong is not required
-            await ws.receive_text()
+            raw = await ws.receive_text()
+            try:
+                msg = json.loads(raw)
+            except json.JSONDecodeError:
+                await ws.send_text(json.dumps({"error": "invalid_json"}))
+                continue
+
+            op = msg.get("op")
+            if op == "subscribe":
+                for t in msg.get("topics", []):
+                    if t == "economy":
+                        await _join(ECONOMY_TOPIC)
+                    elif t == "moderation":
+                        await _join(MODERATION_TOPIC)
+                await ws.send_text(json.dumps({"ok": True, "subscribed": sorted(topics)}))
+            elif op == "unsubscribe":
+                for t in msg.get("topics", []):
+                    if t == "economy":
+                        await _leave(ECONOMY_TOPIC)
+                    elif t == "moderation":
+                        await _leave(MODERATION_TOPIC)
+                await ws.send_text(json.dumps({"ok": True, "subscribed": sorted(topics)}))
+            elif op == "ping":
+                await ws.send_text(json.dumps({"op": "pong"}))
+            else:
+                await ws.send_text(json.dumps({"error": "unsupported_op"}))
     except WebSocketDisconnect:  # pragma: no cover - network event
         pass
     finally:
         task.cancel()
-        await hub.unsubscribe(topic, sub)
+        for t in list(topics):
+            await hub.unsubscribe(t, sub)
 
 
 async def publish_economy_alert(event: Dict[str, Any]) -> int:

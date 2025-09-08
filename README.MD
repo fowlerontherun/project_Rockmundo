@@ -144,11 +144,11 @@ WebSocket channels:
 
 - `GET /admin/monitoring/metrics` returns CPU usage, memory consumption, and the
   number of active admin sessions.
-- `WS /admin/realtime/ws/{channel}` streams real-time alerts where `{channel}`
-  is either `economy` or `moderation`.
+- `WS /admin/realtime/ws` streams real-time alerts. Clients subscribe to
+  topics such as `economy` or `moderation` after connecting.
 
 These endpoints power the admin dashboard widget under
-`frontend/src/admin/monitoring/`.
+`frontend/src/admin/dashboard/`.
 
 ## Learning & Burnout Mechanics
 
