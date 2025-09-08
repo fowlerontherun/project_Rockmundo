@@ -13,3 +13,11 @@ def get_conn(db_path: str | None = None):
         conn.commit()
     finally:
         conn.close()
+
+# Re-export asynchronous connection helper used in tests and services.
+try:  # pragma: no cover - simple re-export wrapper
+    from backend.utils.db import aget_conn  # type: ignore
+except Exception:  # pragma: no cover
+    aget_conn = None  # type: ignore
+
+__all__ = ["get_conn", "aget_conn"]
