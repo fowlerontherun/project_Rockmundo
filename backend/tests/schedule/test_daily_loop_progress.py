@@ -40,3 +40,27 @@ def test_reward_progression_advances_tier(tmp_path):
         )
         row = cur.fetchone()
         assert row == (2, 0, 0)
+
+
+def test_weekly_drop_and_next_reward(tmp_path):
+    dl = setup_db(tmp_path)
+    with sqlite3.connect(database.DB_PATH) as conn:
+        conn.executemany(
+            "INSERT INTO tier_tracks (tier, reward) VALUES (?, ?)",
+            [(1, "bronze"), (2, "silver"), (3, "gold"), (4, "platinum")],
+        )
+        conn.execute("INSERT INTO daily_loop (user_id) VALUES (1)")
+        conn.commit()
+    dl.rotate_daily_challenge()
+    status = dl.get_status(1)
+    assert status["next_weekly_reward"] is not None
+    tier = status["challenge_tier"]
+    with sqlite3.connect(database.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT reward FROM tier_tracks WHERE tier=?", (tier + 1,))
+        expected = cur.fetchone()[0]
+    assert status["next_tier_reward"] == expected
+    with sqlite3.connect(database.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM weekly_drops WHERE user_id=1")
+        assert cur.fetchone()[0] == 1
