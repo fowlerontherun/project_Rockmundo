@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import Dict, Generator, Iterable, Optional
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.skill_service import skill_service
+from backend.models.skill import Skill
 
 from backend.database import DB_PATH
 from backend.services import live_performance_analysis
@@ -102,14 +104,17 @@ def simulate_gig(
         return {"error": "Band not found"}
     fame_map = {r[0]: r[1] for r in rows}
 
+    participant_rows: list[tuple[int, int, str]] = []
     participant_users: list[int] = []
     try:
         cur.execute(
-            f"SELECT band_id, user_id FROM band_members WHERE band_id IN ({placeholders})",
+            f"SELECT band_id, user_id, role FROM band_members WHERE band_id IN ({placeholders})",
             all_band_ids,
         )
-        participant_users = [u for _, u in cur.fetchall()]
+        participant_rows = cur.fetchall()
+        participant_users = [u for _b, u, _r in participant_rows]
     except Exception:
+        participant_rows = []
         participant_users = []
 
     scores = []
@@ -120,10 +125,28 @@ def simulate_gig(
     avg_chem = sum(scores) / len(scores) if scores else 50.0
     chem_mod = 1 + (avg_chem - 50.0) / 100.0
 
+    # Aggregate performance skills to derive multiplier
+    perf_skill = Skill(
+        id=SKILL_NAME_TO_ID["performance"], name="performance", category="stage"
+    )
+    skill_avgs: list[float] = []
+    for _band, uid, role in participant_rows:
+        perf_level = skill_service.train(uid, perf_skill, 0).level
+        inst_level = 0
+        if role and role in SKILL_NAME_TO_ID:
+            inst_skill = Skill(
+                id=SKILL_NAME_TO_ID[role], name=role, category="instrument"
+            )
+            inst_level = skill_service.train(uid, inst_skill, 0).level
+        skill_avgs.append((perf_level + inst_level) / 2)
+    avg_skill = sum(skill_avgs) / len(skill_avgs) if skill_avgs else 0
+    perf_mult = 1 + avg_skill / 100
+
     # Simulate crowd size based on combined fame and randomness
     base_crowd = sum(fame_map.values()) * 2
     crowd_size = min(random.randint(base_crowd, base_crowd + 300), 2000)
     crowd_size = int(crowd_size * city_service.get_event_modifier(city))
+    crowd_size = min(int(crowd_size * perf_mult), 2000)
 
     fame_bonus = 0.0
     skill_gain = 0.0
@@ -230,9 +253,11 @@ def simulate_gig(
     for action in encore_actions:
         _handle_action(action)
 
+    skill_gain += gear_service.get_band_bonus(band_id, "performance") * chem_mod
+    fame_bonus *= perf_mult
+    skill_gain *= perf_mult
     fame_total = crowd_size // 10 + fame_bonus
     revenue_total = crowd_size * 5
-    skill_gain += gear_service.get_band_bonus(band_id, "performance") * chem_mod
     performance_id = SKILL_NAME_TO_ID["performance"]
     applied_skill = 0 if is_skill_blocked(band_id, performance_id) else skill_gain
     merch_total = int(crowd_size * 0.15 * city_service.get_market_demand(city))

@@ -40,6 +40,33 @@ class RecordingService:
         environment_quality: float = 1.0,
     ) -> RecordingSession:
         """Schedule a new recording session and charge the band."""
+        # Determine production quality multiplier from band skills
+        prod = Skill(
+            id=SKILL_NAME_TO_ID["music_production"],
+            name="music_production",
+            category="creative",
+        )
+        mixing = Skill(
+            id=SKILL_NAME_TO_ID["mixing"],
+            name="mixing",
+            category="creative",
+        )
+        mastering = Skill(
+            id=SKILL_NAME_TO_ID["mastering"],
+            name="mastering",
+            category="creative",
+        )
+        levels = [
+            skill_service.train(band_id, prod, 0).level,
+            skill_service.train(band_id, mixing, 0).level,
+            skill_service.train(band_id, mastering, 0).level,
+        ]
+        avg_level = sum(levels) / len(levels)
+        quality_mult = 1 + avg_level / 200
+
+        # Apply multiplier: higher skill improves quality and reduces cost
+        environment_quality *= quality_mult
+        cost_cents = int(cost_cents / quality_mult)
 
         try:
             self.economy.withdraw(band_id, cost_cents)
@@ -54,6 +81,7 @@ class RecordingService:
             track_statuses={tid: "pending" for tid in tracks},
             cost_cents=cost_cents,
             environment_quality=environment_quality,
+            track_quality={tid: environment_quality for tid in tracks},
         )
         avg = 50.0
         if session.personnel:
@@ -94,6 +122,20 @@ class RecordingService:
                 session.environment_quality *= 1 + (avg - 50) / 100
                 session.chemistry_avg = avg
 
+        # Adjust quality based on production skills for mixing/mastering
+        if status in {"mixed", "mastered"}:
+            skill_name = "mixing" if status == "mixed" else "mastering"
+            skill = Skill(
+                id=SKILL_NAME_TO_ID[skill_name],
+                name=skill_name,
+                category="creative",
+            )
+            level = skill_service.train(session.band_id, skill, 0).level
+            mult = 1 + level / 200
+            session.environment_quality *= mult
+            prev = session.track_quality.get(track_id, session.environment_quality)
+            session.track_quality[track_id] = prev * mult
+
         # Award practice XP to all personnel based on task difficulty
         difficulty = {"recorded": 1, "mixed": 2, "mastered": 3}.get(status, 1)
         skill = Skill(
@@ -103,6 +145,17 @@ class RecordingService:
         )
         for uid in session.personnel:
             skill_service.train_with_method(uid, skill, LearningMethod.PRACTICE, difficulty)
+
+        # Scale track quality by creative skill levels
+        if session.personnel:
+            mults = [
+                skill_service.get_category_multiplier(uid, "creative")
+                for uid in session.personnel
+            ]
+            quality_mult = sum(mults) / len(mults)
+        else:
+            quality_mult = 1.0
+        session.track_quality[track_id] = session.environment_quality * quality_mult
 
     def get_session(self, session_id: int) -> Optional[RecordingSession]:
         return self.sessions.get(session_id)
