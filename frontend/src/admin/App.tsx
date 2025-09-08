@@ -16,6 +16,7 @@ import MentorsAdmin from './learning/MentorsAdmin';
 import CityShopsAdmin from './economy/CityShopsAdmin';
 import ShopAnalytics from './economy/ShopAnalytics';
 import PlayerShopAdmin from './economy/PlayerShopAdmin';
+import NotificationCenter from './notifications/NotificationCenter';
 
 const App: React.FC = () => {
   const path = window.location.pathname;
@@ -56,6 +57,8 @@ const App: React.FC = () => {
     content = <TutorsAdmin />;
   } else if (path.includes('/admin/learning/mentors')) {
     content = <MentorsAdmin />;
+  } else if (path.includes('/admin/notifications')) {
+    content = <NotificationCenter />;
   }
 
   return (
