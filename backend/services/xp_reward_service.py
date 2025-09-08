@@ -160,6 +160,76 @@ class XPRewardService:
         amount = 10 * max(1, int(tier))
         return self.grant_hidden_xp(user_id, f"daily_tier_{tier}", amount)
 
+    # ------------------------------------------------------------------
+    def _baseline_grant_event(self, user_id: int) -> dict:
+        """Scheduled task handler that grants baseline XP.
+
+        The amount awarded is influenced by the user's lifestyle metrics.
+        """
+
+        from .lifestyle_service import calculate_lifestyle_score  # local import
+
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT sleep_hours, stress, training_discipline,
+                       mental_health, nutrition, fitness
+                FROM lifestyle WHERE user_id = ?
+                """,
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if row:
+                data = {
+                    "sleep_hours": row[0] or 0,
+                    "stress": row[1] or 0,
+                    "training_discipline": row[2] or 0,
+                    "mental_health": row[3] or 0,
+                    "nutrition": row[4] or 0,
+                    "fitness": row[5] or 0,
+                }
+            else:
+                data = {
+                    "sleep_hours": 0,
+                    "stress": 0,
+                    "training_discipline": 0,
+                    "mental_health": 0,
+                    "nutrition": 0,
+                    "fitness": 0,
+                }
+
+            score = calculate_lifestyle_score(data)
+            amount = max(0, int(score / 5))
+            if amount > 0:
+                self.grant_hidden_xp(
+                    user_id, reason="baseline", amount=amount, conn=conn
+                )
+        return {"awarded": amount}
+
+    def schedule_baseline_grant(self, user_id: int, *, hours: int = 24) -> dict:
+        """Schedule a baseline XP grant for ``user_id``.
+
+        Parameters
+        ----------
+        user_id:
+            Target user to receive XP.
+        hours:
+            How many hours from now the grant should be executed.
+        """
+
+        from . import scheduler_service  # local import to avoid circular
+
+        run_at = datetime.utcnow() + timedelta(hours=hours)
+        scheduler_service.EVENT_HANDLERS.setdefault(
+            "baseline_xp_grant", self._baseline_grant_event
+        )
+        return scheduler_service.schedule_task(
+            "baseline_xp_grant",
+            {"user_id": user_id},
+            run_at.isoformat(),
+        )
+
 
 xp_reward_service = XPRewardService()
 
