@@ -60,7 +60,7 @@ function NotificationCenter() {
       open &&
         React.createElement(
           'ul',
-          { key: 'list', style: { position: 'absolute', background: '#fff', border: '1px solid #ccc', padding: '4px', listStyle: 'none' } },
+          { key: 'list', style: { position: 'absolute', background: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '4px', listStyle: 'none' } },
           notifications.map((n) =>
             React.createElement(
               'li',

@@ -14,12 +14,14 @@ test('toggles theme and persists choice', () => {
     </Layout>
   );
 
-  const button = screen.getByRole('button', { name: /toggle theme/i });
+  const button = screen.getByRole('button', { name: /toggle dark mode/i });
+  expect(button).toHaveAttribute('aria-pressed', 'false');
   expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   expect(localStorage.getItem('theme')).toBe('light');
 
   button.click();
 
+  expect(button).toHaveAttribute('aria-pressed', 'true');
   expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   expect(localStorage.getItem('theme')).toBe('dark');
 });
