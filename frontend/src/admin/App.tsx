@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import NPCForm from './components/NPCForm';
 import DialogueEditor from './npcs/DialogueEditor';
 import { AuditTable } from './audit';
-import { MonitoringWidget } from './monitoring';
+import { Dashboard } from './dashboard';
 import { PluginManager } from './modding';
 import XPEventForm from './components/XPEventForm';
 import XPItemForm from './components/XPItemForm';
@@ -24,7 +24,7 @@ const App: React.FC = () => {
     <>
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
       <p className="text-gray-700">Select a module from the sidebar to begin.</p>
-      <MonitoringWidget />
+      <Dashboard />
     </>
   );
 
