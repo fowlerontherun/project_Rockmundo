@@ -57,6 +57,7 @@ class Avatar(Base):
     # influenced by lifestyle scores and random events.
     mood = Column(Integer, default=50)
     stamina = Column(Integer, default=50)
+    fatigue = Column(Integer, default=0)
     charisma = Column(Integer, default=50)
     intelligence = Column(Integer, default=50)
     creativity = Column(Integer, default=50)

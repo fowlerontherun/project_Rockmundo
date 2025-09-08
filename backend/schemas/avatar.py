@@ -26,6 +26,7 @@ class AvatarBase(BaseModel):
     health: int = 100
     mood: int = 50
     stamina: int = 50
+    fatigue: int = 0
     charisma: int = 50
     intelligence: int = 50
     creativity: int = 50
@@ -63,6 +64,7 @@ class AvatarUpdate(BaseModel):
     health: Optional[int] = None
     mood: Optional[int] = None
     stamina: Optional[int] = None
+    fatigue: Optional[int] = None
     charisma: Optional[int] = None
     intelligence: Optional[int] = None
     creativity: Optional[int] = None
@@ -77,6 +79,7 @@ class AvatarUpdate(BaseModel):
 
     @field_validator(
         "stamina",
+        "fatigue",
         "charisma",
         "intelligence",
         "creativity",
