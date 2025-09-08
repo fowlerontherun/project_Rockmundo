@@ -11,6 +11,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
     raise ImportError("FastAPI must be installed to use backend.realtime.polling") from exc
 
 from .gateway import get_current_user_id_dep
+from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 
 router = APIRouter(prefix="/encore", tags=["realtime"])
 
@@ -70,6 +71,7 @@ poll_hub = PollHub()
 @router.websocket("/ws/{poll_id}")
 async def encore_poll_ws(ws: WebSocket, poll_id: str, user_id: int = Depends(get_current_user_id_dep)) -> None:
     await ws.accept()
+    await track_connect()
     sub = _Subscriber()
     await poll_hub.subscribe(poll_id, user_id, sub)
 
@@ -81,6 +83,7 @@ async def encore_poll_ws(ws: WebSocket, poll_id: str, user_id: int = Depends(get
     try:
         while True:
             raw = await ws.receive_text()
+            await track_message()
             try:
                 payload = json.loads(raw)
             except json.JSONDecodeError:
@@ -94,3 +97,4 @@ async def encore_poll_ws(ws: WebSocket, poll_id: str, user_id: int = Depends(get
     finally:
         outbound.cancel()
         await poll_hub.unsubscribe(poll_id, user_id)
+        await track_disconnect()
