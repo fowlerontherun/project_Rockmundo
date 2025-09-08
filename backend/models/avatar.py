@@ -63,6 +63,7 @@ class Avatar(Base):
     creativity = Column(Integer, default=50)
     discipline = Column(Integer, default=50)
     resilience = Column(Integer, default=50)
+    voice = Column(Integer, default=50)
     luck = Column(Integer, default=0)
     social_media = Column(Integer, default=0)
     tech_savvy = Column(Integer, default=0)

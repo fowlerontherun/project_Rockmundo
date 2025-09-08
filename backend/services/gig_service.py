@@ -9,6 +9,9 @@ from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod
 from backend.services.avatar_service import AvatarService
 from seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.avatar_service import AvatarService
+
+avatar_service = AvatarService()
 
 
 avatar_service = AvatarService()
@@ -101,6 +104,14 @@ def simulate_gig_result(gig_id: int):
         fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100)
     )
     randomness = random.randint(-10, 10)
+    attendance = max(0, min(venue_size, base_attendance + randomness))
+    avatar = avatar_service.get_avatar(band_id)
+    voice_val = avatar.voice if avatar else 50
+    attendance = min(venue_size, int(attendance * (1 + voice_val / 200)))
+
+    # === Calculate earnings and fame ===
+    earnings = attendance * ticket_price
+    fame_gain = int(attendance // 20 * (1 + voice_val / 200))
     avatar = avatar_service.get_avatar(band_id)
     stage_presence = getattr(avatar, "stage_presence", 50)
     adjusted = max(0, base_attendance + randomness)

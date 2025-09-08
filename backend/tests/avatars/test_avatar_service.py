@@ -52,15 +52,16 @@ def test_crud_lifecycle():
     assert avatar.intelligence == 50
     assert avatar.creativity == 60
     assert avatar.discipline == 70
+    assert avatar.voice == 50
     assert avatar.leadership == 0
     assert avatar.stage_presence == 50
 
     fetched = svc.get_avatar(avatar.id)
     assert fetched and fetched.nickname == "Hero"
 
-    svc.update_avatar(avatar.id, AvatarUpdate(nickname="Legend"))
+    svc.update_avatar(avatar.id, AvatarUpdate(nickname="Legend", voice=80))
     updated = svc.get_avatar(avatar.id)
-    assert updated and updated.nickname == "Legend"
+    assert updated and updated.nickname == "Legend" and updated.voice == 80
 
     # Adjust mood based on lifestyle and events
     updated = svc.adjust_mood(avatar.id, lifestyle_score=80, events=["burnout"])
@@ -115,6 +116,7 @@ def test_update_validation_and_clamping():
     with pytest.raises(ValueError):
         AvatarUpdate(tech_savvy=200)
     with pytest.raises(ValueError):
+<        AvatarUpdate(voice=150)
         AvatarUpdate(leadership=150)
     with pytest.raises(ValueError):
         AvatarUpdate(leadership=-5)
@@ -130,6 +132,7 @@ def test_update_validation_and_clamping():
         creativity=120,
         discipline=-5,
         tech_savvy=150,
+        voice=150,
         leadership=150,
         stage_presence=150,
     )
@@ -143,6 +146,7 @@ def test_update_validation_and_clamping():
         and updated.creativity == 100
         and updated.discipline == 0
         and updated.tech_savvy == 100
+        and updated.voice == 100
         and updated.leadership == 100
         and updated.stage_presence == 100
     )

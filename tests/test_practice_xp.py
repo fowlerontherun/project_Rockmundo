@@ -82,3 +82,45 @@ def test_recording_session_grants_skill():
     prod_skill = Skill(id=SKILL_NAME_TO_ID["music_production"], name="music_production", category="creative")
     inst = skill_service.train(42, prod_skill, 0)
     assert inst.xp == 20
+
+
+def test_gig_voice_influence(monkeypatch, tmp_path):
+    from backend.services import gig_service as gs
+
+    db = tmp_path / "gig.db"
+    _setup_gig_db(db)
+    monkeypatch.setattr(gs, "DB_PATH", str(db))
+    monkeypatch.setattr(
+        gs.fan_service,
+        "get_band_fan_stats",
+        lambda _bid: {"total_fans": 100, "average_loyalty": 100},
+    )
+    monkeypatch.setattr(gs.fan_service, "boost_fans_after_gig", lambda *a, **k: None)
+    monkeypatch.setattr(gs.skill_service, "train_with_method", lambda *a, **k: None)
+
+    conn = sqlite3.connect(db)
+    conn.execute("INSERT INTO bands (id, fame) VALUES (1, 0)")
+    conn.commit()
+    conn.close()
+
+    class DummyAvatar:
+        def __init__(self, voice: int):
+            self.voice = voice
+
+    class DummyAvatarService:
+        def __init__(self, voice: int):
+            self.avatar = DummyAvatar(voice)
+
+        def get_avatar(self, _user_id: int):
+            return self.avatar
+
+    gs.avatar_service = DummyAvatarService(0)
+    gs.create_gig(1, "Test City", 200, "2024-01-01", 10)
+    low = gs.simulate_gig_result(1)
+
+    gs.avatar_service = DummyAvatarService(100)
+    gs.create_gig(1, "Test City", 200, "2024-01-02", 10)
+    high = gs.simulate_gig_result(2)
+
+    assert high["attendance"] > low["attendance"]
+    assert high["fame_gain"] > low["fame_gain"]

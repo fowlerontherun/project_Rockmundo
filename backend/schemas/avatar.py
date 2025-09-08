@@ -32,6 +32,7 @@ class AvatarBase(BaseModel):
     creativity: int = 50
     discipline: int = 50
     resilience: int = 50
+    voice: int = 50
     luck: int = 0
     social_media: int = 0
     tech_savvy: int = 0
@@ -70,6 +71,7 @@ class AvatarUpdate(BaseModel):
     creativity: Optional[int] = None
     discipline: Optional[int] = None
     resilience: Optional[int] = None
+    voice: Optional[int] = None
     luck: Optional[int] = None
     social_media: Optional[int] = None
     tech_savvy: Optional[int] = None
@@ -85,6 +87,7 @@ class AvatarUpdate(BaseModel):
         "creativity",
         "discipline",
         "resilience",
+        "voice",
         "luck",
         "social_media",
         "tech_savvy",
