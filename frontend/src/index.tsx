@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import Header from './components/Header';
 import { NotificationProvider } from './components/Notification';
 import MobilePlanner from './components/MobilePlanner';
+import { ThemeProvider } from './context/ThemeContext';
+import ThemeToggle from './components/ThemeToggle';
 
 // Export components for other pages if needed
 export { Header, NotificationProvider, MobilePlanner };
@@ -12,8 +14,11 @@ if (container) {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
-      <NotificationProvider />
-      <Header />
+      <ThemeProvider>
+        <NotificationProvider />
+        <ThemeToggle />
+        <Header />
+      </ThemeProvider>
     </React.StrictMode>
   );
 }
@@ -23,7 +28,9 @@ if (mobile) {
   const mroot = createRoot(mobile);
   mroot.render(
     <React.StrictMode>
-      <MobilePlanner />
+      <ThemeProvider>
+        <MobilePlanner />
+      </ThemeProvider>
     </React.StrictMode>
   );
 }
