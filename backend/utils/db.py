@@ -2,16 +2,12 @@
 
 """Asynchronous database helpers using :mod:`aiosqlite`.
 
-This module provides two interfaces:
-
-``aget_conn``
-    An asynchronous context manager yielding an ``aiosqlite`` connection.
-
-``get_conn``
-    A synchronous wrapper retained for legacy code.  It uses ``asyncio.run``
-    under the hood so callers can continue to use a ``with`` block and regular
-    ``execute`` calls without ``await``.  New code should prefer
-    ``aget_conn``.
+This module exposes both asynchronous and synchronous helpers.  The
+asynchronous interfaces (e.g. :func:`aget_conn`) should be preferred for all
+new code.  The synchronous variants (``get_conn``, ``init_pool``,
+``cached_query`` and the ``_Sync*`` classes) are retained only for legacy
+callers and are **deprecated**.  They operate by driving the event loop
+manually and will raise an error if invoked from within a running loop.
 """
 
 from __future__ import annotations
@@ -20,7 +16,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Awaitable, Dict, List, Optional, Tuple
 
 import aiosqlite
 
@@ -34,6 +30,26 @@ except Exception:  # pragma: no cover - fallback for tests
 
 # Connection pool -----------------------------------------------------------------
 _pool: Optional[asyncio.Queue[aiosqlite.Connection]] = None
+
+
+def _run(coro: Awaitable[Any]):
+    """Execute ``coro`` respecting any existing event loop.
+
+    If no loop is running, a temporary loop is created.  When a loop is
+    already running, a ``RuntimeError`` is raised advising callers to use the
+    asynchronous APIs instead.
+    """
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:  # no current loop
+        return asyncio.run(coro)
+    if loop.is_running():
+        raise RuntimeError(
+            "Synchronous database helpers are deprecated inside a running loop; "
+            "use async interfaces instead."
+        )
+    return loop.run_until_complete(coro)
 
 
 async def _init_pool_async(db_path: Optional[str] = None, size: int = 5) -> None:
@@ -67,31 +83,31 @@ async def _init_pool_async(db_path: Optional[str] = None, size: int = 5) -> None
 def init_pool(db_path: Optional[str] = None, size: int = 5) -> None:
     """Initialise the connection pool synchronously.
 
-    This helper is intended to be called during application startup from a
-    synchronous context.  It delegates to :func:`_init_pool_async` using
-    ``asyncio.run``.
+    Deprecated: prefer awaiting :func:`_init_pool_async` directly.  This helper
+    drives the event loop manually and will fail if called from within a running
+    loop.
     """
 
-    asyncio.run(_init_pool_async(db_path, size))
+    _run(_init_pool_async(db_path, size))
 
 
 class _SyncCursor:
-    """Synchronous wrapper around an ``aiosqlite`` cursor."""
+    """Deprecated synchronous wrapper around an ``aiosqlite`` cursor."""
 
     def __init__(self, cursor: aiosqlite.Cursor):
         self._cursor = cursor
 
     def execute(self, sql: str, params: Tuple[Any, ...] | List[Any] = ()):
-        return asyncio.run(self._cursor.execute(sql, params))
+        return _run(self._cursor.execute(sql, params))
 
     def executemany(self, sql: str, seq: List[Tuple[Any, ...]]):
-        return asyncio.run(self._cursor.executemany(sql, seq))
+        return _run(self._cursor.executemany(sql, seq))
 
     def fetchone(self):
-        return asyncio.run(self._cursor.fetchone())
+        return _run(self._cursor.fetchone())
 
     def fetchall(self):
-        return asyncio.run(self._cursor.fetchall())
+        return _run(self._cursor.fetchall())
 
     @property
     def lastrowid(self) -> int:
@@ -99,13 +115,13 @@ class _SyncCursor:
 
 
 class _SyncConnection:
-    """Synchronous facade for ``aiosqlite`` connections."""
+    """Deprecated synchronous facade for ``aiosqlite`` connections."""
 
     def __init__(self, path: str):
-        self._conn = asyncio.run(aiosqlite.connect(path))
+        self._conn = _run(aiosqlite.connect(path))
         self._conn.row_factory = aiosqlite.Row
-        asyncio.run(self._conn.execute("PRAGMA foreign_keys = ON;"))
-        asyncio.run(self._conn.execute("PRAGMA busy_timeout = 5000;"))
+        _run(self._conn.execute("PRAGMA foreign_keys = ON;"))
+        _run(self._conn.execute("PRAGMA busy_timeout = 5000;"))
 
     def cursor(self) -> _SyncCursor:
         return _SyncCursor(self._conn.cursor())
@@ -113,23 +129,23 @@ class _SyncConnection:
     def execute(self, sql: str, params: Tuple[Any, ...] = ()):
         """Execute a query and return a synchronous cursor."""
 
-        cursor = asyncio.run(self._conn.execute(sql, params))
+        cursor = _run(self._conn.execute(sql, params))
         return _SyncCursor(cursor)
 
     def executemany(self, sql: str, seq: List[Tuple[Any, ...]]):  # pragma: no cover - passthrough
-        return asyncio.run(self._conn.executemany(sql, seq))
+        return _run(self._conn.executemany(sql, seq))
 
     def executescript(self, script: str):  # pragma: no cover - passthrough
-        return asyncio.run(self._conn.executescript(script))
+        return _run(self._conn.executescript(script))
 
     def commit(self) -> None:  # pragma: no cover - passthrough
-        asyncio.run(self._conn.commit())
+        _run(self._conn.commit())
 
     def rollback(self) -> None:  # pragma: no cover - passthrough
-        asyncio.run(self._conn.rollback())
+        _run(self._conn.rollback())
 
     def close(self) -> None:  # pragma: no cover - passthrough
-        asyncio.run(self._conn.close())
+        _run(self._conn.close())
 
     # Context manager protocol -------------------------------------------------
     def __enter__(self) -> "_SyncConnection":  # pragma: no cover - passthrough
@@ -137,15 +153,16 @@ class _SyncConnection:
 
     def __exit__(self, exc_type, exc, tb) -> None:  # pragma: no cover - passthrough
         if exc_type is None:
-            asyncio.run(self._conn.commit())
+            _run(self._conn.commit())
         else:
-            asyncio.run(self._conn.rollback())
-        asyncio.run(self._conn.close())
+            _run(self._conn.rollback())
+        _run(self._conn.close())
 
 
 def get_conn(db_path: Optional[str] = None) -> _SyncConnection:
     """Return a synchronous ``aiosqlite`` connection.
 
+    Deprecated: prefer :func:`aget_conn` and native ``async``/``await`` usage.
     This mirrors the old ``sqlite3.connect`` style API so existing code can
     operate without ``await`` while the underlying implementation uses the
     asynchronous driver.
@@ -204,9 +221,12 @@ async def _cached_query_async(
 def cached_query(
     db_path: str, query: str, params: Tuple[Any, ...] = ()
 ) -> List[Dict[str, Any]]:
-    """Execute a query and cache the results synchronously."""
+    """Execute a query and cache the results synchronously.
 
-    return asyncio.run(_cached_query_async(db_path, query, params))
+    Deprecated: prefer :func:`_cached_query_async`.
+    """
+
+    return _run(_cached_query_async(db_path, query, params))
 
 
 __all__ = ["get_conn", "aget_conn", "cached_query", "init_pool"]
