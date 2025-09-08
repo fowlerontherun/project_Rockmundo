@@ -7,8 +7,9 @@ import os
 import httpx
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Type
+from typing import Dict, Optional
 from uuid import uuid4
+from abc import ABC, abstractmethod
 
 from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
 from backend.services.economy_service import EconomyService
@@ -21,8 +22,9 @@ class PaymentError(Exception):
 @dataclass
 class PaymentGateway(ABC):
     """Minimal gateway interface used for testing.
-
-    Real implementations would integrate with providers like Stripe or PayPal.
+    """Abstract payment gateway definition.
+    Concrete subclasses integrate with providers like Stripe or PayPal and
+    must implement the methods below.
     """
 
     @abstractmethod
@@ -32,7 +34,11 @@ class PaymentGateway(ABC):
     @abstractmethod
     def verify_payment(self, payment_id: str) -> bool:
         """Return ``True`` if the payment completed successfully."""
+        """Create a remote payment and return its provider identifier."""
 
+    @abstractmethod
+    def verify_payment(self, payment_id: str) -> bool:
+        """Return ``True`` if the payment succeeded on the provider side."""
 
 @dataclass
 class MockGateway(PaymentGateway):
@@ -124,20 +130,12 @@ class StripeAPIGateway(PaymentGateway):
 class PaymentService:
     """Main entry point for handling payment operations."""
 
-    # registry of available gateways for simple configuration
-    gateway_registry: Dict[str, Type[PaymentGateway]] = {
-        "stripe": StripeGateway,
-        "paypal": PayPalGateway,
-        "stripe_api": StripeAPIGateway,
-    }
-
-    def __init__(self, gateway: Optional[PaymentGateway], economy_service: EconomyService,
-                 premium_currency: Optional[PremiumCurrency] = None, gateway_name: str = "stripe"):
-        if gateway is None:
-            gateway_cls = self.gateway_registry.get(gateway_name.lower())
-            if not gateway_cls:
-                raise ValueError(f"Unsupported gateway: {gateway_name}")
-            gateway = gateway_cls()
+    def __init__(
+        self,
+        gateway: PaymentGateway,
+        economy_service: EconomyService,
+        premium_currency: Optional[PremiumCurrency] = None,
+    ) -> None:
         self.gateway = gateway
         self.economy_service = economy_service
         self.premium_currency = premium_currency or PremiumCurrency(
