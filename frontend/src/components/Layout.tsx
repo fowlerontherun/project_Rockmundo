@@ -1,18 +1,6 @@
 import React from 'react';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
-
-const ThemeToggle: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded border border-gray-300"
-      aria-label="toggle theme"
-    >
-      {theme === 'light' ? 'Dark' : 'Light'} Mode
-    </button>
-  );
-};
+import { ThemeProvider } from '../context/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 const Navigation: React.FC = () => (
   <nav className="bg-[var(--bg-color)] border-t md:border-t-0 md:border-r border-gray-200">
