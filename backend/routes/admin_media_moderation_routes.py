@@ -9,6 +9,7 @@ from auth.dependencies import get_current_user_id, require_permission
 from services.admin_audit_service import audit_dependency
 from services.admin_service import AdminActionRepository, AdminService
 from services.storage_service import get_storage_backend
+from services.skin_service import SkinService
 
 # Starlette 0.47 enforces a ``type`` key in the ASGI scope.  Tests create
 # ``Request({})`` which lacks this information, so patch the constructor to
@@ -37,6 +38,7 @@ router = APIRouter(
 
 # Real repository backing the admin action log
 admin_logger = AdminService(AdminActionRepository())
+skin_service = SkinService()
 
 
 @router.post("/flag/{media_id}")
@@ -71,4 +73,25 @@ async def approve_media(media_id: int, req: Request):
         content_type="application/json",
     )
     return {"status": "approved", "media_id": media_id}
+
+
+@router.get("/queue")
+async def list_submission_queue(req: Request):
+    """List pending skin submissions awaiting moderation."""
+
+    admin_id = await get_current_user_id(req)
+    await require_permission(["admin"], admin_id)
+    queue = skin_service.list_submission_queue()
+    return [s.__dict__ for s in queue]
+
+
+@router.post("/review/{submission_id}/{decision}")
+async def review_submission(submission_id: int, decision: str, req: Request):
+    """Approve or reject a skin submission."""
+
+    admin_id = await get_current_user_id(req)
+    await require_permission(["admin"], admin_id)
+    approved = decision.lower() == "approve"
+    review = skin_service.review_submission(submission_id, admin_id, approved)
+    return {"review_id": review.id, "status": review.decision}
 

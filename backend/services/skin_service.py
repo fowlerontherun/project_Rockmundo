@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+from dataclasses import dataclass
+from typing import Callable, Optional, List
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,11 +23,37 @@ Skin.__table__.create(bind=engine, checkfirst=True)
 AvatarBase.metadata.create_all(bind=engine)
 
 
+@dataclass
+class SkinSubmission:
+    """A user submitted skin awaiting moderation."""
+
+    id: int
+    name: str
+    data: dict
+    creator_id: int | None = None
+    status: str = "pending"
+
+
+@dataclass
+class SkinReview:
+    """Record of a moderation decision for a skin submission."""
+
+    id: int
+    submission_id: int
+    reviewer_id: int
+    decision: str  # "approved" or "rejected"
+    comment: str = ""
+
+
 class SkinService:
-    """Marketplace operations for avatar skins."""
+    """Marketplace operations for avatar skins and submission moderation."""
 
     def __init__(self, session_factory: Callable[[], Session] | sessionmaker = SessionLocal):
         self.session_factory = session_factory
+        self._submissions: List[SkinSubmission] = []
+        self._reviews: List[SkinReview] = []
+        self._next_submission_id = 1
+        self._next_review_id = 1
 
     # ------------------------------------------------------------------
     def list_skins(self) -> list[Skin]:
@@ -118,3 +145,41 @@ class SkinService:
             session.commit()
             session.refresh(avatar)
             return avatar
+
+    # ------------------------------------------------------------------
+    # Moderation helpers
+    def submit_skin(self, name: str, data: dict, creator_id: int | None = None) -> SkinSubmission:
+        """Add a new skin submission to the moderation queue."""
+
+        submission = SkinSubmission(
+            id=self._next_submission_id, name=name, data=data, creator_id=creator_id
+        )
+        self._next_submission_id += 1
+        self._submissions.append(submission)
+        return submission
+
+    def list_submission_queue(self) -> list[SkinSubmission]:
+        """Return all submissions still pending review."""
+
+        return [s for s in self._submissions if s.status == "pending"]
+
+    def review_submission(
+        self, submission_id: int, reviewer_id: int, approved: bool, comment: str = ""
+    ) -> SkinReview:
+        """Record a review decision for a submission."""
+
+        submission = next((s for s in self._submissions if s.id == submission_id), None)
+        if not submission:
+            raise ValueError("Submission not found")
+
+        submission.status = "approved" if approved else "rejected"
+        review = SkinReview(
+            id=self._next_review_id,
+            submission_id=submission_id,
+            reviewer_id=reviewer_id,
+            decision=submission.status,
+            comment=comment,
+        )
+        self._next_review_id += 1
+        self._reviews.append(review)
+        return review
