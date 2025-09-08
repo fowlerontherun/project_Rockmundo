@@ -46,6 +46,7 @@ class AvatarService:
             payload.setdefault("tech_savvy", 0)
             payload.setdefault("networking", 0)
             payload.setdefault("leadership", 0)
+            payload.setdefault("stage_presence", 50)
             payload.setdefault("resilience", 50)
             avatar = Avatar(**payload)
             session.add(avatar)
@@ -82,6 +83,7 @@ class AvatarService:
                     "tech_savvy",
                     "networking",
                     "leadership",
+                    "stage_presence",
                 } and value is not None:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:
