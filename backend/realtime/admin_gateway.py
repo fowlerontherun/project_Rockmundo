@@ -8,6 +8,7 @@ from typing import Any, Dict, Set
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from .gateway import hub, get_current_user_id_dep
+from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 
 try:  # pragma: no cover - fallback during tests
     from auth.dependencies import require_permission
@@ -42,6 +43,7 @@ async def admin_ws(
 ) -> None:
     """Single admin websocket that can subscribe to multiple topics."""
     await ws.accept()
+    await track_connect()
     await require_permission(["admin", "moderator"], user_id)
 
     sub = _Subscriber()
@@ -65,6 +67,7 @@ async def admin_ws(
     try:
         while True:
             raw = await ws.receive_text()
+            await track_message()
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
@@ -96,6 +99,7 @@ async def admin_ws(
         task.cancel()
         for t in list(topics):
             await hub.unsubscribe(t, sub)
+        await track_disconnect()
 
 
 async def publish_economy_alert(event: Dict[str, Any]) -> int:

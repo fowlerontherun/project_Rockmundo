@@ -48,6 +48,17 @@ def get_country_charts(country: str, chart_type: str = "streams_song", period: s
     ]
 
 
+@router.get("/country/{country}/{week_start}")
+def get_country_chart(
+    country: str,
+    week_start: str,
+    _req: Request,
+    user_id: int = Depends(get_current_user_id),
+):
+    """Retrieve weekly chart entries for a specific country."""
+    return get_chart("Global Top 100", country.upper(), week_start)
+
+
 @router.get("/{region}/{week_start}")
 def get_global_chart(
     region: str,
