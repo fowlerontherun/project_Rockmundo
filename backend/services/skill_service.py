@@ -27,6 +27,7 @@ from backend.services.avatar_service import AvatarService
 from backend.services.perk_service import perk_service
 from backend.schemas.avatar import AvatarUpdate
 from backend.services.xp_item_service import xp_item_service
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 INTERNET_DEVICE_NAME = "internet device"
 
@@ -199,6 +200,8 @@ class SkillService:
             attr_val = attr_map.get(inst.category)
             if attr_val is not None:
                 gain = int(gain * (1 + attr_val / 200))
+            if inst.id == SKILL_NAME_TO_ID.get("vocals") or inst.parent_id == SKILL_NAME_TO_ID.get("vocals"):
+                gain = int(gain * (1 + avatar.voice / 200))
             discipline = avatar.discipline
         else:
             discipline = 50

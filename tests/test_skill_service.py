@@ -9,6 +9,7 @@ from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
 from backend.services.item_service import item_service
 from backend.services.skill_service import SkillService
+from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 class DummyXPEvents:
@@ -196,6 +197,28 @@ def test_environment_quality(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
         1, skill, LearningMethod.PRACTICE, 1, environment_quality=1.5
     )
     assert updated.xp == 15
+
+
+def test_voice_boosts_vocal_xp() -> None:
+    class DummyAvatar:
+        def __init__(self, voice: int):
+            self.voice = voice
+            self.discipline = 50
+            self.creativity = 50
+            self.charisma = 0
+            self.intelligence = 50
+
+    class DummyAvatarService:
+        def __init__(self, avatar: DummyAvatar):
+            self.avatar = avatar
+
+        def get_avatar(self, user_id: int) -> DummyAvatar:
+            return self.avatar
+
+    svc = SkillService(avatar_service=DummyAvatarService(DummyAvatar(80)))
+    skill = Skill(id=SKILL_NAME_TO_ID["vocals"], name="vocals", category="performance")
+    updated = svc.train(1, skill, 100)
+    assert updated.xp == 140
 
 
 def test_lifestyle_modifier(tmp_path: Path) -> None:
