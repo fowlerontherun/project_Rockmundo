@@ -1,18 +1,25 @@
-from fastapi import APIRouter
-from fastapi import Depends
+from fastapi import APIRouter, Depends
 from auth.dependencies import get_current_user_id, require_permission
-from services.mailbox_service import *
+from services.mailbox_service import delete_message, get_inbox, send_message
 
 router = APIRouter()
 
+
 @router.post("/mail/send", dependencies=[Depends(require_permission(["admin", "moderator"]))])
-def send_message(payload: dict, user_id: int = Depends(get_current_user_id)):
-    return send_mail(payload)
+async def send_message_route(payload: dict, user_id: int = Depends(get_current_user_id)):
+    """Send a mail message on behalf of an admin or moderator."""
+    return await send_message(
+        user_id, payload["recipient_id"], payload["subject"], payload["body"]
+    )
+
 
 @router.get("/mail/inbox")
-def inbox(user_id: int = Depends(get_current_user_id)):
-    return get_inbox(user_id)
+async def inbox(user_id: int = Depends(get_current_user_id)):
+    """Return the inbox for the authenticated user."""
+    return await get_inbox(user_id)
 
-@router.post("/mail/archive")
-def archive(payload: dict, user_id: int = Depends(get_current_user_id)):
-    return archive_mail(payload)
+
+@router.delete("/mail/{message_id}")
+async def archive(message_id: int, user_id: int = Depends(get_current_user_id)):
+    """Archive (soft delete) a mail message."""
+    return await delete_message(message_id, user_id)
