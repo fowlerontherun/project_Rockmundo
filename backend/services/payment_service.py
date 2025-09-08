@@ -5,9 +5,11 @@ from __future__ import annotations
 import os
 
 import httpx
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Type
+from typing import Dict, Optional
 from uuid import uuid4
+from abc import ABC, abstractmethod
 
 from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
 from backend.services.economy_service import EconomyService
@@ -18,18 +20,25 @@ class PaymentError(Exception):
 
 
 @dataclass
-class PaymentGateway:
+class PaymentGateway(ABC):
     """Minimal gateway interface used for testing.
-
-    Real implementations would integrate with providers like Stripe or PayPal.
+    """Abstract payment gateway definition.
+    Concrete subclasses integrate with providers like Stripe or PayPal and
+    must implement the methods below.
     """
 
-    def create_payment(self, amount_cents: int, currency: str) -> str:  # pragma: no cover - interface
-        raise NotImplementedError
+    @abstractmethod
+    def create_payment(self, amount_cents: int, currency: str) -> str:
+        """Create a payment request and return its provider identifier."""
 
-    def verify_payment(self, payment_id: str) -> bool:  # pragma: no cover - interface
-        raise NotImplementedError
+    @abstractmethod
+    def verify_payment(self, payment_id: str) -> bool:
+        """Return ``True`` if the payment completed successfully."""
+        """Create a remote payment and return its provider identifier."""
 
+    @abstractmethod
+    def verify_payment(self, payment_id: str) -> bool:
+        """Return ``True`` if the payment succeeded on the provider side."""
 
 @dataclass
 class MockGateway(PaymentGateway):
@@ -80,10 +89,14 @@ class StripeAPIGateway(PaymentGateway):
     """
 
     base_url: str = "https://api.stripe.com/v1"
-    api_key: str = field(default_factory=lambda: os.environ["STRIPE_API_KEY"])
+    api_key: str = field(default_factory=lambda: os.getenv("STRIPE_API_KEY", ""))
     webhook_secret: Optional[str] = field(
-        default_factory=lambda: os.environ.get("STRIPE_WEBHOOK_SECRET")
+        default_factory=lambda: os.getenv("STRIPE_WEBHOOK_SECRET")
     )
+
+    def __post_init__(self) -> None:
+        if not self.api_key:
+            raise PaymentError("Stripe API key not configured")
 
     def create_payment(self, amount_cents: int, currency: str) -> str:
         data = {
@@ -91,37 +104,38 @@ class StripeAPIGateway(PaymentGateway):
             "currency": currency,
             "payment_method_types[]": "card",
         }
-        resp = httpx.post(
-            f"{self.base_url}/payment_intents", data=data, auth=(self.api_key, "")
-        )
-        resp.raise_for_status()
-        return resp.json()["id"]
+        try:
+            resp = httpx.post(
+                f"{self.base_url}/payment_intents", data=data, auth=(self.api_key, "")
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover - network errors
+            raise PaymentError(f"Stripe create_payment failed: {exc}") from exc
+        try:
+            return resp.json()["id"]
+        except KeyError as exc:
+            raise PaymentError("Stripe response missing id") from exc
 
     def verify_payment(self, payment_id: str) -> bool:
-        resp = httpx.get(
-            f"{self.base_url}/payment_intents/{payment_id}", auth=(self.api_key, "")
-        )
-        resp.raise_for_status()
+        try:
+            resp = httpx.get(
+                f"{self.base_url}/payment_intents/{payment_id}", auth=(self.api_key, "")
+            )
+            resp.raise_for_status()
+        except Exception as exc:  # pragma: no cover - network errors
+            raise PaymentError(f"Stripe verify_payment failed: {exc}") from exc
         return resp.json().get("status") == "succeeded"
 
 
 class PaymentService:
     """Main entry point for handling payment operations."""
 
-    # registry of available gateways for simple configuration
-    gateway_registry: Dict[str, Type[PaymentGateway]] = {
-        "stripe": StripeGateway,
-        "paypal": PayPalGateway,
-        "stripe_api": StripeAPIGateway,
-    }
-
-    def __init__(self, gateway: Optional[PaymentGateway], economy_service: EconomyService,
-                 premium_currency: Optional[PremiumCurrency] = None, gateway_name: str = "stripe"):
-        if gateway is None:
-            gateway_cls = self.gateway_registry.get(gateway_name.lower())
-            if not gateway_cls:
-                raise ValueError(f"Unsupported gateway: {gateway_name}")
-            gateway = gateway_cls()
+    def __init__(
+        self,
+        gateway: PaymentGateway,
+        economy_service: EconomyService,
+        premium_currency: Optional[PremiumCurrency] = None,
+    ) -> None:
         self.gateway = gateway
         self.economy_service = economy_service
         self.premium_currency = premium_currency or PremiumCurrency(

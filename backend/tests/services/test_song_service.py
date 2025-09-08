@@ -1,5 +1,7 @@
 import sqlite3
 
+import pytest
+
 from backend.services.song_service import SongService
 from backend.jobs.royalty_clearing_job import run as royalty_run
 
@@ -110,3 +112,21 @@ def test_cover_royalties_and_license(tmp_path):
     royalty_run(db=str(db_path))
     royalties_after = service.list_cover_royalties(band_id)
     assert royalties_after[0]["amount_paid"] == royalties_after[0]["amount_owed"]
+
+
+def test_update_song_rejects_disallowed_field(tmp_path):
+    db_path = tmp_path / "songs.db"
+    setup_db(db_path)
+    service = SongService(db=str(db_path))
+
+    song = {
+        "band_id": 1,
+        "title": "Test",
+        "duration_sec": 120,
+        "genre": "rock",
+        "royalties_split": {1: 100},
+    }
+    song_id = service.create_song(song)["song_id"]
+
+    with pytest.raises(ValueError):
+        service.update_song(song_id, {"hack": "value"})
