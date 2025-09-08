@@ -2,15 +2,21 @@ from datetime import datetime
 
 # TODO: Replace in-memory stores with persistent storage to avoid data loss on
 # restart.
-chat_store = {}
-group_chat_store = {}
-group_members = {}
+chat_store: dict[int, list] = {}
+group_chat_store: dict[int, list] = {}
+group_members: dict[int, set[int]] = {}
+# Registry to track which groups a user belongs to
+user_groups: dict[int, set[int]] = {}
 
 
 def add_user_to_group(group_id, user_id):
     if group_id not in group_members:
         group_members[group_id] = set()
     group_members[group_id].add(user_id)
+
+    if user_id not in user_groups:
+        user_groups[user_id] = set()
+    user_groups[user_id].add(group_id)
 
 
 def send_message(data):
@@ -22,12 +28,8 @@ def send_message(data):
         "content": data["content"],
         "timestamp": str(datetime.utcnow()),
     }
-    if recipient not in chat_store:
-        chat_store[recipient] = []
-    if sender not in chat_store:
-        chat_store[sender] = []
-    chat_store[recipient].append(message)
-    chat_store[sender].append(message)
+    chat_store.setdefault(recipient, []).append(message)
+    chat_store.setdefault(sender, []).append(message)
     return {"status": "message_sent", "message": message}
 
 
@@ -47,10 +49,8 @@ def send_group_chat(data):
 
 
 def get_user_chat_history(user_id):
-    user_groups = [
-        group_id for group_id, members in group_members.items() if user_id in members
-    ]
+    groups = user_groups.get(user_id, set())
     return {
         "direct_messages": chat_store.get(user_id, []),
-        "group_chats": {group_id: group_chat_store.get(group_id, []) for group_id in user_groups},
+        "group_chats": {gid: group_chat_store.get(gid, []) for gid in groups},
     }
