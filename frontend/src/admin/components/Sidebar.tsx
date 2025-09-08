@@ -1,4 +1,6 @@
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface NavItem {
   label: string;
@@ -27,23 +29,55 @@ const navItems: NavItem[] = [
   { label: 'Modding', href: '/admin/modding' },
 ];
 
+const Sidebar: React.FC = () => {
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    (window as any).setAdminNotifCount = setNotifCount;
+    fetch('/admin/notifications')
+      .then((r) => r.json())
+      .then((d) => setNotifCount(d.unread || 0))
+      .catch(() => {});
+  }, []);
+
+  return (
+    <aside className="w-64 bg-gray-800 text-white h-screen p-4">
+      <nav>
+        <ul>
+          {navItems.map((item) => (
+            <li key={item.href} className="mb-2">
+              <a
+                href={item.href}
+                className="block px-2 py-1 rounded hover:bg-gray-700"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+          <li className="mb-2">
+            <a
+              href="/admin/notifications"
+              className="block px-2 py-1 rounded hover:bg-gray-700"
+            >
+              Notifications ({notifCount})
+            </a>
 const Sidebar: React.FC = () => (
   <aside className="w-64 bg-gray-800 text-white h-screen p-4">
     <nav>
       <ul>
         {navItems.map((item) => (
           <li key={item.href} className="mb-2">
-            <a
-              href={item.href}
+            <Link
+              to={item.href}
               className="block px-2 py-1 rounded hover:bg-gray-700"
             >
               {item.label}
-            </a>
+            </Link>
           </li>
-        ))}
-      </ul>
-    </nav>
-  </aside>
-);
+        </ul>
+      </nav>
+    </aside>
+  );
+};
 
 export default Sidebar;

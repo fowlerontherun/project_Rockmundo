@@ -29,6 +29,7 @@ from .admin_npc_routes import router as npc_router
 from .admin_online_tutorial_routes import router as online_tutorial_router
 from .admin_player_shop_routes import router as player_shop_router
 from .admin_quest_routes import router as quest_router
+from .admin_notifications_routes import router as notifications_router
 from .admin_schema_routes import router as schema_router
 from .admin_shop_event_routes import router as shop_event_router
 from .admin_song_popularity_routes import router as song_popularity_router
@@ -72,6 +73,7 @@ router.include_router(modding_router)
 router.include_router(npc_router)
 router.include_router(npc_dialogue_router)
 router.include_router(quest_router)
+router.include_router(notifications_router)
 router.include_router(schema_router)
 router.include_router(song_popularity_router)
 router.include_router(item_router)
