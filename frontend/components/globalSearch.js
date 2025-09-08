@@ -7,20 +7,7 @@
 
   function initGlobalSearch(container){
     if(!container) return;
-    if(!document.getElementById('global-search-styles')){
-      const style=document.createElement('style');
-      style.id='global-search-styles';
-      style.textContent=`
-        .global-search-wrapper{position:relative;margin-left:1rem;}
-        .global-search-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ccc;z-index:1000;font-size:14px;max-height:300px;overflow-y:auto;}
-        .global-search-results ul{list-style:none;margin:0;padding:0;}
-        .global-search-results li{padding:4px 8px;}
-        .global-search-results li.active{background:#eee;}
-        .global-search-results .group-title{font-weight:bold;padding:4px 8px;border-top:1px solid #ddd;background:#f9f9f9;}
-        .global-search-results .group-title:first-child{border-top:none;}
-      `;
-      document.head.appendChild(style);
-    }
+    // Styles are now handled in CSS via globalSearch.css
 
     const wrapper=document.createElement('div');
     wrapper.className='global-search-wrapper';
