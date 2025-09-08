@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 from backend.database import DB_PATH
 from backend.services.xp_reward_service import xp_reward_service
+from backend.models import weekly_drop, tier_track
 
 CHALLENGES = [
     "Practice scales",
@@ -59,24 +60,8 @@ def get_status(user_id: int) -> Dict:
         (user_id,),
     )
     row = cur.fetchone()
-    today = date.today().isoformat()
-    cur.execute(
-        """
-        SELECT drop_date, reward FROM weekly_drops
-        WHERE user_id = ? AND claimed = 0 AND drop_date >= ?
-        ORDER BY drop_date LIMIT 1
-        """,
-        (user_id, today),
-    )
-    drop_row = cur.fetchone()
-    next_weekly: Optional[Dict[str, str]] = None
-    if drop_row:
-        next_weekly = {"drop_date": drop_row[0], "reward": drop_row[1]}
-    cur.execute(
-        "SELECT reward FROM tier_tracks WHERE tier = ?", (row[6] + 1,)
-    )
-    reward_row = cur.fetchone()
-    next_tier_reward = reward_row[0] if reward_row else None
+    next_weekly = weekly_drop.get_next_drop(user_id)
+    next_tier_reward = tier_track.get_reward(row[6] + 1)
     conn.close()
     return {
         "login_streak": row[0],
@@ -162,23 +147,14 @@ def rotate_daily_challenge() -> None:
     """,
         (challenge, tier),
     )
-    # Schedule weekly reward drop for each user
     next_drop = (date.today() + timedelta(days=7)).isoformat()
     cur.execute("SELECT user_id FROM daily_loop")
     users = [row[0] for row in cur.fetchall()]
-    cur.execute("SELECT reward FROM tier_tracks WHERE tier = ?", (tier,))
-    reward_row = cur.fetchone()
-    reward = reward_row[0] if reward_row else "mystery"
-    for uid in users:
-        cur.execute(
-            """
-            INSERT OR REPLACE INTO weekly_drops (user_id, drop_date, reward, claimed)
-            VALUES (?, ?, ?, 0)
-            """,
-            (uid, next_drop, reward),
-        )
+    reward = tier_track.get_reward(tier) or "mystery"
     conn.commit()
     conn.close()
+    for uid in users:
+        weekly_drop.schedule_drop(uid, next_drop, reward)
 
 
 def reset_weekly_milestones(user_id: int) -> Dict:

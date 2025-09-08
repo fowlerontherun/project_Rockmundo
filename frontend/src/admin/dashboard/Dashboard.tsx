@@ -3,9 +3,11 @@ import MetricsWidget from './MetricsWidget';
 import WebsocketMetricsWidget from './WebsocketMetricsWidget';
 import AlertsWidget from './AlertsWidget';
 import RbacControls from './RbacControls';
+import DailyLoopWidget from './DailyLoopWidget';
 
 const Dashboard: React.FC = () => (
   <div className="mt-6">
+    <DailyLoopWidget />
     <h2 className="text-xl font-semibold mb-2">Monitoring</h2>
     <MetricsWidget />
     <WebsocketMetricsWidget />
