@@ -3,38 +3,46 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from types import ModuleType
 
+from backend.config import lifestyle as lifestyle_config
 from .xp_event_service import XPEventService
 
 DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
 
-# Daily decay values (sleep is derived from schedule and not decayed)
-DECAY = {
-    "mental_health": 1.0,
-    "stress": 1.5,
-    "training_discipline": 0.5,
-}
 
-# XP modifier ranges
-def lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness):
+def lifestyle_xp_modifier(
+    sleep: float,
+    stress: float,
+    discipline: float,
+    mental: float,
+    nutrition: float,
+    fitness: float,
+    thresholds: dict | None = None,
+) -> float:
+    """Return an XP modifier based on lifestyle metrics."""
+
     modifier = 1.0
+    cfg = thresholds or lifestyle_config.MODIFIER_THRESHOLDS
 
-    if sleep < 5:
-        modifier *= 0.7
-    if stress > 80:
-        modifier *= 0.75
-    if discipline < 30:
-        modifier *= 0.85
-    if mental < 60:
-        modifier *= 0.8
-    if nutrition < 40:
-        modifier *= 0.9
-    if fitness < 30:
-        modifier *= 0.9
+    if sleep < cfg["sleep_hours"]["min"]:
+        modifier *= cfg["sleep_hours"]["modifier"]
+    if stress > cfg["stress"]["max"]:
+        modifier *= cfg["stress"]["modifier"]
+    if discipline < cfg["training_discipline"]["min"]:
+        modifier *= cfg["training_discipline"]["modifier"]
+    if mental < cfg["mental_health"]["min"]:
+        modifier *= cfg["mental_health"]["modifier"]
+    if nutrition < cfg["nutrition"]["min"]:
+        modifier *= cfg["nutrition"]["modifier"]
+    if fitness < cfg["fitness"]["min"]:
+        modifier *= cfg["fitness"]["modifier"]
 
     return round(modifier, 2)
 
-def apply_lifestyle_decay_and_xp_effects() -> int:
+def apply_lifestyle_decay_and_xp_effects(
+    config: ModuleType = lifestyle_config,
+) -> int:
     from .skill_service import skill_service  # local import to avoid cycle
     from .lifestyle_service import grant_daily_xp, log_exercise_session
     from .addiction_service import addiction_service
@@ -89,9 +97,9 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
             sleep = cur.fetchone()[0]
 
             _drinking = row[3]
-            stress = min(100, row[4] + DECAY["stress"])
-            discipline = max(0, row[5] - DECAY["training_discipline"])
-            mental = max(0, row[6] - DECAY["mental_health"])
+            stress = min(100, row[4] + config.DECAY["stress"])
+            discipline = max(0, row[5] - config.DECAY["training_discipline"])
+            mental = max(0, row[6] - config.DECAY["mental_health"])
 
             # Process scheduled exercise and apply cooldown-based benefits
             cur.execute(
@@ -164,7 +172,15 @@ def apply_lifestyle_decay_and_xp_effects() -> int:
 
             nutrition = row[7]
             fitness = row[8]
-            modifier = lifestyle_xp_modifier(sleep, stress, discipline, mental, nutrition, fitness)
+            modifier = lifestyle_xp_modifier(
+                sleep,
+                stress,
+                discipline,
+                mental,
+                nutrition,
+                fitness,
+                config.MODIFIER_THRESHOLDS,
+            )
             modifier *= event_svc.get_active_multiplier()
 
             cur.execute("""
