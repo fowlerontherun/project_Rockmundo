@@ -52,6 +52,7 @@ def test_crud_lifecycle():
     assert avatar.intelligence == 50
     assert avatar.creativity == 60
     assert avatar.discipline == 70
+    assert avatar.stage_presence == 50
 
     fetched = svc.get_avatar(avatar.id)
     assert fetched and fetched.nickname == "Hero"
@@ -112,6 +113,10 @@ def test_update_validation_and_clamping():
         AvatarUpdate(discipline=-5)
     with pytest.raises(ValueError):
         AvatarUpdate(tech_savvy=200)
+    with pytest.raises(ValueError):
+        AvatarUpdate(stage_presence=150)
+    with pytest.raises(ValueError):
+        AvatarUpdate(stage_presence=-10)
 
     # Bypass validation to ensure service clamps the values
     update_data = AvatarUpdate.model_construct(
@@ -121,6 +126,7 @@ def test_update_validation_and_clamping():
         creativity=120,
         discipline=-5,
         tech_savvy=150,
+        stage_presence=150,
     )
     svc.update_avatar(avatar.id, update_data)
     updated = svc.get_avatar(avatar.id)
@@ -132,4 +138,5 @@ def test_update_validation_and_clamping():
         and updated.creativity == 100
         and updated.discipline == 0
         and updated.tech_savvy == 100
+        and updated.stage_presence == 100
     )
