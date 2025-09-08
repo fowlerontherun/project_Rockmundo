@@ -2,6 +2,7 @@
 from functools import lru_cache
 from typing import Set
 
+from auth.permissions import Permissions
 from utils.db import get_conn
 
 
@@ -36,9 +37,15 @@ def get_permissions_for_user(user_id: int) -> Set[str]:
     return {row["name"] for row in rows}
 
 
-def has_permission(user_id: int, permission: str) -> bool:
-    """Return ``True`` if ``user_id`` has ``permission``."""
-    return permission in get_permissions_for_user(user_id)
+def has_permission(user_id: int, permission: Permissions | str) -> bool:
+    """Return ``True`` if ``user_id`` has ``permission``.
+
+    ``permission`` may be provided as a :class:`Permissions` enum member or
+    a raw string. Unknown permission strings raise ``ValueError`` to help
+    catch typos at call sites.
+    """
+    perm_value = Permissions(permission).value if not isinstance(permission, Permissions) else permission.value
+    return perm_value in get_permissions_for_user(user_id)
 
 
 def clear_role_cache(user_id: int | None = None) -> None:

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from auth.dependencies import get_current_user_id, require_permission
+from auth.permissions import Permissions
 from auth.service import AuthService
 from fastapi import APIRouter, Depends, HTTPException, Request
 from models.admin import AdminSession, admin_sessions
@@ -33,6 +34,12 @@ class LogoutIn(BaseModel):
 
 class RevokeTokenIn(BaseModel):
     jti: str
+
+
+@router.get("/permissions")
+async def list_permissions():
+    """Return the list of available permission strings."""
+    return {"permissions": [p.value for p in Permissions]}
 
 @router.post("/register")
 async def register(payload: RegisterIn):
@@ -96,7 +103,10 @@ async def logout(payload: LogoutIn):
     return await svc.logout(refresh_token=payload.refresh_token)
 
 
-@router.post("/tokens/revoke", dependencies=[Depends(require_permission(["admin"]))])
+@router.post(
+    "/tokens/revoke",
+    dependencies=[Depends(require_permission([Permissions.ADMIN]))],
+)
 async def revoke_token(payload: RevokeTokenIn):
     if not await svc.revoke_access_token(payload.jti):
         raise HTTPException(
@@ -130,7 +140,10 @@ class RoleAssignIn(BaseModel):
     user_id: int
     role: str
 
-@router.post("/roles/assign", dependencies=[Depends(require_permission(["admin"]))])
+@router.post(
+    "/roles/assign",
+    dependencies=[Depends(require_permission([Permissions.ADMIN]))],
+)
 async def assign_role(payload: RoleAssignIn):
     async with aget_conn() as conn:
         cur = await conn.execute("SELECT id FROM roles WHERE name=?", (payload.role,))
@@ -146,7 +159,10 @@ async def assign_role(payload: RoleAssignIn):
         )
         return {"ok": True}
 
-@router.post("/roles/revoke", dependencies=[Depends(require_permission(["admin"]))])
+@router.post(
+    "/roles/revoke",
+    dependencies=[Depends(require_permission([Permissions.ADMIN]))],
+)
 async def revoke_role(payload: RoleAssignIn):
     async with aget_conn() as conn:
         cur = await conn.execute("SELECT id FROM roles WHERE name=?", (payload.role,))
