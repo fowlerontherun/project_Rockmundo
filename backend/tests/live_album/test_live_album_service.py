@@ -159,7 +159,7 @@ async def test_publish_album_records_show_data(tmp_path, monkeypatch):
 
     service = LiveAlbumService(str(db_file))
     album = await service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
-    release_id = service.publish_album(album["id"])
+    release_id = await service.publish_album(album["id"])
 
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()

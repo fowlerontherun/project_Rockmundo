@@ -7,10 +7,9 @@ from typing import Dict, List
 from models.album import Album
 
 from backend.database import DB_PATH
-from backend.services import audio_mixing_service
+from backend.services import audio_mixing_service, chart_service
 from backend.services.ai_art_service import ai_art_service
 from backend.services.sales_service import SalesService
-from backend.services import chart_service
 
 
 class LiveAlbumService:
@@ -207,7 +206,7 @@ class LiveAlbumService:
         return album
 
     # ------------------------------------------------------------------
-    def publish_album(self, album_id: int) -> int:
+    async def publish_album(self, album_id: int) -> int:
         """Persist a drafted live album and register it for sales and charts.
 
         Parameters
@@ -300,15 +299,13 @@ class LiveAlbumService:
         # auxiliary for this service.
         try:
             sales = SalesService(self.db_path)
-            asyncio.run(sales.ensure_schema())
-            asyncio.run(
-                sales.record_digital_sale(
-                    buyer_user_id=0,
-                    work_type="album",
-                    work_id=release_id,
-                    price_cents=0,
-                    album_type=album["album_type"],
-                )
+            await sales.ensure_schema()
+            await sales.record_digital_sale(
+                buyer_user_id=0,
+                work_type="album",
+                work_id=release_id,
+                price_cents=0,
+                album_type=album["album_type"],
             )
         except Exception:
             pass
