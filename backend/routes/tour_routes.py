@@ -6,7 +6,7 @@ try:  # Pydantic may be stubbed in tests
 except Exception:  # pragma: no cover - fallback for minimal pydantic
     def Field(default=None, **kwargs):  # type: ignore
         return default
-from typing import List
+from typing import Any, List
 
 from services.tour_service import TourService, TourError
 from models.tour import TicketTier, Expense
@@ -132,3 +132,58 @@ def report(tour_id: int):
         return svc.report(tour_id)
     except TourError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ----------------------- Simple planner API -----------------------
+# These endpoints back the lightweight tour planner UI.  Data is stored in
+# memory for demonstration/testing purposes only and is not persisted.
+_planner_schedule: dict[str, Any] = {}
+_planner_dates: list[dict] = []
+_planner_expenses: list[dict] = []
+
+
+@router.get("/planner/schedule")
+def planner_get_schedule():
+    return _planner_schedule
+
+
+@router.put("/planner/schedule/{time}")
+def planner_save_slot(time: str, payload: dict):
+    _planner_schedule[time] = payload.get("value")
+    return {"time": time, "value": _planner_schedule[time]}
+
+
+@router.delete("/planner/schedule/{time}")
+def planner_delete_slot(time: str):
+    _planner_schedule.pop(time, None)
+    return {"status": "ok"}
+
+
+@router.post("/planner/schedule")
+def planner_add_date(item: dict):
+    _planner_dates.append(item)
+    return {"schedule": _planner_dates}
+
+
+@router.delete("/planner/schedule")
+def planner_delete_date(item: dict):
+    try:
+        _planner_dates.remove(item)
+    except ValueError:
+        pass
+    return {"schedule": _planner_dates}
+
+
+@router.post("/planner/expenses")
+def planner_add_expense(item: dict):
+    _planner_expenses.append(item)
+    return {"expenses": _planner_expenses}
+
+
+@router.delete("/planner/expenses")
+def planner_delete_expense(item: dict):
+    try:
+        _planner_expenses.remove(item)
+    except ValueError:
+        pass
+    return {"expenses": _planner_expenses}

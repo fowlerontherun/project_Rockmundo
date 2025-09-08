@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 const plannerBus = new EventTarget();
 
 export async function fetchSchedule(): Promise<Record<string, any>> {
-  const res = await fetch('/api/tour-collab/schedule');
+  const res = await fetch('/api/tours/planner/schedule');
   if (!res.ok) {
     throw new Error('Failed to fetch schedule');
   }
@@ -12,7 +12,7 @@ export async function fetchSchedule(): Promise<Record<string, any>> {
 }
 
 export async function saveSlot(time: string, value: any, durationDays = 1) {
-  const res = await fetch(`/api/tour-collab/schedule/${encodeURIComponent(time)}`, {
+  const res = await fetch(`/api/tours/planner/schedule/${encodeURIComponent(time)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ value, durationDays })
@@ -24,7 +24,7 @@ export async function saveSlot(time: string, value: any, durationDays = 1) {
 }
 
 export async function deleteSlot(time: string) {
-  const res = await fetch(`/api/tour-collab/schedule/${encodeURIComponent(time)}`, {
+  const res = await fetch(`/api/tours/planner/schedule/${encodeURIComponent(time)}`, {
     method: 'DELETE'
   });
   if (!res.ok) {
@@ -74,7 +74,7 @@ export const Planner: React.FC = () => {
     const date = (form.elements.namedItem('date') as HTMLInputElement).value;
     const venue = (form.elements.namedItem('venue') as HTMLInputElement).value;
     const item = { date, venue };
-    await fetch('/api/tour-collab/schedule', {
+    await fetch('/api/tours/planner/schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item)
@@ -85,7 +85,7 @@ export const Planner: React.FC = () => {
 
   const handleDeleteDate = async (idx: number) => {
     const item = schedule[idx];
-    await fetch('/api/tour-collab/schedule', {
+    await fetch('/api/tours/planner/schedule', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item)
@@ -99,7 +99,7 @@ export const Planner: React.FC = () => {
     const description = (form.elements.namedItem('description') as HTMLInputElement).value;
     const amount = parseFloat((form.elements.namedItem('amount') as HTMLInputElement).value);
     const item = { description, amount };
-    await fetch('/api/tour-collab/expenses', {
+    await fetch('/api/tours/planner/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item)
@@ -110,7 +110,7 @@ export const Planner: React.FC = () => {
 
   const handleDeleteExpense = async (idx: number) => {
     const item = expenses[idx];
-    await fetch('/api/tour-collab/expenses', {
+    await fetch('/api/tours/planner/expenses', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item)

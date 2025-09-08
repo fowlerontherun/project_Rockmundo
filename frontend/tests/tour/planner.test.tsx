@@ -29,7 +29,7 @@ describe('tour planner', () => {
 
     await updateSlot('00:15', 'Practice');
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/tour-collab/schedule/00:15',
+      '/api/tours/planner/schedule/00:15',
       expect.objectContaining({ method: 'PUT' })
     );
     await waitFor(() => expect(screen.getByText('Practice')).toBeInTheDocument());
