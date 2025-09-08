@@ -395,6 +395,26 @@ def init_db():
         )
         """)
 
+        # Weekly reward drops linked to the daily loop
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_drops (
+            user_id INTEGER NOT NULL,
+            drop_date TEXT NOT NULL,
+            reward TEXT NOT NULL,
+            claimed INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (user_id, drop_date),
+            FOREIGN KEY(user_id) REFERENCES daily_loop(user_id)
+        )
+        """)
+
+        # Tier reward track defining rewards for each tier
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS tier_tracks (
+            tier INTEGER PRIMARY KEY,
+            reward TEXT NOT NULL
+        )
+        """)
+
         # User settings table for profile preferences
         cur.execute("""
         CREATE TABLE IF NOT EXISTS user_settings (

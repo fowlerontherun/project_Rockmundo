@@ -5,7 +5,6 @@ from backend.models import daily_loop
 
 router = APIRouter(prefix="/daily", tags=["DailyLoop"])
 
-
 @router.get("/status/{user_id}")
 def get_status(user_id: int):
     return daily_loop.get_status(user_id)

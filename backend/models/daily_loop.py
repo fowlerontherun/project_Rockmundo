@@ -1,7 +1,7 @@
 import random
 import sqlite3
-from datetime import date
-from typing import Dict
+from datetime import date, timedelta
+from typing import Dict, Optional
 
 from backend.database import DB_PATH
 from backend.services.xp_reward_service import xp_reward_service
@@ -59,6 +59,24 @@ def get_status(user_id: int) -> Dict:
         (user_id,),
     )
     row = cur.fetchone()
+    today = date.today().isoformat()
+    cur.execute(
+        """
+        SELECT drop_date, reward FROM weekly_drops
+        WHERE user_id = ? AND claimed = 0 AND drop_date >= ?
+        ORDER BY drop_date LIMIT 1
+        """,
+        (user_id, today),
+    )
+    drop_row = cur.fetchone()
+    next_weekly: Optional[Dict[str, str]] = None
+    if drop_row:
+        next_weekly = {"drop_date": drop_row[0], "reward": drop_row[1]}
+    cur.execute(
+        "SELECT reward FROM tier_tracks WHERE tier = ?", (row[6] + 1,)
+    )
+    reward_row = cur.fetchone()
+    next_tier_reward = reward_row[0] if reward_row else None
     conn.close()
     return {
         "login_streak": row[0],
@@ -70,6 +88,8 @@ def get_status(user_id: int) -> Dict:
         "challenge_tier": row[6],
         "weekly_goal_count": row[7],
         "tier_progress": row[8],
+        "next_weekly_reward": next_weekly,
+        "next_tier_reward": next_tier_reward,
     }
 
 
@@ -142,6 +162,21 @@ def rotate_daily_challenge() -> None:
     """,
         (challenge, tier),
     )
+    # Schedule weekly reward drop for each user
+    next_drop = (date.today() + timedelta(days=7)).isoformat()
+    cur.execute("SELECT user_id FROM daily_loop")
+    users = [row[0] for row in cur.fetchall()]
+    cur.execute("SELECT reward FROM tier_tracks WHERE tier = ?", (tier,))
+    reward_row = cur.fetchone()
+    reward = reward_row[0] if reward_row else "mystery"
+    for uid in users:
+        cur.execute(
+            """
+            INSERT OR REPLACE INTO weekly_drops (user_id, drop_date, reward, claimed)
+            VALUES (?, ?, ?, 0)
+            """,
+            (uid, next_drop, reward),
+        )
     conn.commit()
     conn.close()
 
