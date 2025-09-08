@@ -6,6 +6,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from backend.config.revenue import (
+    SPONSOR_IMPRESSION_RATE_CENTS,
+    SPONSOR_PAYOUT_SPLIT,
+)
 from backend.models.venue_sponsorship import (
     NegotiationStage,
     SponsorshipNegotiation,
@@ -64,6 +68,16 @@ class VenueSponsorshipsService:
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS ix_sponsor_impr_sponsorship ON sponsor_ad_impressions(sponsorship_id)")
             cur.execute("CREATE INDEX IF NOT EXISTS ix_sponsor_impr_event ON sponsor_ad_impressions(event_id)")
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS sponsorship_ad_events (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              sponsorship_id INTEGER NOT NULL,
+              event_type TEXT NOT NULL,
+              occurred_at TEXT DEFAULT (datetime('now')),
+              meta_json TEXT
+            )
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_ad_events_sponsorship ON sponsorship_ad_events(sponsorship_id)")
             cur.execute("""
             CREATE TABLE IF NOT EXISTS venue_sponsorship_negotiations (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,14 +270,50 @@ class VenueSponsorshipsService:
         return self.get_negotiation(negotiation_id)
 
     # -------- Ad tracking --------
-    def record_impression(self, sponsorship_id: int, placement: Optional[str] = None, user_id: Optional[int] = None,
-                          event_id: Optional[int] = None, meta: Optional[Dict[str, Any]] = None) -> int:
+    def record_ad_event(
+        self,
+        sponsorship_id: int,
+        event_type: str,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        if event_type not in ("impression", "click"):
+            raise VenueSponsorshipError("event_type must be 'impression' or 'click'")
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
-            cur.execute("""
+            cur.execute(
+                """
+                INSERT INTO sponsorship_ad_events (sponsorship_id, event_type, meta_json)
+                VALUES (?, ?, ?)
+                """,
+                (sponsorship_id, event_type, json.dumps(meta) if meta else None),
+            )
+            conn.commit()
+            return cur.lastrowid
+
+    def record_impression(
+        self,
+        sponsorship_id: int,
+        placement: Optional[str] = None,
+        user_id: Optional[int] = None,
+        event_id: Optional[int] = None,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
                 INSERT INTO sponsor_ad_impressions (sponsorship_id, placement, user_id, event_id, meta_json)
                 VALUES (?, ?, ?, ?, ?)
-            """, (sponsorship_id, placement, user_id, event_id, json.dumps(meta) if meta else None))
+                """,
+                (sponsorship_id, placement, user_id, event_id, json.dumps(meta) if meta else None),
+            )
+            cur.execute(
+                """
+                INSERT INTO sponsorship_ad_events (sponsorship_id, event_type, meta_json)
+                VALUES (?, 'impression', ?)
+                """,
+                (sponsorship_id, json.dumps(meta) if meta else None),
+            )
             conn.commit()
             return cur.lastrowid
 
@@ -278,3 +328,37 @@ class VenueSponsorshipsService:
                 LIMIT ?
             """, (sponsorship_id, limit))
             return [dict(r) for r in cur.fetchall()]
+
+    def get_ad_rollup(self, sponsorship_id: int) -> Dict[str, int]:
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT event_type, COUNT(*) as cnt
+                FROM sponsorship_ad_events
+                WHERE sponsorship_id = ?
+                GROUP BY event_type
+                """,
+                (sponsorship_id,),
+            )
+            rows = cur.fetchall()
+        out = {"impressions": 0, "clicks": 0}
+        for event_type, cnt in rows:
+            if event_type == "impression":
+                out["impressions"] = int(cnt)
+            elif event_type == "click":
+                out["clicks"] = int(cnt)
+        return out
+
+    def calculate_payout(self, sponsorship_id: int) -> Dict[str, int]:
+        rollup = self.get_ad_rollup(sponsorship_id)
+        impressions = rollup.get("impressions", 0)
+        gross = impressions * SPONSOR_IMPRESSION_RATE_CENTS
+        venue_share = gross * SPONSOR_PAYOUT_SPLIT.get("venue", 0) // 100
+        platform_share = gross - venue_share
+        return {
+            "impressions": impressions,
+            "gross_cents": gross,
+            "venue_cents": venue_share,
+            "platform_cents": platform_share,
+        }

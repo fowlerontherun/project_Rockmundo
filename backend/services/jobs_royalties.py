@@ -131,13 +131,34 @@ class RoyaltyJobsService:
             return None
         return None
 
-    def _emit_line(self, cur, run_id: int, work_type: str, work_id: Optional[int],
-                   band_id: Optional[int], collaborator_band_id: Optional[int],
-                   source: str, amount_cents: int, meta: Dict[str, Any]) -> None:
-        cur.execute("""
+    def _emit_line(
+        self,
+        cur,
+        run_id: int,
+        work_type: str,
+        work_id: Optional[int],
+        band_id: Optional[int],
+        collaborator_band_id: Optional[int],
+        source: str,
+        amount_cents: int,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        cur.execute(
+            """
             INSERT INTO royalty_run_lines (run_id, work_type, work_id, band_id, collaborator_band_id, source, amount_cents, meta_json)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (run_id, work_type, work_id, band_id, collaborator_band_id, source, int(amount_cents), json.dumps(meta) if meta else None))
+            """,
+            (
+                run_id,
+                work_type,
+                work_id,
+                band_id,
+                collaborator_band_id,
+                source,
+                int(amount_cents),
+                json.dumps(meta) if meta else None,
+            ),
+        )
 
     # -------- channels --------
     def _process_streams(self, cur, run_id: int, window: RunWindow) -> None:
@@ -252,6 +273,7 @@ class RoyaltyJobsService:
             WHERE e.event_type = 'impression'
               AND datetime(e.occurred_at) >= datetime(?)
               AND datetime(e.occurred_at) <= datetime(?)
+              AND vs.is_active = 1
             GROUP BY vs.venue_id
             """,
             (f"{window.start} 00:00:00", f"{window.end} 23:59:59"),
