@@ -15,6 +15,9 @@ sys.modules.setdefault(
 
 
 class DummyAvatarService:
+    def __init__(self):
+        self.updates: list[tuple[int, object]] = []
+
     def get_avatar(self, user_id: int):  # pragma: no cover - simple stub
         return types.SimpleNamespace(
             charisma=0,
@@ -22,14 +25,16 @@ class DummyAvatarService:
             intelligence=0,
             discipline=50,
             stamina=100,
+            fatigue=0,
+            voice=0,
         )
 
-    def update_avatar(self, user_id: int, update):  # pragma: no cover
-        pass
+    def update_avatar(self, user_id: int, update):  # pragma: no cover - simple tracking
+        self.updates.append((user_id, update))
 
 
-sys.modules.setdefault(
-    "backend.services.avatar_service", types.SimpleNamespace(AvatarService=DummyAvatarService)
+sys.modules["backend.services.avatar_service"] = types.SimpleNamespace(
+    AvatarService=DummyAvatarService
 )
 
 from backend.models.item import Item
@@ -151,6 +156,20 @@ def test_skill_decay() -> None:
     assert updated.level == 1
 
 
+def test_training_updates_avatar_stats() -> None:
+    svc = SkillService(xp_events=DummyXPEvents(1.0), avatar_service=DummyAvatarService())
+    skill = Skill(id=99, name="guitar", category="instrument")
+
+    svc.train(1, skill, 10, duration=5)
+    svc.train_with_method(1, skill, LearningMethod.PRACTICE, 4)
+
+    updates = svc.avatar_service.updates
+    fatigue = [u for _, u in updates if getattr(u, "fatigue", None) is not None]
+    stamina = [u for _, u in updates if getattr(u, "stamina", None) is not None]
+    assert fatigue and fatigue[0].fatigue == 5
+    assert stamina and stamina[-1].stamina == 98
+
+
 def _setup_device() -> int:
     """Create an internet device item and reset inventory state."""
     import sys
@@ -251,6 +270,7 @@ def test_voice_boosts_vocal_xp() -> None:
             self.creativity = 50
             self.charisma = 0
             self.intelligence = 50
+            self.fatigue = 0
 
     class DummyAvatarService:
         def __init__(self, avatar: DummyAvatar):
@@ -360,7 +380,7 @@ def test_vocal_prerequisites_and_leveling(
     result = training.practice(1, skill_name, 10)
     assert result.xp == 100
     assert result.level == 2
-=======
+
 @pytest.mark.parametrize(
     "skill_name",
     [

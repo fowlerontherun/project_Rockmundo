@@ -133,10 +133,14 @@ def test_appearance_bonus(monkeypatch, tmp_path, activity_obj):
     conn.close()
 
     class DummyNotifications:
-        def record_event(self, user_id, title):
-            pass
+        def __init__(self):
+            self.events = []
 
-    notification_models.notifications = DummyNotifications()
+        def record_event(self, user_id, title):
+            self.events.append((user_id, title))
+
+    notifier = DummyNotifications()
+    notification_models.notifications = notifier
 
     base = datetime(2024, 1, 1, 8, 0, 0)
 
@@ -157,4 +161,5 @@ def test_appearance_bonus(monkeypatch, tmp_path, activity_obj):
     cur.execute("SELECT appearance_score FROM lifestyle WHERE user_id = 1")
     assert cur.fetchone()[0] == 50 + activity_obj.appearance_bonus
     conn.close()
+    assert notifier.events == [(1, "Appearance buff gained")]
 

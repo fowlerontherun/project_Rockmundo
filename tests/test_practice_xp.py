@@ -1,5 +1,10 @@
 import sqlite3
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+sys.path.append(str(ROOT / "backend"))
 
 from backend.services.skill_service import skill_service
 from backend.models.skill import Skill
@@ -61,17 +66,22 @@ def test_gig_performance_grants_skill(monkeypatch, tmp_path):
 
 
 class DummyEconomy:
-    def ensure_schema(self) -> None:
-        pass
+    def __init__(self) -> None:
+        self.schema_ensured = False
+        self.withdraw_calls: list[tuple[int, int]] = []
 
-    def withdraw(self, *args, **kwargs) -> None:
-        pass
+    def ensure_schema(self) -> None:
+        self.schema_ensured = True
+
+    def withdraw(self, owner_id: int, amount: int) -> None:
+        self.withdraw_calls.append((owner_id, amount))
 
 
 def test_recording_session_grants_skill():
     from backend.services.recording_service import RecordingService
 
-    svc = RecordingService(economy=DummyEconomy())
+    economy = DummyEconomy()
+    svc = RecordingService(economy=economy)
     session = svc.schedule_session(1, "Studio", "2024-01-01", "2024-01-02", [1], 0)
     svc.assign_personnel(session.id, 42)
 
@@ -82,6 +92,8 @@ def test_recording_session_grants_skill():
     prod_skill = Skill(id=SKILL_NAME_TO_ID["music_production"], name="music_production", category="creative")
     inst = skill_service.train(42, prod_skill, 0)
     assert inst.xp == 20
+    assert economy.schema_ensured is True
+    assert economy.withdraw_calls == [(1, 0)]
 
 
 def test_gig_voice_influence(monkeypatch, tmp_path):

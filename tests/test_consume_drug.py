@@ -6,11 +6,15 @@ import sqlite3
 
 # Stub out heavy dependencies required by auth
 
-fake_jwt = types.SimpleNamespace(
-    decode=lambda *args, **kwargs: {"sub": "1", "jti": "x"}
-)
-sys.modules.setdefault("auth", types.SimpleNamespace(jwt=fake_jwt))
-sys.modules.setdefault("auth.jwt", fake_jwt)
+jwt_mod = types.ModuleType("auth.jwt")
+jwt_mod.decode = lambda *args, **kwargs: {"sub": "1", "jti": "x"}
+auth_mod = types.ModuleType("auth")
+auth_mod.jwt = jwt_mod
+sys.modules.setdefault("auth", auth_mod)
+sys.modules.setdefault("auth.jwt", jwt_mod)
+perm_mod = types.ModuleType("auth.permissions")
+perm_mod.Permissions = object
+sys.modules.setdefault("auth.permissions", perm_mod)
 sys.modules.setdefault(
     "core.config",
     types.SimpleNamespace(
@@ -24,6 +28,9 @@ sys.modules.setdefault(
 )
 
 class _Conn:
+    def __init__(self):
+        self.closed = False
+
     async def execute(self, *args, **kwargs):
         class _Cur:
             async def fetchone(self):
@@ -35,11 +42,16 @@ class _Conn:
         return self
 
     async def __aexit__(self, *args):
-        pass
+        self.closed = True
+
+
+_last_conn: _Conn | None = None
 
 
 async def aget_conn():
-    return _Conn()
+    global _last_conn
+    _last_conn = _Conn()
+    return _last_conn
 
 
 utils_mod = types.ModuleType("utils")

@@ -11,11 +11,15 @@ from backend.services.recording_service import RecordingService
 
 
 class DummyEconomy:
-    def ensure_schema(self) -> None:
-        pass
+    def __init__(self) -> None:
+        self.schema_ensured = False
+        self.withdraw_calls: list[tuple[int, int]] = []
 
-    def withdraw(self, *args, **kwargs) -> None:
-        pass
+    def ensure_schema(self) -> None:
+        self.schema_ensured = True
+
+    def withdraw(self, owner_id: int, amount: int) -> None:
+        self.withdraw_calls.append((owner_id, amount))
 
 
 def _setup_gig_db(db_path: Path) -> None:
@@ -93,13 +97,16 @@ def test_gig_scaled_by_performance_skills(monkeypatch: pytest.MonkeyPatch, tmp_p
 
 
 def test_recording_quality_scales_with_creative_skills() -> None:
-    svc = RecordingService(economy=DummyEconomy())
+    economy = DummyEconomy()
+    svc = RecordingService(economy=economy)
     session = svc.schedule_session(1, "Studio", "2024-01-01", "2024-01-02", [1], 0)
     svc.assign_personnel(session.id, 1)
     skill_service._skills.clear()
     skill_service._xp_today.clear()
     svc.update_track_status(session.id, 1, "recorded")
     base_quality = session.track_quality[1]
+    assert economy.schema_ensured is True
+    assert economy.withdraw_calls == [(1, 0)]
 
     skill_service._skills.clear()
     skill_service._xp_today.clear()
