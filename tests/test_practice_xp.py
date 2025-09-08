@@ -50,6 +50,9 @@ def test_gig_performance_grants_skill(monkeypatch, tmp_path):
 
     skill_service._skills.clear()
     skill_service._xp_today.clear()
+    skill_service._method_history.clear()
+    monkeypatch.setattr(skill_service, "_lifestyle_modifier", lambda _uid: 1.0)
+    monkeypatch.setattr(skill_service.xp_events, "get_active_multiplier", lambda _n: 1.0)
     gs.simulate_gig_result(1)
 
     perf_skill = Skill(id=SKILL_NAME_TO_ID["performance"], name="performance", category="stage")

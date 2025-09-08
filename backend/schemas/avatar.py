@@ -26,6 +26,7 @@ class AvatarBase(BaseModel):
     health: int = 100
     mood: int = 50
     stamina: int = 50
+    fatigue: int = 0
     charisma: int = 50
     intelligence: int = 50
     creativity: int = 50
@@ -36,6 +37,8 @@ class AvatarBase(BaseModel):
     social_media: int = 0
     tech_savvy: int = 0
     networking: int = 0
+    leadership: int = 0
+    stage_presence: int = 50
 
 
 class AvatarCreate(AvatarBase):
@@ -62,6 +65,7 @@ class AvatarUpdate(BaseModel):
     health: Optional[int] = None
     mood: Optional[int] = None
     stamina: Optional[int] = None
+    fatigue: Optional[int] = None
     charisma: Optional[int] = None
     intelligence: Optional[int] = None
     creativity: Optional[int] = None
@@ -72,9 +76,12 @@ class AvatarUpdate(BaseModel):
     social_media: Optional[int] = None
     tech_savvy: Optional[int] = None
     networking: Optional[int] = None
+    leadership: Optional[int] = None
+    stage_presence: Optional[int] = None
 
     @field_validator(
         "stamina",
+        "fatigue",
         "charisma",
         "intelligence",
         "creativity",
@@ -85,6 +92,8 @@ class AvatarUpdate(BaseModel):
         "social_media",
         "tech_savvy",
         "networking",
+        "leadership",
+        "stage_presence",
     )
     @classmethod
     def _validate_stats(cls, v: int | None) -> int | None:
