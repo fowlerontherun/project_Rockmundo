@@ -14,3 +14,54 @@ body {
   --text-color: #e0e0e0;
   --accent-color: #ff79c6;
 }
+
+header {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+header nav {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+header nav.open {
+  display: flex;
+}
+
+header .hamburger {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+}
+
+@media (min-width: 600px) {
+  header nav {
+    display: flex !important;
+    flex-direction: row;
+  }
+  header .hamburger {
+    display: none;
+  }
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  color: #fff;
+  border-radius: 4px;
+  z-index: 1000;
+  font-family: sans-serif;
+}
+
+.notification.success {
+  background: #4caf50;
+}
+
+.notification.error {
+  background: #f44336;
+}
