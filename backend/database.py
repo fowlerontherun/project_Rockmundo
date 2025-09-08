@@ -118,6 +118,19 @@ def init_db():
         )
         """)
 
+        # Festival proposals
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS festival_proposals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            proposer_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            genre TEXT,
+            vote_count INTEGER NOT NULL DEFAULT 0,
+            approved INTEGER NOT NULL DEFAULT 0
+        )
+        """)
+
         # -------------------------------
         # Sponsorship schema (new)
         # -------------------------------
