@@ -34,9 +34,9 @@ def update_live_album_tracks(album_id: int, payload: TrackUpdateRequest):
 
 
 @router.post("/live_albums/{album_id}/publish")
-def publish_live_album(album_id: int):
+async def publish_live_album(album_id: int):
     try:
-        new_id = service.publish_album(album_id)
+        new_id = await service.publish_album(album_id)
         return {"album_id": new_id}
     except ValueError as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=404, detail=str(exc))
