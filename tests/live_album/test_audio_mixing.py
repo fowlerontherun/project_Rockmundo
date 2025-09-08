@@ -22,7 +22,8 @@ def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
     )
 
 
-def test_mixing_invoked_and_tracks_stored(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_mixing_invoked_and_tracks_stored(tmp_path, monkeypatch):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -84,14 +85,15 @@ def test_mixing_invoked_and_tracks_stored(tmp_path, monkeypatch):
     monkeypatch.setattr(audio_mixing_service, "mix_tracks", fake_mix)
 
     service = LiveAlbumService(str(db_file))
-    album = service.compile_live_album([1, 2, 3, 4, 5], "Live")
+    album = await service.compile_live_album([1, 2, 3, 4, 5], "Live")
 
     assert called["ids"] == [5, 5]
     assert [t["track_id"] for t in album["tracks"]] == [505, 505]
     assert all("performance_id" not in t for t in album["tracks"])
 
 
-def test_missing_recording_raises_error(tmp_path):
+@pytest.mark.asyncio
+async def test_missing_recording_raises_error(tmp_path):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -146,7 +148,7 @@ def test_missing_recording_raises_error(tmp_path):
 
     service = LiveAlbumService(str(db_file))
     with pytest.raises(ValueError) as exc:
-        service.compile_live_album([1, 2, 3, 4, 5], "Live")
+        await service.compile_live_album([1, 2, 3, 4, 5], "Live")
     assert "5" in str(exc.value)
     assert "2" in str(exc.value)
 

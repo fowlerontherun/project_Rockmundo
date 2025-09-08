@@ -19,7 +19,8 @@ def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):
     )
 
 
-def test_compile_live_album(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_compile_live_album(tmp_path, monkeypatch):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -81,7 +82,7 @@ def test_compile_live_album(tmp_path, monkeypatch):
     monkeypatch.setattr(audio_mixing_service, "mix_tracks", fake_mix)
 
     service = LiveAlbumService(str(db_file))
-    album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+    album = await service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
 
     assert album["album_type"] == "live"
     assert [s["song_id"] for s in album["songs"]] == [1, 2]
@@ -96,7 +97,8 @@ def test_compile_live_album(tmp_path, monkeypatch):
     assert album["cover_art"]
 
 
-def test_publish_album_records_show_data(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_publish_album_records_show_data(tmp_path, monkeypatch):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -156,7 +158,7 @@ def test_publish_album_records_show_data(tmp_path, monkeypatch):
     )
 
     service = LiveAlbumService(str(db_file))
-    album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+    album = await service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
     release_id = service.publish_album(album["id"])
 
     conn = sqlite3.connect(db_file)
@@ -172,7 +174,8 @@ def test_publish_album_records_show_data(tmp_path, monkeypatch):
     assert all(row[1] == 5 for row in rows)
     assert all(row[2] == 80 for row in rows)
 
-def test_update_tracks_validation(tmp_path):
+@pytest.mark.asyncio
+async def test_update_tracks_validation(tmp_path):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -234,7 +237,7 @@ def test_update_tracks_validation(tmp_path):
     conn.close()
 
     service = LiveAlbumService(str(db_file))
-    album = service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+    album = await service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
     album_id = album["id"]
 
     # Reorder tracks
@@ -250,7 +253,8 @@ def test_update_tracks_validation(tmp_path):
     assert updated["song_ids"] == [1]
 
 
-def test_compile_live_album_missing_recordings(tmp_path):
+@pytest.mark.asyncio
+async def test_compile_live_album_missing_recordings(tmp_path):
     db_file = tmp_path / "perf.db"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
@@ -305,7 +309,7 @@ def test_compile_live_album_missing_recordings(tmp_path):
 
     service = LiveAlbumService(str(db_file))
     with pytest.raises(ValueError) as exc:
-        service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
+        await service.compile_live_album([1, 2, 3, 4, 5], "Best Live")
     assert "4" in str(exc.value)
     assert "2" in str(exc.value)
 
