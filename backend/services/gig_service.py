@@ -68,13 +68,19 @@ def simulate_gig_result(gig_id: int):
 
     # === Estimate attendance ===
     fan_stats = fan_service.get_band_fan_stats(band_id)
-    base_attendance = int(fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100))
+    base_attendance = int(
+        fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100)
+    )
     randomness = random.randint(-10, 10)
     attendance = max(0, min(venue_size, base_attendance + randomness))
 
+    # Scale outcomes by performance-related skills
+    mult = skill_service.get_category_multiplier(band_id, "performance")
+    attendance = max(0, min(venue_size, int(attendance * mult)))
+
     # === Calculate earnings and fame ===
     earnings = attendance * ticket_price
-    fame_gain = attendance // 20
+    fame_gain = int((attendance // 20) * mult)
 
     # === Update gig record ===
     cur.execute("""
