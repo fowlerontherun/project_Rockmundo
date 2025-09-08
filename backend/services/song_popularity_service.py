@@ -141,7 +141,7 @@ class SongPopularityService:
                 "song_id": song_id,
                 "region_code": region_code,
                 "platform": platform,
-                "score": int(new_score),
+                "score": new_score,
             }
 
     def list_events(
