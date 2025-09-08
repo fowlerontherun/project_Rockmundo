@@ -1,7 +1,7 @@
 """Admin system monitoring routes."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:  # pragma: no cover - optional auth dependency
     from auth.dependencies import get_current_user_id, require_permission
@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover
             raise HTTPException(status_code=403, detail="Forbidden")
         return True
 from models.admin import admin_sessions
+from services.session_service import SessionService, get_session_service
 
 try:  # optional psutil, fall back to zeros if unavailable
     import psutil  # type: ignore
@@ -44,3 +45,28 @@ async def permissions(req: Request) -> dict[str, bool]:
     admin_id = await get_current_user_id(req)
     await require_permission(["admin", "moderator"], admin_id)
     return {"allowed": True}
+
+
+@router.get("/sessions")
+async def list_sessions(
+    req: Request,
+    svc: SessionService = Depends(get_session_service),
+) -> list[dict]:
+    """Return all active sessions."""
+    admin_id = await get_current_user_id(req)
+    await require_permission(["admin", "moderator"], admin_id)
+    return svc.list_sessions()
+
+
+@router.delete("/sessions/{session_id}")
+async def terminate_session(
+    session_id: str,
+    req: Request,
+    svc: SessionService = Depends(get_session_service),
+) -> dict[str, str]:
+    """Terminate a session by ID."""
+    admin_id = await get_current_user_id(req)
+    await require_permission(["admin", "moderator"], admin_id)
+    if not svc.terminate_session(session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"status": "terminated"}

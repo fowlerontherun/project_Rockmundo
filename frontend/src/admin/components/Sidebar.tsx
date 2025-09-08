@@ -1,4 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface NavItem {
   label: string;
@@ -59,6 +61,18 @@ const Sidebar: React.FC = () => {
             >
               Notifications ({notifCount})
             </a>
+const Sidebar: React.FC = () => (
+  <aside className="w-64 bg-gray-800 text-white h-screen p-4">
+    <nav>
+      <ul>
+        {navItems.map((item) => (
+          <li key={item.href} className="mb-2">
+            <Link
+              to={item.href}
+              className="block px-2 py-1 rounded hover:bg-gray-700"
+            >
+              {item.label}
+            </Link>
           </li>
         </ul>
       </nav>
