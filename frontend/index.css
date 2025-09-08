@@ -1,4 +1,5 @@
 @import './styles/tailwind.css';
+@import './styles/globalSearch.css';
 
 :root {
   --bg-color: #ffffff;
@@ -10,6 +11,9 @@
   --success-color: #4caf50;
   --error-color: #f44336;
   --inverse-text-color: #ffffff;
+  --surface-color: #ffffff;
+  --surface-hover-color: #f0f0f0;
+  --border-color: #cccccc;
 }
 
 body {
@@ -27,6 +31,9 @@ body {
   --success-color: #388e3c;
   --error-color: #d32f2f;
   --inverse-text-color: #000000;
+  --surface-color: #2b2b2b;
+  --surface-hover-color: #3a3a3a;
+  --border-color: #555555;
 }
 
 header {

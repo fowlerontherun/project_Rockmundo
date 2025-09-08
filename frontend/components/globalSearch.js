@@ -22,6 +22,8 @@
       document.head.appendChild(style);
     }
 
+    // Styles are now handled in CSS via globalSearch.css
+
     const wrapper=document.createElement('div');
     wrapper.className='global-search-wrapper';
     const input=document.createElement('input');
