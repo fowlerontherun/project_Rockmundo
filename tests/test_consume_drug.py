@@ -24,7 +24,10 @@ sys.modules.setdefault(
     ),
 )
 sys.modules.setdefault(
-    "services.rbac_service", types.SimpleNamespace(has_permission=lambda *a, **k: True)
+    "auth.rbac",
+    types.SimpleNamespace(
+        rbac_service=types.SimpleNamespace(has_permission=lambda *a, **k: True)
+    ),
 )
 
 class _Conn:

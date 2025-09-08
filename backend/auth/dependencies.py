@@ -5,7 +5,7 @@ from auth import jwt as jwt_helper
 from auth.permissions import Permissions
 from core.config import settings
 from fastapi import Depends, HTTPException, Request, status
-from services.rbac_service import has_permission
+from auth.rbac import rbac_service
 from utils.db import aget_conn
 
 
@@ -71,7 +71,7 @@ async def require_permission(
                     'message': f'Unknown permission: {p}',
                 },
             )
-    if any(has_permission(user_id, p) for p in validated):
+    if any(rbac_service.has_permission(user_id, p) for p in validated):
         return True
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
