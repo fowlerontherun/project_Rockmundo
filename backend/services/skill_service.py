@@ -165,6 +165,19 @@ class SkillService:
 
     # ------------------------------------------------------------------
     # Public API
+    def get_category_multiplier(self, user_id: int, category: str) -> float:
+        """Return ``1 + (avg_level / 200)`` for a skill category."""
+
+        levels = [
+            s.level
+            for (uid, _sid), s in self._skills.items()
+            if uid == user_id and s.category == category
+        ]
+        if not levels:
+            return 1.0
+        avg_level = sum(levels) / len(levels)
+        return 1 + (avg_level / 200)
+
     def train(self, user_id: int, skill: Skill, base_xp: int) -> Skill:
         """Apply training XP to a skill respecting modifiers and caps."""
 
