@@ -106,6 +106,17 @@ async def jam_ws(ws: WebSocket, session_id: str, user_id: int = Depends(get_curr
             elif op == "stop_stream":
                 jam_service.stop_stream(session_id, user_id)
                 await hub.publish(session_id, {"type": "stream_stopped", "user_id": user_id})
+            elif op == "pause_stream":
+                jam_service.pause_stream(session_id, user_id)
+                await hub.publish(session_id, {"type": "stream_paused", "user_id": user_id})
+            elif op == "resume_stream":
+                jam_service.resume_stream(session_id, user_id)
+                await hub.publish(session_id, {"type": "stream_resumed", "user_id": user_id})
+            elif op == "invite":
+                jam_service.invite(session_id, user_id, int(msg.get("invitee_id", 0)))
+                await hub.publish(
+                    session_id, {"type": "invited", "user_id": int(msg.get("invitee_id", 0))}
+                )
             elif op == "ping":
                 await ws.send_text(json.dumps({"op": "pong"}))
     except WebSocketDisconnect:  # pragma: no cover - network
