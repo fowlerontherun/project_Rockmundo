@@ -1,12 +1,12 @@
 # File: backend/services/streaming_service.py
-import asyncio
+from datetime import datetime, timezone
+
 import aiosqlite
-from datetime import datetime
 from backend.database import DB_PATH
-from backend.services.song_popularity_service import add_event
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
+from backend.services.song_popularity_service import add_event
 
 
 async def _stream_song(user_id: int, song_id: int) -> dict:
@@ -17,7 +17,7 @@ async def _stream_song(user_id: int, song_id: int) -> dict:
             INSERT INTO streams (user_id, song_id, timestamp)
             VALUES (?, ?, ?)
             """,
-            (user_id, song_id, datetime.now()),
+            (user_id, song_id, datetime.now(timezone.utc)),
         )
         await conn.execute(
             """
@@ -40,7 +40,12 @@ async def _stream_song(user_id: int, song_id: int) -> dict:
                 INSERT INTO earnings (user_id, source_type, source_id, amount, timestamp)
                 VALUES (?, 'stream', ?, ?, ?)
                 """,
-                (receiver_id, song_id, amount, datetime.now()),
+                (
+                    receiver_id,
+                    song_id,
+                    amount,
+                    datetime.now(timezone.utc),
+                ),
             )
         await conn.commit()
     finally:
@@ -49,10 +54,10 @@ async def _stream_song(user_id: int, song_id: int) -> dict:
     return {"status": "ok", "revenue": round(revenue, 4)}
 
 
-def stream_song(user_id: int, song_id: int) -> dict:
-    """Synchronously record a song stream."""
+async def stream_song(user_id: int, song_id: int) -> dict:
+    """Asynchronously record a song stream."""
 
-    return asyncio.run(_stream_song(user_id, song_id))
+    return await _stream_song(user_id, song_id)
 
 
 async def get_stream_count(song_id: int) -> int:

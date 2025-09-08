@@ -1,13 +1,13 @@
 import sqlite3
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
-from backend import database
+from backend import database  # noqa: E402
 
 
 def _setup_db(tmp_path):
@@ -66,7 +66,8 @@ def _setup_db(tmp_path):
     return ss
 
 
-def test_stream_song_revenue_and_play_counts(tmp_path):
+@pytest.mark.asyncio
+async def test_stream_song_revenue_and_play_counts(tmp_path):
     streaming_service = _setup_db(tmp_path)
 
     conn = sqlite3.connect(database.DB_PATH)
@@ -79,7 +80,7 @@ def test_stream_song_revenue_and_play_counts(tmp_path):
     conn.commit()
     conn.close()
 
-    result = streaming_service.stream_song(user_id=5, song_id=1)
+    result = await streaming_service.stream_song(user_id=5, song_id=1)
     assert result == {"status": "ok", "revenue": 0.003}
 
     conn = sqlite3.connect(database.DB_PATH)
