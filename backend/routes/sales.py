@@ -14,13 +14,18 @@ except Exception:  # pragma: no cover
 
         return _noop
 
-import asyncio
 from services.sales_service import SalesError, SalesService
 
 router = APIRouter(prefix="/sales", tags=["Sales"])
 
 svc = SalesService()
-asyncio.run(svc.ensure_schema())
+
+
+async def startup() -> None:
+    await svc.ensure_schema()
+
+
+router.add_event_handler("startup", startup)
 
 
 class DigitalSaleIn(BaseModel):
