@@ -70,19 +70,53 @@ def simulate_gig_result(gig_id: int):
 
     band_id, city, venue_size, ticket_price = row
 
+    # === Skill-based performance multiplier ===
+    perf_skill = Skill(
+        id=SKILL_NAME_TO_ID["performance"], name="performance", category="stage"
+    )
+    member_rows: list[tuple[int, str]] = []
+    try:
+        cur.execute(
+            "SELECT user_id, role FROM band_members WHERE band_id = ?", (band_id,)
+        )
+        member_rows = cur.fetchall()
+    except sqlite3.Error:
+        member_rows = []
+    skill_avgs: list[float] = []
+    for uid, role in member_rows:
+        perf_level = skill_service.train(uid, perf_skill, 0).level
+        inst_level = 0
+        if role and role in SKILL_NAME_TO_ID:
+            inst_skill = Skill(
+                id=SKILL_NAME_TO_ID[role], name=role, category="instrument"
+            )
+            inst_level = skill_service.train(uid, inst_skill, 0).level
+        skill_avgs.append((perf_level + inst_level) / 2)
+    avg_skill = sum(skill_avgs) / len(skill_avgs) if skill_avgs else 0
+    perf_mult = 1 + avg_skill / 100
+
     # === Estimate attendance ===
     fan_stats = fan_service.get_band_fan_stats(band_id)
-    base_attendance = int(fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100))
+    base_attendance = int(
+        fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100)
+    )
     randomness = random.randint(-10, 10)
     avatar = avatar_service.get_avatar(band_id)
     stage_presence = getattr(avatar, "stage_presence", 50)
     adjusted = max(0, base_attendance + randomness)
     adjusted = int(adjusted * (1 + stage_presence / 500))
     attendance = min(venue_size, adjusted)
+    base_attendance = max(0, min(venue_size, base_attendance + randomness))
+    attendance = max(0, min(venue_size, int(base_attendance * perf_mult)))
+
+    # Scale outcomes by performance-related skills
+    mult = skill_service.get_category_multiplier(band_id, "performance")
+    attendance = max(0, min(venue_size, int(attendance * mult)))
+
 
     # === Calculate earnings and fame ===
     earnings = attendance * ticket_price
-    fame_gain = attendance // 20
+    fame_gain = int((base_attendance // 20) * perf_mult)
 
     # === Update gig record ===
     cur.execute("""
