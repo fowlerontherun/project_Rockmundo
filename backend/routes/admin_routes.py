@@ -36,6 +36,7 @@ from .admin_venue_routes import router as venue_router
 from .admin_workshop_routes import router as workshop_router
 from .admin_xp_event_routes import router as xp_event_router
 from .admin_xp_routes import router as xp_router
+from .admin_lifestyle_routes import router as lifestyle_router
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -74,6 +75,7 @@ router.include_router(schema_router)
 router.include_router(song_popularity_router)
 router.include_router(item_router)
 router.include_router(drug_router)
+router.include_router(lifestyle_router)
 
 router.include_router(course_router)
 router.include_router(book_router)
