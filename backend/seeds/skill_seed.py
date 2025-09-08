@@ -32,7 +32,67 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("mastering", "creative", "music_production", {"music_production": 100}),
     ("music_theory", "creative", None, {}),
     ("ear_training", "creative", None, {}),
-    ("sound_design", "creative", None, {}),
+    # Music production sub-skills
+    (
+        "audio_engineering",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "multitrack_recording",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "microphone_technique",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "audio_editing",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "sound_design",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "beat_programming",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "midi_programming",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "vocal_tuning",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "sample_management",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
+    (
+        "studio_acoustics",
+        "creative",
+        "music_production",
+        {"music_production": 100},
+    ),
     # Image and style skills
     ("fashion", "image", None, {}),
     ("image_management", "image", None, {}),
