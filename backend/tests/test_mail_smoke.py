@@ -1,6 +1,6 @@
 # File: backend/tests/test_mail_smoke.py
-import sqlite3, os, tempfile
-from utils.db import get_conn
+import pytest
+from utils.db import aget_conn
 from services.mail_service import MailService
 from services.notifications_service import NotificationsService
 
@@ -37,13 +37,15 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS ix_nm ON notifications(user_id, created_at);
 """
 
-def setup_db(path):
-    with get_conn(path) as conn:
-        conn.executescript(MAIL_DDL)
+async def setup_db(path: str) -> None:
+    async with aget_conn(path) as conn:
+        await conn.executescript(MAIL_DDL)
 
-def test_compose_and_unread_badge(tmp_path):
+
+@pytest.mark.asyncio
+async def test_compose_and_unread_badge(tmp_path):
     db = str(tmp_path / "test_mail.db")
-    setup_db(db)
+    await setup_db(db)
     notif = NotificationsService(db_path=db)
     mail = MailService(db_path=db, notifications=notif)
 

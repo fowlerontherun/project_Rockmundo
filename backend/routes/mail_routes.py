@@ -24,20 +24,17 @@ class MailSendIn(BaseModel):
 @router.post("/")
 async def send_mail(payload: MailSendIn, user_id: int = Depends(get_current_user_id)):
     """Send a mail message from the authenticated user."""
-
-    return send_message(user_id, payload.recipient_id, payload.subject, payload.body)
+    return await send_message(user_id, payload.recipient_id, payload.subject, payload.body)
 
 
 @router.get("/")
 async def list_mail(user_id: int = Depends(get_current_user_id)):
     """Return the inbox for the authenticated user."""
-
-    return get_inbox(user_id)
+    return await get_inbox(user_id)
 
 
 @router.delete("/{message_id}")
 async def delete_mail(message_id: int, user_id: int = Depends(get_current_user_id)):
     """Delete a mail message owned by the authenticated user."""
-
-    return delete_message(message_id, user_id)
+    return await delete_message(message_id, user_id)
 
