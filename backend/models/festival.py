@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Festival(BaseModel):
@@ -33,7 +33,9 @@ class FestivalProposal(BaseModel):
     proposer_id: int
     name: str
     description: Optional[str] = None
-    votes: List[int] = Field(default_factory=list)
+    genre: str
+    vote_count: int = 0
+    approved: bool = False
 
 
 class ProposalVote(BaseModel):

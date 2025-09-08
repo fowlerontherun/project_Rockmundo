@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 import os
 from pathlib import Path
 
@@ -59,6 +60,7 @@ from routes import (
     video_routes,
     world_pulse_routes,
     skin_marketplace,
+    festival_proposals_routes,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -189,6 +191,11 @@ app.include_router(
     dependencies=[Depends(get_current_user_id)],
 )
 app.include_router(skin_marketplace.router, prefix="/api", tags=["Skins"])
+app.include_router(
+    festival_proposals_routes.router,
+    prefix="/api",
+    tags=["Festival Proposals"],
+)
 
 
 
