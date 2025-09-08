@@ -46,6 +46,7 @@ class AvatarService:
             payload.setdefault("tech_savvy", 0)
             payload.setdefault("networking", 0)
             payload.setdefault("resilience", 50)
+            payload.setdefault("fatigue", 0)
             avatar = Avatar(**payload)
             session.add(avatar)
             session.commit()
@@ -71,6 +72,7 @@ class AvatarService:
             for field, value in data.model_dump(exclude_unset=True).items():
                 if field in {
                     "stamina",
+                    "fatigue",
                     "charisma",
                     "intelligence",
                     "creativity",
@@ -84,6 +86,20 @@ class AvatarService:
                     setattr(avatar, field, max(0, min(100, value)))
                 else:
                     setattr(avatar, field, value)
+            session.commit()
+            session.refresh(avatar)
+            return avatar
+
+    # ------------------------------------------------------------------
+    def rest(self, avatar_id: int) -> Optional[Avatar]:
+        """Fully restore stamina and clear fatigue."""
+
+        with self.session_factory() as session:
+            avatar = session.get(Avatar, avatar_id)
+            if not avatar:
+                return None
+            avatar.stamina = 100
+            avatar.fatigue = 0
             session.commit()
             session.refresh(avatar)
             return avatar

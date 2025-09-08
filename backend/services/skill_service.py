@@ -20,15 +20,17 @@ from backend.models.learning_method import METHOD_PROFILES, LearningMethod
 from backend.models.learning_style import LEARNING_STYLE_BONUS, LearningStyle
 from backend.models.skill import Skill
 from backend.models.xp_config import get_config
+from backend.schemas.avatar import AvatarUpdate
+from backend.services.avatar_service import AvatarService
 from backend.services.item_service import item_service
 from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
-from backend.services.xp_event_service import XPEventService
-from backend.services.avatar_service import AvatarService
 from backend.services.perk_service import perk_service
-from backend.schemas.avatar import AvatarUpdate
+from backend.services.xp_event_service import XPEventService
 from backend.services.xp_item_service import xp_item_service
 
 INTERNET_DEVICE_NAME = "internet device"
+
+FATIGUE_THRESHOLD = 80
 
 
 SONGWRITING_SKILL = Skill(id=4, name="songwriting", category="creative")
@@ -165,10 +167,17 @@ class SkillService:
 
     # ------------------------------------------------------------------
     # Public API
-    def train(self, user_id: int, skill: Skill, base_xp: int) -> Skill:
+    def train(
+        self, user_id: int, skill: Skill, base_xp: int, duration: int = 0
+    ) -> Skill:
         """Apply training XP to a skill respecting modifiers and caps."""
 
         inst = self._get_skill(user_id, skill)
+
+        avatar = self.avatar_service.get_avatar(user_id)
+        fatigue = avatar.fatigue if avatar else 0
+        if avatar and fatigue >= FATIGUE_THRESHOLD:
+            raise ValueError("too fatigued to train")
 
         modifier = self._lifestyle_modifier(user_id)
         modifier *= self.xp_events.get_active_multiplier(skill.name)
@@ -187,7 +196,6 @@ class SkillService:
                 self._session_buffs[key] = (buff[0], remaining)
 
         gain = int(base_xp * modifier * buff_mult * self._synergy_bonus(user_id, inst))
-        avatar = self.avatar_service.get_avatar(user_id)
 
         if avatar:
             attr_map = {
@@ -204,6 +212,7 @@ class SkillService:
             discipline = 50
 
         gain = int(gain * (1 + (discipline - 50) / 100))
+        gain = int(gain * max(0, 1 - fatigue / 100))
 
         today = date.today()
         cap = get_config().daily_cap
@@ -218,6 +227,13 @@ class SkillService:
         self._check_level(inst)
         # Evaluate perk requirements after level change
         perk_service.update_skill(user_id, inst.name, inst.level)
+
+        if avatar and duration > 0:
+            new_fatigue = min(100, avatar.fatigue + duration)
+            self.avatar_service.update_avatar(
+                user_id, AvatarUpdate(fatigue=new_fatigue)
+            )
+
         return inst
 
     def train_with_method(
@@ -290,7 +306,7 @@ class SkillService:
         base_xp *= burnout
         self._method_history[user_id] = (method, streak)
 
-        result = self.train(user_id, skill, int(base_xp))
+        result = self.train(user_id, skill, int(base_xp), duration)
 
         # Training consumes stamina based on session duration.
         avatar = self.avatar_service.get_avatar(user_id)
