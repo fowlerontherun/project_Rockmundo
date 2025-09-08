@@ -7,6 +7,22 @@ from backend.models.npc import NPC
 from backend.models.npc_dialogue import DialogueTree
 
 
+# Simple seasonal event definitions used by ``generate_seasonal_event``.
+# Each season maps to a list of potential events with stat effects.  The
+# structure is intentionally lightweight to keep the service usable in unit
+# tests without any external data files.
+SEASONAL_EVENTS: Dict[str, List[Dict]] = {
+    "summer": [
+        {"name": "summer_festival", "effects": {"fame": 5}},
+        {"name": "tourist_rush", "effects": {"fame": 3}},
+    ],
+    "winter": [
+        {"name": "snowstorm", "effects": {"activity": -2}},
+        {"name": "cold_snap", "effects": {"activity": -1}},
+    ],
+}
+
+
 class _InMemoryNPCDB:
     """Very small in-memory storage used for tests and local use."""
 
@@ -107,6 +123,40 @@ class NPCService:
         tree = DialogueTree(**npc.dialogue_hooks)
         return tree.traverse(choices)
 
+    # ---- Events ----------------------------------------------------------
+    def generate_seasonal_event(self, npc_id: int, season: str | None = None) -> Optional[Dict]:
+        """Generate and apply a seasonal event to ``npc_id``.
+
+        A season (e.g. ``"summer"`` or ``"winter"``) may be provided
+        explicitly.  If omitted a random season is chosen.  The selected
+        event's stat effects are applied directly to the NPC and the full
+        event payload is returned.
+        """
+
+        npc = self.db.get(npc_id)
+        if not npc:
+            return None
+
+        # Choose a season and a random event within that season
+        season = (season or random.choice(list(SEASONAL_EVENTS.keys()))).lower()
+        events = SEASONAL_EVENTS.get(season)
+        if not events:
+            return None
+        event = random.choice(events)
+        effects = event.get("effects", {})
+
+        # Apply effects to the NPC stats
+        for stat, delta in effects.items():
+            npc.stats[stat] = npc.stats.get(stat, 0) + delta
+
+        return {
+            "id": npc.id,
+            "season": season,
+            "event": event.get("name", ""),
+            "effects": effects,
+            "stats": npc.stats,
+        }
+
     # ---- Simulation ------------------------------------------------------
     def preview_npc(
         self,
@@ -144,3 +194,8 @@ class NPCService:
     def simulate_all(self):
         for npc in self.db.all():
             self.simulate_npc(npc.id)
+
+
+npc_service = NPCService()
+
+__all__ = ["NPCService", "npc_service"]

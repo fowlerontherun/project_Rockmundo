@@ -12,6 +12,7 @@ from backend.services import chart_service, fan_service, song_popularity_service
 from backend.services.activity_processor import process_previous_day
 from backend.services.books_service import books_service
 from backend.services.event_service import end_shop_event, start_shop_event
+from backend.services.npc_service import npc_service
 from backend.services.peer_learning_service import run_scheduled_session
 from backend.services.schedule_service import schedule_service
 from backend.services.shop_restock_service import restock_handler
@@ -142,6 +143,7 @@ EVENT_HANDLERS = {
     "shop_restock": restock_handler,
     "shop_event_start": start_shop_event,
     "shop_event_end": end_shop_event,
+    "npc_seasonal_event": npc_service.generate_seasonal_event,
     # Add more event handlers here as needed
 }
 
@@ -313,3 +315,12 @@ def schedule_outcome_reminder(user_id: int, day: str, run_at: str) -> dict:
         {"user_id": user_id, "day": day},
         run_at,
     )
+
+
+def schedule_npc_event(npc_id: int, run_at: str, season: str | None = None) -> dict:
+    """Schedule a seasonal event for an NPC."""
+
+    params = {"npc_id": npc_id}
+    if season:
+        params["season"] = season
+    return schedule_task("npc_seasonal_event", params, run_at)
