@@ -58,6 +58,7 @@ from routes import (
     venue_sponsorships_routes,
     video_routes,
     world_pulse_routes,
+    skin_marketplace,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -187,6 +188,7 @@ app.include_router(
     tags=["Notifications"],
     dependencies=[Depends(get_current_user_id)],
 )
+app.include_router(skin_marketplace.router, prefix="/api", tags=["Skins"])
 
 
 
