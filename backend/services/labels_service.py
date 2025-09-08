@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database import DB_PATH
 
 def create_label(name: str, founder_user_id: int, sign_up_fee: int = 0) -> dict:
@@ -8,7 +8,7 @@ def create_label(name: str, founder_user_id: int, sign_up_fee: int = 0) -> dict:
     cur.execute("""
         INSERT INTO labels (name, founder_user_id, sign_up_fee, created_at)
         VALUES (?, ?, ?, ?)
-    """, (name, founder_user_id, sign_up_fee, datetime.utcnow().isoformat()))
+    """, (name, founder_user_id, sign_up_fee, datetime.now(timezone.utc).isoformat()))
     label_id = cur.lastrowid
     conn.commit()
     conn.close()
@@ -31,7 +31,7 @@ def sign_band(label_id: int, band_id: int, contract_terms: str) -> dict:
     cur.execute("""
         INSERT OR IGNORE INTO label_bands (label_id, band_id, contract_terms, signed_at)
         VALUES (?, ?, ?, ?)
-    """, (label_id, band_id, contract_terms, datetime.utcnow().isoformat()))
+    """, (label_id, band_id, contract_terms, datetime.now(timezone.utc).isoformat()))
     conn.commit()
     conn.close()
     return {"status": "ok", "label_id": label_id, "band_id": band_id}
