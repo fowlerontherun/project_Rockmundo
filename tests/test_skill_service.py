@@ -1,16 +1,47 @@
+"""Tests for the skill service."""
+
+# ruff: noqa: E402
 import sqlite3
+import sys
+import types
 from pathlib import Path
 
 import pytest
+
+sys.modules.setdefault(
+    "backend.services.notifications_service",
+    types.SimpleNamespace(NotificationsService=object),
+)
+
+
+class DummyAvatarService:
+    def get_avatar(self, user_id: int):  # pragma: no cover - simple stub
+        return types.SimpleNamespace(
+            charisma=0,
+            creativity=0,
+            intelligence=0,
+            discipline=50,
+            stamina=100,
+        )
+
+    def update_avatar(self, user_id: int, update):  # pragma: no cover
+        pass
+
+
+sys.modules.setdefault(
+    "backend.services.avatar_service", types.SimpleNamespace(AvatarService=DummyAvatarService)
+)
 
 from backend.models.item import Item
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
-from backend.services.item_service import item_service
-from backend.services.skill_service import SkillService
-from backend.services.recording_service import RecordingService
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from backend.services.skill_service import SkillService
+from backend.services.vocal_training_service import VocalTrainingService
+from backend.services.recording_service import RecordingService
+item_service = None  # set in _setup_device
+
 
 
 class DummyXPEvents:
@@ -122,6 +153,18 @@ def test_skill_decay() -> None:
 
 def _setup_device() -> int:
     """Create an internet device item and reset inventory state."""
+    import sys
+    import types
+
+    if "backend.services.notifications_service" not in sys.modules:
+        sys.modules["backend.services.notifications_service"] = types.SimpleNamespace(
+            NotificationsService=object
+        )
+    from backend.services.item_service import item_service as svc
+
+    global item_service
+    item_service = svc
+
     with sqlite3.connect(item_service.db_path) as conn:
         cur = conn.cursor()
         cur.execute("DELETE FROM user_items")
@@ -265,6 +308,37 @@ def test_prerequisite_requirements() -> None:
     assert updated.xp > 0
 
 
+
+VOCAL_SUBSKILLS = [
+    "breath_control",
+    "vibrato_control",
+    "harmonization",
+    "falsetto",
+    "screaming",
+]
+
+
+@pytest.mark.parametrize("skill_name", VOCAL_SUBSKILLS)
+def test_vocal_prerequisites_and_leveling(
+    skill_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    svc = SkillService(xp_events=DummyXPEvents(1.0))
+    training = VocalTrainingService(svc)
+    monkeypatch.setattr(
+        "backend.services.skill_service.random.random", lambda: 0.99
+    )
+
+    # prerequisites not met
+    with pytest.raises(ValueError):
+        training.practice(1, skill_name, 1)
+
+    vocals = Skill(id=SKILL_NAME_TO_ID["vocals"], name="vocals", category="performance")
+    svc.train(1, vocals, 9900)
+
+    result = training.practice(1, skill_name, 10)
+    assert result.xp == 100
+    assert result.level == 2
+=======
 @pytest.mark.parametrize(
     "skill_name",
     [
