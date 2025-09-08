@@ -17,6 +17,9 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from backend.services.chemistry_service import ChemistryService
 from backend.services.band_relationship_service import BandRelationshipService
+from backend.services.avatar_service import AvatarService
+from backend.services.skill_service import SkillService
+from backend.models.skill import Skill
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -82,10 +85,14 @@ class BandService:
         session_factory: Callable[[], Session] | sessionmaker = SessionLocal,
         chemistry_service: ChemistryService | None = None,
         relationship_service: BandRelationshipService | None = None,
+        avatar_service: AvatarService | None = None,
+        skill_service: SkillService | None = None,
     ):
         self.session_factory = session_factory
         self.chemistry_service = chemistry_service or ChemistryService(session_factory)
         self.relationship_service = relationship_service or BandRelationshipService()
+        self.avatar_service = avatar_service or AvatarService()
+        self.skill_service = skill_service or SkillService(avatar_service=self.avatar_service)
 
     # ------------------------------------------------------------------
     def create_band(self, user_id: int, band_name: str, genre: str) -> Band:
@@ -157,6 +164,51 @@ class BandService:
                     {"user_id": uid, "role": role} for uid, role in members
                 ],
             }
+
+    # ------------------------------------------------------------------
+    def _average_leadership(self, band_id: int) -> float:
+        with self.session_factory() as session:
+            members = [
+                uid
+                for (uid,) in session.query(BandMember.user_id).filter_by(
+                    band_id=band_id
+                )
+            ]
+        if not members:
+            return 0.0
+        total = 0
+        for uid in members:
+            avatar = self.avatar_service.get_avatar_by_character_id(uid)
+            if avatar:
+                total += avatar.leadership
+        return total / len(members)
+
+    # ------------------------------------------------------------------
+    def decay_band_skills(self, band_id: int, amount: int) -> None:
+        modifier = 1 - self._average_leadership(band_id) / 200
+        with self.session_factory() as session:
+            members = [
+                uid
+                for (uid,) in session.query(BandMember.user_id).filter_by(
+                    band_id=band_id
+                )
+            ]
+        for uid in members:
+            self.skill_service.decay_skills(uid, int(amount * modifier))
+
+    # ------------------------------------------------------------------
+    def collective_training(self, band_id: int, skill: Skill, base_xp: int) -> None:
+        modifier = 1 + self._average_leadership(band_id) / 200
+        with self.session_factory() as session:
+            members = [
+                uid
+                for (uid,) in session.query(BandMember.user_id).filter_by(
+                    band_id=band_id
+                )
+            ]
+        xp = int(base_xp * modifier)
+        for uid in members:
+            self.skill_service.train(uid, skill, xp)
 
     # ------------------------------------------------------------------
     def split_earnings(
@@ -307,6 +359,14 @@ def split_earnings(band_id: int, amount: int, collaboration_band_id: int | None 
     return _service.split_earnings(band_id, amount, collaboration_band_id)
 
 
+def decay_band_skills(band_id: int, amount: int) -> None:
+    _service.decay_band_skills(band_id, amount)
+
+
+def collective_training(band_id: int, skill: Skill, base_xp: int) -> None:
+    _service.collective_training(band_id, skill, base_xp)
+
+
 def get_band_collaborations(band_id: int) -> list[dict]:
     return _service.get_band_collaborations(band_id)
 
@@ -325,6 +385,8 @@ __all__ = [
     "remove_member",
     "get_band_info",
     "split_earnings",
+    "decay_band_skills",
+    "collective_training",
     "get_band_collaborations",
     "share_band",
 ]

@@ -1,7 +1,8 @@
 # File: backend/auth/dependencies.py
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from auth import jwt as jwt_helper
+from auth.permissions import Permissions
 from core.config import settings
 from fastapi import Depends, HTTPException, Request, status
 from services.rbac_service import has_permission
@@ -50,10 +51,27 @@ async def get_current_user_id(req: Request) -> int:
 
 
 async def require_permission(
-    permissions: List[str], user_id: int = Depends(get_current_user_id)
+    permissions: Iterable[Permissions | str],
+    user_id: int = Depends(get_current_user_id),
 ) -> bool:
-    """Ensure ``user_id`` has at least one of the required permissions."""
-    if any(has_permission(user_id, p) for p in permissions):
+    """Ensure ``user_id`` has at least one of the required permissions.
+
+    Permission identifiers are validated against :class:`Permissions`. Unknown
+    permission names result in a ``400`` error to make mistakes explicit.
+    """
+    validated: List[str] = []
+    for p in permissions:
+        try:
+            validated.append(Permissions(p).value)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    'code': 'UNKNOWN_PERMISSION',
+                    'message': f'Unknown permission: {p}',
+                },
+            )
+    if any(has_permission(user_id, p) for p in validated):
         return True
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -72,5 +90,5 @@ async def require_admin(user_id: int = Depends(get_current_user_id)) -> int:
     Returns the ``user_id`` for convenience when the dependency is used in
     endpoints that need to know which administrator performed the action.
     """
-    await require_permission(["admin"], user_id)
+    await require_permission([Permissions.ADMIN], user_id)
     return user_id

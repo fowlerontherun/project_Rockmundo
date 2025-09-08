@@ -17,8 +17,10 @@ from .city_service import city_service
 from .npc_ai_service import npc_ai_service
 from .skill_service import skill_service
 from .weather_service import weather_service
+from .reputation_service import reputation_service
 
 logger = logging.getLogger(__name__)
+ELITE_REPUTATION_THRESHOLD = 100
 
 
 def _conn() -> sqlite3.Connection:
@@ -375,3 +377,14 @@ def purchase_workshop_ticket(user_id: int, event_id: int) -> Event:
     skill = Skill(id=skill_id, name=workshop.skill_target, category="event")
     skill_service.train(user_id, skill, workshop.xp_reward)
     return workshop
+
+# ---------------------------------------------------------------------------
+# Elite events
+# ---------------------------------------------------------------------------
+
+def schedule_elite_event(user_id: int, event: Dict[str, Any]) -> Dict[str, Any]:
+    """Register an elite event if the user meets the reputation threshold."""
+
+    if reputation_service.get_reputation(user_id) < ELITE_REPUTATION_THRESHOLD:
+        raise PermissionError("Insufficient reputation for elite events")
+    return event
