@@ -1,5 +1,7 @@
 from __future__ import annotations
-import os, re, sqlite3
+import os
+import re
+import sqlite3
 from urllib.parse import urlparse
 
 DB_PATH = os.getenv("DB_PATH", "devmind_schema.db")
