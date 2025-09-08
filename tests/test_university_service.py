@@ -1,6 +1,7 @@
 import sqlite3
 from pathlib import Path
 import sys
+import pytest
 
 root_dir = Path(__file__).resolve().parents[1]
 sys.path.append(str(root_dir))
@@ -40,12 +41,8 @@ def test_enrollment_rejects_if_requirements_not_met(tmp_path: Path) -> None:
     uni = UniversityService(db_path=db, skill_service=skill_svc)
     _setup_course(db)
 
-    try:
+    with pytest.raises(ValueError):
         uni.enroll(2, 1, skill_level=0, gpa=1.0)
-    except ValueError:
-        pass
-    else:
-        assert False, "expected ValueError"
 
 
 def test_ear_training_course_awards_xp(tmp_path: Path) -> None:

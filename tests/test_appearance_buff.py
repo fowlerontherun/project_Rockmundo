@@ -49,14 +49,18 @@ def setup_db(monkeypatch, tmp_path):
     conn.close()
 
     class DummyNotifications:
-        def record_event(self, user_id, title):
-            pass
+        def __init__(self):
+            self.events = []
 
-    notification_models.notifications = DummyNotifications()
+        def record_event(self, user_id, title):
+            self.events.append((user_id, title))
+
+    notifier = DummyNotifications()
+    notification_models.notifications = notifier
 
     monkeypatch.setattr(lifestyle_service, "EXERCISE_COOLDOWN", timedelta(hours=2))
 
-    return db_path
+    return db_path, notifier
 
 
 def fetch_appearance(db_path):
@@ -69,7 +73,7 @@ def fetch_appearance(db_path):
 
 
 def test_appearance_buff_persistence_and_cooldown(monkeypatch, setup_db):
-    db_path = setup_db
+    db_path, notifier = setup_db
 
     base = datetime(2024, 1, 1, 8, 0, 0)
 
@@ -116,3 +120,4 @@ def test_appearance_buff_persistence_and_cooldown(monkeypatch, setup_db):
         + running.appearance_bonus
         + yoga.appearance_bonus
     )
+    assert len(notifier.events) == 3
