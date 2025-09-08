@@ -1,33 +1,30 @@
-import sqlite3
-
 import pytest
 
 from backend.services.song_service import SongService
 from backend.jobs.royalty_clearing_job import run as royalty_run
+from backend.utils.db import aget_conn
 
 
-def setup_db(path):
-    conn = sqlite3.connect(path)
-    cur = conn.cursor()
-    cur.execute(
-        "CREATE TABLE songs (id INTEGER PRIMARY KEY AUTOINCREMENT, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, license_fee INTEGER DEFAULT 0, royalty_rate REAL DEFAULT 0.0, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
-    )
-    cur.execute(
-        "CREATE TABLE royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, user_id INTEGER, percent INTEGER)"
-    )
-    cur.execute(
-        "CREATE TABLE cover_royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, amount_owed INTEGER, amount_paid INTEGER)"
-    )
-    cur.execute(
-        "CREATE TABLE cover_license_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, license_fee INTEGER, license_proof_url TEXT, purchased_at TEXT, expires_at TEXT)"
-    )
-    conn.commit()
-    conn.close()
+async def setup_db(path):
+    async with aget_conn(str(path)) as conn:
+        await conn.execute(
+            "CREATE TABLE songs (id INTEGER PRIMARY KEY AUTOINCREMENT, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, license_fee INTEGER DEFAULT 0, royalty_rate REAL DEFAULT 0.0, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
+        )
+        await conn.execute(
+            "CREATE TABLE royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, user_id INTEGER, percent INTEGER)"
+        )
+        await conn.execute(
+            "CREATE TABLE cover_royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, amount_owed INTEGER, amount_paid INTEGER)"
+        )
+        await conn.execute(
+            "CREATE TABLE cover_license_transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, cover_band_id INTEGER, license_fee INTEGER, license_proof_url TEXT, purchased_at TEXT, expires_at TEXT)"
+        )
 
 
-def test_create_cover_and_list(tmp_path):
+@pytest.mark.asyncio
+async def test_create_cover_and_list(tmp_path):
     db_path = tmp_path / "songs.db"
-    setup_db(db_path)
+    await setup_db(db_path)
     service = SongService(db=str(db_path))
 
     original = {
@@ -65,9 +62,10 @@ def test_create_cover_and_list(tmp_path):
     assert covers[0]["band_id"] == cover_band
 
 
-def test_cover_royalties_and_license(tmp_path):
+@pytest.mark.asyncio
+async def test_cover_royalties_and_license(tmp_path):
     db_path = tmp_path / "songs.db"
-    setup_db(db_path)
+    await setup_db(db_path)
     service = SongService(db=str(db_path))
 
     original = {
@@ -114,9 +112,10 @@ def test_cover_royalties_and_license(tmp_path):
     assert royalties_after[0]["amount_paid"] == royalties_after[0]["amount_owed"]
 
 
-def test_update_song_rejects_disallowed_field(tmp_path):
+@pytest.mark.asyncio
+async def test_update_song_rejects_disallowed_field(tmp_path):
     db_path = tmp_path / "songs.db"
-    setup_db(db_path)
+    await setup_db(db_path)
     service = SongService(db=str(db_path))
 
     song = {
@@ -130,3 +129,28 @@ def test_update_song_rejects_disallowed_field(tmp_path):
 
     with pytest.raises(ValueError):
         service.update_song(song_id, {"hack": "value"})
+
+
+@pytest.mark.asyncio
+async def test_update_song_allows_permitted_field(tmp_path):
+    db_path = tmp_path / "songs.db"
+    await setup_db(db_path)
+    service = SongService(db=str(db_path))
+
+    song = {
+        "band_id": 1,
+        "title": "Old",
+        "duration_sec": 120,
+        "genre": "rock",
+        "royalties_split": {1: 100},
+    }
+    song_id = service.create_song(song)["song_id"]
+
+    res = service.update_song(song_id, {"title": "New"})
+    assert res["status"] == "ok"
+
+    async with aget_conn(str(db_path)) as conn:
+        cur = await conn.execute("SELECT title FROM songs WHERE id = ?", (song_id,))
+        row = await cur.fetchone()
+
+    assert row["title"] == "New"
