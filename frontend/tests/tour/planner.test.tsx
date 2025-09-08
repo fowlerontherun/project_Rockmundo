@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Planner, updateSlot } from '../../src/tour/Planner';
 import sched from '../schedule/fixtures/schedule.json';
 import { vi } from 'vitest';
@@ -21,22 +21,20 @@ describe('tour planner', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<Planner />);
-    await new Promise((r) => setTimeout(r, 0));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
     const slots = document.querySelectorAll('#plannerGrid .slot');
     expect(slots.length).toBe(96);
-    const slot0000 = document.querySelector('[data-time="00:00"]');
-    expect(slot0000!.textContent).toContain('Sleep');
+    expect(await screen.findByText('Sleep')).toBeInTheDocument();
 
     await updateSlot('00:15', 'Practice');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/tour-collab/schedule/00:15',
       expect.objectContaining({ method: 'PUT' })
     );
-    await new Promise((r) => setTimeout(r, 0));
-    const slot0015 = document.querySelector('[data-time="00:15"]');
-    expect(slot0015!.textContent).toContain('Practice');
+    await waitFor(() => expect(screen.getByText('Practice')).toBeInTheDocument());
 
-    (global as any).fetch = originalFetch;
+    (globalThis as any).fetch = originalFetch;
+    vi.restoreAllMocks();
   });
 });

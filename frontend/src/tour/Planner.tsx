@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// Internal state setter to allow updateSlot to modify component state
-let setEntriesRef: React.Dispatch<React.SetStateAction<Record<string, any>>> | null = null;
+// simple event bus so updateSlot can notify planner instances
+const plannerBus = new EventTarget();
 
 export async function fetchSchedule(): Promise<Record<string, any>> {
   const res = await fetch('/api/tour-collab/schedule');
@@ -34,11 +34,10 @@ export async function deleteSlot(time: string) {
 }
 
 export async function updateSlot(time: string, value: any, durationDays = 1) {
-  if (setEntriesRef) {
-    setEntriesRef((prev) => ({ ...prev, [time]: value }));
-  }
-  const res = await saveSlot(time, value, durationDays);
-  return res;
+  plannerBus.dispatchEvent(
+    new CustomEvent('planner-update', { detail: { time, value } })
+  );
+  return saveSlot(time, value, durationDays);
 }
 
 interface ScheduleItem {
@@ -58,10 +57,14 @@ export const Planner: React.FC = () => {
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setEntriesRef = setEntries;
+    const handler = (e: Event) => {
+      const { time, value } = (e as CustomEvent<{ time: string; value: any }>).detail;
+      setEntries((prev) => ({ ...prev, [time]: value }));
+    };
+    plannerBus.addEventListener('planner-update', handler);
     fetchSchedule().then(setEntries).catch(() => {});
     return () => {
-      setEntriesRef = null;
+      plannerBus.removeEventListener('planner-update', handler);
     };
   }, []);
 
