@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface NavItem {
   label: string;
@@ -33,12 +34,12 @@ const Sidebar: React.FC = () => (
       <ul>
         {navItems.map((item) => (
           <li key={item.href} className="mb-2">
-            <a
-              href={item.href}
+            <Link
+              to={item.href}
               className="block px-2 py-1 rounded hover:bg-gray-700"
             >
               {item.label}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
