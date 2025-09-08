@@ -146,6 +146,31 @@ class RecordingService:
         for uid in session.personnel:
             skill_service.train_with_method(uid, skill, LearningMethod.PRACTICE, difficulty)
 
+    # ------------------------------------------------------------------
+    def practice_skill(
+        self,
+        user_id: int,
+        skill_name: str,
+        amount: int,
+        method: LearningMethod = LearningMethod.PRACTICE,
+        environment_quality: float = 1.0,
+    ) -> Skill:
+        """Award XP toward a specific music production skill."""
+        if skill_name not in SKILL_NAME_TO_ID:
+            raise KeyError("skill_not_found")
+        skill = Skill(
+            id=SKILL_NAME_TO_ID[skill_name],
+            name=skill_name,
+            category="creative",
+            parent_id=SKILL_NAME_TO_ID.get("music_production"),
+        )
+        return skill_service.train_with_method(
+            user_id,
+            skill,
+            method,
+            amount,
+            environment_quality=environment_quality,
+        )
         # Scale track quality by creative skill levels
         if session.personnel:
             mults = [
