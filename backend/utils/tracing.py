@@ -1,4 +1,5 @@
-"""Minimal tracing utilities.
+"""
+Minimal tracing utilities.
 
 Tries to use OpenTelemetry if available; otherwise provides a stub tracer
 that records spans as no-ops. This keeps the application code agnostic to
