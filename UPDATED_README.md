@@ -34,6 +34,32 @@ Open:
 
 > The API mounts `frontend/pages` at `/frontend` for convenient local testing.
 
+### Required environment variables
+
+The application expects these keys in your `.env` file:
+
+- `ROCKMUNDO_DB_PATH` – path to the SQLite database file.
+- `ROCKMUNDO_JWT_SECRET` – secret used to sign JWTs.
+- `ROCKMUNDO_JWT_ISS` – issuer claim for JWT tokens.
+- `ROCKMUNDO_JWT_AUD` – audience claim for JWT tokens.
+- `ROCKMUNDO_JWT_ALG` – algorithm used to sign tokens.
+- `ROCKMUNDO_ACCESS_TTL_MIN` – access token lifetime in minutes.
+- `ROCKMUNDO_REFRESH_TTL_DAYS` – refresh token lifetime in days.
+- `DISCORD_WEBHOOK_URL` – optional webhook for ops notifications.
+- `ROCKMUNDO_RATE_LIMIT_REQUESTS_PER_MIN` – requests allowed per minute.
+- `ROCKMUNDO_RATE_LIMIT_STORAGE` – rate limit backend (`memory` or `redis`).
+- `ROCKMUNDO_RATE_LIMIT_REDIS_URL` – Redis URL if using redis for rate limiting.
+- `ROCKMUNDO_CORS_ALLOWED_ORIGINS` – comma-separated list of allowed origins.
+- `ROCKMUNDO_REALTIME_BACKEND` – backend for realtime features.
+- `ROCKMUNDO_REALTIME_REDIS_URL` – Redis URL if realtime backend is `redis`.
+
+If using `.env.storage` for uploads, set:
+
+- `STORAGE_BACKEND` – storage backend (`local` or `s3`).
+- `STORAGE_LOCAL_ROOT` – directory for local file storage.
+- `STORAGE_PUBLIC_BASE_URL` – public URL base for uploaded files.
+- `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT_URL`, `S3_FORCE_PATH_STYLE`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` – S3/MinIO settings.
+
 ---
 
 ## 🌐 Frontend (static pages)
