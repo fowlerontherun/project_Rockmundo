@@ -1,4 +1,11 @@
 # File: backend/services/tour_service.py
+
+from dataclasses import dataclass
+import logging
+from typing import Any, Dict, List, Optional
+from utils.db import get_conn
+from services.venue_availability import VenueAvailabilityService
+from core.errors import AppError, TourMinStopsError, VenueConflictError
 import sqlite3
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +27,9 @@ logger = get_logger(__name__)
 
 RECORDING_FAME_THRESHOLD = 1000
 MAX_RECORDINGS_PER_YEAR = 5
+
+
+logger = logging.getLogger(__name__)
 
 class TourService:
     """Service handling both legacy DB backed operations and lightweight tour
@@ -48,6 +58,9 @@ class TourService:
         # Ensure economy tables exist for simulations
         try:
             self.economy.ensure_schema()
+
+        except Exception as exc:  # pragma: no cover - logged and re-raised
+            logger.exception("Failed to ensure economy schema: %s", exc)
         except (sqlite3.Error, SQLAlchemyError) as exc:
             logger.error("Economy schema setup failed: %s", exc)
         except Exception:
@@ -167,8 +180,20 @@ class TourService:
         tour = self.get_tour(tour_id)
         try:
             self.achievements.grant(tour["band_id"], "first_tour")
+
+        except AppError as exc:
+            logger.warning(
+                "Failed to grant achievement for tour %s: %s", tour_id, exc
+            )
+        except Exception:
+            logger.exception(
+                "Unexpected error granting achievement for tour %s", tour_id
+            )
+            raise
+
         except Exception as exc:
             logger.error("Failed to grant tour achievement: %s", exc)
+
         return tour
 
     # ---- Stops ----
