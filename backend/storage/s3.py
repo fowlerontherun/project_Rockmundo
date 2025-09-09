@@ -1,9 +1,12 @@
 from __future__ import annotations
-import os, io
+import os, io, logging
 from typing import Optional, BinaryIO
 import boto3
 from botocore.client import Config
+from botocore.exceptions import ClientError
 from .base import StorageBackend, StorageObject
+
+logger = logging.getLogger(__name__)
 
 class S3Storage(StorageBackend):
     def __init__(self, bucket: str, region: str, endpoint_url: Optional[str] = None, force_path_style: bool = True):
@@ -41,10 +44,15 @@ class S3Storage(StorageBackend):
         try:
             self.client.head_object(Bucket=self.bucket, Key=key)
             return True
-        except self.client.exceptions.NoSuchKey:
-            return False
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code")
+            if code in ("404", "NoSuchKey"):
+                return False
+            logger.exception("Client error checking existence of %s in bucket %s", key, self.bucket)
+            raise
         except Exception:
-            return False
+            logger.exception("Unexpected error checking existence of %s in bucket %s", key, self.bucket)
+            raise
 
     def url_for(self, key: str) -> str:
         if self.endpoint_url:
