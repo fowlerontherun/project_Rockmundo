@@ -10,11 +10,22 @@ from utils.i18n import _
 
 from services.band_service import BandService
 from services.skill_service import skill_service as skill_service_instance
+from services.fame_service import FameService
 from backend.models.skill import Skill
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 band_service = BandService()
 skill_service = skill_service_instance
+
+
+class _FameDB:
+    def get_band_fame_total(self, band_id: int) -> int:
+        info = band_service.get_band_info(band_id)
+        return info.get("fame", 0) if info else 0
+
+
+fame_service = FameService(_FameDB())
+
 ACOUSTIC_SKILL = Skill(
     id=SKILL_NAME_TO_ID.get("studio_acoustics", 0),
     name="studio_acoustics",
@@ -22,23 +33,18 @@ ACOUSTIC_SKILL = Skill(
 )
 
 
-def get_band_fame(band_id: int, db: Session) -> int:
-    info = band_service.get_band_info(band_id)
-    return info.get("fame", 0) if info else 0
-
-
-def get_band_acoustic_skill_score(band_id: int, db: Session) -> int:
+def get_band_acoustic_skill_score(band_id: int) -> int:
     info = band_service.get_band_info(band_id)
     members = info.get("members", []) if info else []
     if not members:
         return 0
     total = 0
     for m in members:
-        total += skill_service.train(m["user_id"], ACOUSTIC_SKILL, 0).level
+        total += skill_service.get_skill_level(m["user_id"], ACOUSTIC_SKILL)
     return total // len(members)
 
 
-def is_band_solo(band_id: int, db: Session) -> bool:
+def is_band_solo(band_id: int) -> bool:
     info = band_service.get_band_info(band_id)
     members = info.get("members", []) if info else []
     return len(members) <= 1
@@ -95,16 +101,16 @@ def book_gig(
 
     # Acoustic eligibility using real services
     if gig.acoustic:
-        if is_band_solo(gig.band_id, db):
-            skill = get_band_acoustic_skill_score(gig.band_id, db)
+        if is_band_solo(gig.band_id):
+            skill = get_band_acoustic_skill_score(gig.band_id)
             if skill < 70:
                 raise HTTPException(
                     status_code=403,
                     detail=_("Band not eligible for acoustic performance (min skill: 70)."),
                 )
         else:
-            fame = get_band_fame(gig.band_id, db)
-            skill = get_band_acoustic_skill_score(gig.band_id, db)
+            fame = fame_service.get_total_fame(gig.band_id)
+            skill = get_band_acoustic_skill_score(gig.band_id)
             if fame < 300 or skill < 70:
                 raise HTTPException(
                     status_code=403,
