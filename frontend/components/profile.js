@@ -1,6 +1,24 @@
-const USER_ID = 1;
+import { authFetch, getToken } from '../utils/auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const token = getToken();
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  let USER_ID;
+  let username;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    USER_ID = payload.sub || payload.user_id;
+    username = payload.username || payload.sub;
+    const header = document.querySelector('h1');
+    if (header && username) header.textContent = `Profile - ${username}`;
+  } catch (e) {
+    // ignore parse errors
+  }
+
   const form = document.getElementById('profile-form');
   const bioInput = document.getElementById('bio');
   const linksInput = document.getElementById('links');
@@ -8,8 +26,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const chemTbody = document.querySelector('#chemistry-table tbody');
 
   try {
-    const res = await fetch(`/api/user-settings/profile/${USER_ID}`);
-    if (res.ok) {
+    const res = await authFetch(`/api/user-settings/profile/${USER_ID}`);
+    if (res && res.ok) {
       const data = await res.json();
       bioInput.value = data.bio || '';
       linksInput.value = (data.links || []).join(', ');
@@ -19,8 +37,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const chemRes = await fetch(`/chemistry/${USER_ID}`);
-    if (chemRes.ok) {
+    const chemRes = await authFetch(`/chemistry/${USER_ID}`);
+    if (chemRes && chemRes.ok) {
       const pairs = await chemRes.json();
       pairs.forEach((p) => {
         const other = p.player_a_id === USER_ID ? p.player_b_id : p.player_a_id;
@@ -43,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       .map((l) => l.trim())
       .filter((l) => l);
 
-    await fetch(`/api/user-settings/profile/${USER_ID}`, {
+    await authFetch(`/api/user-settings/profile/${USER_ID}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bio, links }),
@@ -53,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (file) {
       const fd = new FormData();
       fd.append('file', file);
-      await fetch('/api/avatars', { method: 'POST', body: fd });
+      await authFetch('/api/avatars', { method: 'POST', body: fd });
     }
   });
 });

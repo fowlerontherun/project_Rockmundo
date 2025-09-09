@@ -18,20 +18,24 @@
   <p id="error" data-i18n="login.error" style="color:red; display:none;"></p>
   <script type="module">
     import { initI18n, t, getLocale } from '../utils/i18n.js';
+    import { setToken } from '../utils/auth.js';
     await initI18n();
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       try {
-        const res = await fetch('/auth/login', {
+        const res = await fetch('/auth/token', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept-Language': getLocale() },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept-Language': getLocale()
+          },
           body: new URLSearchParams({ username, password })
         });
         if (!res.ok) throw new Error('Login failed');
         const data = await res.json();
-        localStorage.setItem('jwt', data.access_token);
+        setToken(data.access_token);
         window.location.href = '/dashboard';
       } catch (err) {
         const errEl = document.getElementById('error');
