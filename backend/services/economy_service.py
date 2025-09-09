@@ -228,6 +228,39 @@ class EconomyService:
             session.commit()
             xp_reward_service.grant_hidden_xp(to_user_id, reason="transfer")
 
+    def record_gig_payout(
+        self, band_id: int, amount_cents: int, currency: str = "USD"
+    ) -> int:
+        """Credit gig earnings to a band's account and log the ledger entry."""
+        with self.SessionLocal() as session:
+            account = (
+                session.execute(select(Account).where(Account.user_id == band_id))
+                .scalar_one_or_none()
+            )
+            if not account:
+                account = Account(user_id=band_id, currency=currency, balance_cents=0)
+                session.add(account)
+                session.flush()
+            account.balance_cents += amount_cents
+            tx = TransactionModel(
+                type="gig",
+                amount_cents=amount_cents,
+                currency=currency,
+                dest_account_id=account.id,
+            )
+            session.add(tx)
+            session.flush()
+            session.add(
+                LedgerEntry(
+                    account_id=account.id,
+                    transaction_id=tx.id,
+                    delta_cents=amount_cents,
+                    balance_after=account.balance_cents,
+                )
+            )
+            session.commit()
+            return account.balance_cents
+
     def charge_recording_fee(self, user_id: int, currency: str = "USD") -> int:
         """Deduct recording cost from a user's account and log in the ledger."""
         amount_cents = self.recording_cost

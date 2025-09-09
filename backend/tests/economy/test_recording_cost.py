@@ -58,6 +58,13 @@ def setup_services():
     os.close(fd)
     econ = EconomyService(db_path=path)
     econ.ensure_schema()
+    with sqlite3.connect(path) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "CREATE TABLE IF NOT EXISTS bands (id INTEGER PRIMARY KEY, recorded_shows_year INTEGER DEFAULT 0)"
+        )
+        cur.execute("INSERT INTO bands (id, recorded_shows_year) VALUES (1,0)")
+        conn.commit()
     tour = TourService(
         db_path=path,
         achievements=DummyAchievements(),

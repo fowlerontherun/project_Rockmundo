@@ -6,6 +6,31 @@
   <title>Band Dashboard</title>
 </head>
 <body>
+<h2>Band Dashboard</h2>
+
+<div>
+  <label for="bandIdInput">Enter Band ID:</label>
+  <input type="text" id="bandIdInput" />
+  <button onclick="loadEconomy()">Load</button>
+</div>
+
+<h3 id="balance"></h3>
+<ul id="transactions"></ul>
+
+<script>
+async function loadEconomy() {
+  const id = document.getElementById('bandIdInput').value;
+  const balRes = await fetch(`/economy/accounts/${id}`);
+  const balData = await balRes.json();
+  document.getElementById('balance').innerText = `Balance: ${balData.balance_cents}¢`;
+
+  const txRes = await fetch(`/economy/accounts/${id}/transactions?limit=5`);
+  const txData = await txRes.json();
+  const list = txData.map(t => `<li>${t.type}: ${t.amount_cents} ${t.currency}</li>`).join('');
+  document.getElementById('transactions').innerHTML = list;
+}
+</script>
+=======
   <h1>Band & Avatar Dashboard</h1>
 
   <section>

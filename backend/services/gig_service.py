@@ -7,6 +7,7 @@ from backend.services import fan_service
 from backend.services.skill_service import skill_service
 from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod
+from backend.services.economy_service import EconomyService
 
 
 class AvatarService:  # minimal stub for testing
@@ -16,6 +17,8 @@ class AvatarService:  # minimal stub for testing
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 avatar_service = AvatarService()
+economy_service = EconomyService()
+economy_service.ensure_schema()
 
 
 def create_gig(band_id: int, city: str, venue_size: int, date: str, ticket_price: int) -> dict:
@@ -138,6 +141,8 @@ def simulate_gig_result(gig_id: int):
 
     conn.commit()
     conn.close()
+
+    economy_service.record_gig_payout(band_id, earnings)
 
     # Boost fans after gig
     fan_service.boost_fans_after_gig(band_id, city, attendance)
