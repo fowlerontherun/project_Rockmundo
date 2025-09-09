@@ -18,6 +18,7 @@ class ConfigUpdateIn(BaseModel):
     daily_cap: int | None = None
     new_player_multiplier: float | None = None
     rested_xp_rate: float | None = None
+    max_multiplier: float | None = None
 
 
 @router.get("/config")

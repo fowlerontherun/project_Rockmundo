@@ -12,6 +12,9 @@ sys.modules.setdefault(
     "backend.services.notifications_service",
     types.SimpleNamespace(NotificationsService=object),
 )
+sys.modules.setdefault(
+    "services.xp_reward_service", types.SimpleNamespace(xp_reward_service=object)
+)
 
 
 class DummyAvatarService:
@@ -99,6 +102,21 @@ def test_skill_gain_with_modifiers(tmp_path: Path) -> None:
     updated = svc.train(1, skill, 40)
     assert updated.xp == 150
     assert updated.level == 2
+
+
+def test_max_multiplier_caps_xp(monkeypatch: pytest.MonkeyPatch) -> None:
+    old_cfg = get_config()
+    set_config(XPConfig(max_multiplier=2.0))
+    svc = SkillService(xp_events=DummyXPEvents(10.0))
+    monkeypatch.setattr(
+        "backend.services.skill_service.xp_item_service.get_active_multiplier",
+        lambda _uid: 5.0,
+    )
+    monkeypatch.setattr(svc, "_lifestyle_modifier", lambda _uid: 1.0)
+    skill = Skill(id=50, name="guitar", category="instrument")
+    updated = svc.train(1, skill, 10)
+    assert updated.xp == 20
+    set_config(old_cfg)
 
 
 def test_skill_daily_cap() -> None:

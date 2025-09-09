@@ -16,6 +16,7 @@ class XPConfig:
     level_cap: int = 100
     new_player_multiplier: float = 1.0
     rested_xp_rate: float = 1.0
+    max_multiplier: float = 5.0
 
 
 def load_config(path: Path = CONFIG_PATH) -> XPConfig:

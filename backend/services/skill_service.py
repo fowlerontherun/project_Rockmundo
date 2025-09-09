@@ -200,24 +200,25 @@ class SkillService:
         if avatar and fatigue >= FATIGUE_THRESHOLD:
             raise ValueError("too fatigued to train")
 
+        cfg = get_config()
+
         modifier = self._lifestyle_modifier(user_id)
         modifier *= self.xp_events.get_active_multiplier(skill.name)
-        item_mult = xp_item_service.get_active_multiplier(user_id)
-        modifier *= item_mult
+        modifier *= xp_item_service.get_active_multiplier(user_id)
 
-        buff_mult = 1.0
         key = (user_id, skill.id)
         buff = self._session_buffs.get(key)
         if buff:
-            buff_mult = buff[0]
+            modifier *= buff[0]
             remaining = buff[1] - 1
             if remaining <= 0:
                 self._session_buffs.pop(key, None)
             else:
                 self._session_buffs[key] = (buff[0], remaining)
 
-        gain = int(base_xp * modifier * buff_mult * self._synergy_bonus(user_id, inst))
+        modifier *= self._synergy_bonus(user_id, inst)
 
+        attr_mult = 1.0
         if avatar:
             attr_map = {
                 "creative": avatar.creativity,
@@ -227,18 +228,25 @@ class SkillService:
             }
             attr_val = attr_map.get(inst.category)
             if attr_val is not None:
-                gain = int(gain * (1 + attr_val / 200))
+                attr_mult *= 1 + attr_val / 200
             if inst.id == SKILL_NAME_TO_ID.get("vocals") or inst.parent_id == SKILL_NAME_TO_ID.get("vocals"):
-                gain = int(gain * (1 + avatar.voice / 200))
+                attr_mult *= 1 + avatar.voice / 200
             discipline = avatar.discipline
         else:
             discipline = 50
 
-        gain = int(gain * (1 + (discipline - 50) / 100))
+        attr_mult *= 1 + (discipline - 50) / 100
+        modifier *= attr_mult
+
+        max_mult = getattr(cfg, "max_multiplier", 0)
+        if max_mult:
+            modifier = min(modifier, max_mult)
+
+        gain = int(base_xp * modifier)
         gain = int(gain * max(0, 1 - fatigue / 100))
 
         today = date.today()
-        cap = get_config().daily_cap
+        cap = cfg.daily_cap
         if cap:
             used = self._xp_today.get((user_id, skill.id, today), 0)
             allowed = max(0, cap - used)
