@@ -277,6 +277,11 @@ class SkillService:
         avg_level = sum(levels) / len(levels)
         return 1 + (avg_level / 200)
 
+    def get_skill_level(self, user_id: int, skill: Skill) -> int:
+        """Return the current level for ``skill`` without awarding XP."""
+
+        return self._get_skill(user_id, skill).level
+
     def train(
         self, user_id: int, skill: Skill, base_xp: int, duration: int = 0
     ) -> Skill:

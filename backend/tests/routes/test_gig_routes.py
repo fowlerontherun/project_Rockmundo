@@ -10,6 +10,8 @@ def load_gig_module(monkeypatch):
 
     # Dummy router to avoid FastAPI side effects during import
     class DummyRouter:
+        def __init__(self, *args, **kwargs):
+            pass
         def post(self, *args, **kwargs):
             def decorator(fn):
                 return fn
@@ -17,6 +19,12 @@ def load_gig_module(monkeypatch):
             return decorator
 
         def get(self, *args, **kwargs):
+            def decorator(fn):
+                return fn
+
+            return decorator
+
+        def websocket(self, *args, **kwargs):
             def decorator(fn):
                 return fn
 
@@ -68,7 +76,7 @@ def load_gig_module(monkeypatch):
     i18n_module._ = lambda s: s
     sys.modules["utils.i18n"] = i18n_module
 
-    # Stub band and skill services to avoid heavy imports
+    # Stub band, fame, notifications and skill services to avoid heavy imports
     band_service_module = types.ModuleType("services.band_service")
 
     class BandService:
@@ -77,6 +85,18 @@ def load_gig_module(monkeypatch):
 
     band_service_module.BandService = BandService
     sys.modules["services.band_service"] = band_service_module
+
+    fame_service_module = types.ModuleType("services.fame_service")
+
+    class FameService:
+        def __init__(self, db):
+            self.db = db
+
+        def get_total_fame(self, band_id):
+            return 0
+
+    fame_service_module.FameService = FameService
+    sys.modules["services.fame_service"] = fame_service_module
 
     skill_service_module = types.ModuleType("services.skill_service")
 
@@ -88,8 +108,20 @@ def load_gig_module(monkeypatch):
         def train(self, uid, skill, xp):
             return _SkillResult(0)
 
+        def get_skill_level(self, uid, skill):
+            return 0
+
     skill_service_module.skill_service = SkillService()
     sys.modules["services.skill_service"] = skill_service_module
+
+    notif_module = types.ModuleType("services.notifications_service")
+
+    class NotificationsService:
+        def create(self, *args, **kwargs):
+            pass
+
+    notif_module.NotificationsService = NotificationsService
+    sys.modules["services.notifications_service"] = notif_module
 
     # Minimal database module with get_db placeholder
     db_module = types.ModuleType("database")
@@ -144,9 +176,9 @@ def test_book_acoustic_gig_solo_band(monkeypatch):
     db = DummySession()
 
     # Solo band with sufficient skill should pass
-    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: True)
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id: True)
     monkeypatch.setattr(
-        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 80
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id: 80
     )
 
     gig = DummyGigCreate(
@@ -166,10 +198,12 @@ def test_book_acoustic_gig_non_solo_insufficient(monkeypatch):
     db = DummySession()
 
     # Non-solo band with low fame should raise HTTPException
-    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: False)
-    monkeypatch.setattr(gig_routes, "get_band_fame", lambda band_id, db: 200)
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id: False)
     monkeypatch.setattr(
-        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 80
+        gig_routes.fame_service, "get_total_fame", lambda band_id: 200
+    )
+    monkeypatch.setattr(
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id: 80
     )
 
     gig = DummyGigCreate(
@@ -191,9 +225,9 @@ def test_book_acoustic_gig_solo_band_insufficient(monkeypatch):
     db = DummySession()
 
     # Solo band with low skill should raise HTTPException
-    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: True)
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id: True)
     monkeypatch.setattr(
-        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 60
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id: 60
     )
 
     gig = DummyGigCreate(
@@ -215,10 +249,12 @@ def test_book_acoustic_gig_non_solo_sufficient(monkeypatch):
     db = DummySession()
 
     # Non-solo band with sufficient fame and skill should pass
-    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id, db: False)
-    monkeypatch.setattr(gig_routes, "get_band_fame", lambda band_id, db: 400)
+    monkeypatch.setattr(gig_routes, "is_band_solo", lambda band_id: False)
     monkeypatch.setattr(
-        gig_routes, "get_band_acoustic_skill_score", lambda band_id, db: 75
+        gig_routes.fame_service, "get_total_fame", lambda band_id: 400
+    )
+    monkeypatch.setattr(
+        gig_routes, "get_band_acoustic_skill_score", lambda band_id: 75
     )
 
     gig = DummyGigCreate(
