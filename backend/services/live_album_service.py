@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import aiosqlite
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
@@ -26,54 +27,55 @@ class LiveAlbumService:
     async def compile_live_album(self, performance_ids: List[int], title: str) -> Dict:
         if len(performance_ids) != 5:
             raise ValueError("Exactly five performance IDs are required")
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
 
-        performances = []
-        cities = set()
-        venues = set()
-        for pid in performance_ids:
-            cur.execute(
-                "SELECT rowid, band_id, city, venue, setlist, skill_gain FROM live_performances WHERE rowid = ?",
-                (pid,),
-            )
-            row = cur.fetchone()
-            if not row:
-                conn.close()
-                raise ValueError(f"Performance {pid} not found")
-            rowid, band_id, city, venue, setlist_json, skill_gain = row
-            setlist_data = json.loads(setlist_json)
-            actions = setlist_data.get("setlist", []) + setlist_data.get("encore", [])
-            songs: List[int] = []
-            for action in actions:
-                if action.get("type") in ("song", "encore"):
-                    ref = action.get("reference")
-                    try:
-                        songs.append(int(ref))
-                    except (TypeError, ValueError):
-                        continue
-            cur.execute(
-                "SELECT song_id, performance_score FROM recorded_tracks WHERE performance_id = ?",
-                (pid,),
-            )
-            song_scores = {sid: score for sid, score in cur.fetchall()}
-            performances.append(
-                {
-                    "id": rowid,
-                    "band_id": band_id,
-                    "songs": songs,
-                    "order": songs,
-                    "song_scores": song_scores,
-                    "skill_gain": skill_gain,
-                    "city": city,
-                    "venue": venue,
-                }
-            )
-            if city:
-                cities.add(city)
-            if venue:
-                venues.add(venue)
-        conn.close()
+        conn = await aiosqlite.connect(self.db_path)
+        try:
+            performances = []
+            cities = set()
+            venues = set()
+            for pid in performance_ids:
+                cur = await conn.execute(
+                    "SELECT rowid, band_id, city, venue, setlist, skill_gain FROM live_performances WHERE rowid = ?",
+                    (pid,),
+                )
+                row = await cur.fetchone()
+                if not row:
+                    raise ValueError(f"Performance {pid} not found")
+                rowid, band_id, city, venue, setlist_json, skill_gain = row
+                setlist_data = json.loads(setlist_json)
+                actions = setlist_data.get("setlist", []) + setlist_data.get("encore", [])
+                songs: List[int] = []
+                for action in actions:
+                    if action.get("type") in ("song", "encore"):
+                        ref = action.get("reference")
+                        try:
+                            songs.append(int(ref))
+                        except (TypeError, ValueError):
+                            continue
+                cur = await conn.execute(
+                    "SELECT song_id, performance_score FROM recorded_tracks WHERE performance_id = ?",
+                    (pid,),
+                )
+                song_scores = {sid: score for sid, score in await cur.fetchall()}
+                performances.append(
+                    {
+                        "id": rowid,
+                        "band_id": band_id,
+                        "songs": songs,
+                        "order": songs,
+                        "song_scores": song_scores,
+                        "skill_gain": skill_gain,
+                        "city": city,
+                        "venue": venue,
+                    }
+                )
+                if city:
+                    cities.add(city)
+                if venue:
+                    venues.add(venue)
+        finally:
+            await conn.close()
+
         band_ids = {p["band_id"] for p in performances}
         if len(band_ids) != 1:
             raise ValueError("All performances must belong to the same band")
@@ -225,74 +227,73 @@ class LiveAlbumService:
         if not album:
             raise ValueError("Album not found")
 
-        conn = sqlite3.connect(self.db_path)
-        cur = conn.cursor()
-
-        # Ensure minimal schema for releases and tracks
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS releases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                band_id INTEGER,
-                album_type TEXT,
-                release_date TEXT
-            )
-            """
-        )
-        cur.execute(
-            """
-            CREATE TABLE IF NOT EXISTS release_tracks (
-                release_id INTEGER,
-                song_id INTEGER,
-                show_id INTEGER,
-                performance_score REAL
-            )
-            """
-        )
-
-        # Prevent multiple live albums in the same calendar year
+        conn = await aiosqlite.connect(self.db_path)
         try:
-            cur.execute(
+            # Ensure minimal schema for releases and tracks
+            await conn.execute(
                 """
-                SELECT 1 FROM releases
-                WHERE band_id = ? AND album_type = 'live'
-                  AND release_date IS NOT NULL
-                  AND strftime('%Y', release_date) = ?
-                """,
-                (album["band_id"], str(datetime.utcnow().year)),
+                CREATE TABLE IF NOT EXISTS releases (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT,
+                    band_id INTEGER,
+                    album_type TEXT,
+                    release_date TEXT
+                )
+                """
             )
-            if cur.fetchone():
-                conn.close()
-                raise ValueError("Band already released a live album this year")
-        except sqlite3.OperationalError:
-            # If the table or column doesn't exist we skip the check
-            pass
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS release_tracks (
+                    release_id INTEGER,
+                    song_id INTEGER,
+                    show_id INTEGER,
+                    performance_score REAL
+                )
+                """
+            )
 
-        cur.execute(
-            "INSERT INTO releases (title, band_id, album_type, release_date) VALUES (?, ?, ?, ?)",
-            (
-                album["title"],
-                album["band_id"],
-                album["album_type"],
-                datetime.utcnow().date().isoformat(),
-            ),
-        )
-        release_id = cur.lastrowid
+            # Prevent multiple live albums in the same calendar year
+            try:
+                cur = await conn.execute(
+                    """
+                    SELECT 1 FROM releases
+                    WHERE band_id = ? AND album_type = 'live'
+                      AND release_date IS NOT NULL
+                      AND strftime('%Y', release_date) = ?
+                    """,
+                    (album["band_id"], str(datetime.utcnow().year)),
+                )
+                if await cur.fetchone():
+                    raise ValueError("Band already released a live album this year")
+            except sqlite3.OperationalError:
+                # If the table or column doesn't exist we skip the check
+                pass
 
-        for track in album["tracks"]:
-            cur.execute(
-                "INSERT INTO release_tracks (release_id, song_id, show_id, performance_score) VALUES (?, ?, ?, ?)",
+            cur = await conn.execute(
+                "INSERT INTO releases (title, band_id, album_type, release_date) VALUES (?, ?, ?, ?)",
                 (
-                    release_id,
-                    track["song_id"],
-                    track.get("show_id"),
-                    track.get("performance_score"),
+                    album["title"],
+                    album["band_id"],
+                    album["album_type"],
+                    datetime.utcnow().date().isoformat(),
                 ),
             )
+            release_id = cur.lastrowid
 
-        conn.commit()
-        conn.close()
+            for track in album["tracks"]:
+                await conn.execute(
+                    "INSERT INTO release_tracks (release_id, song_id, show_id, performance_score) VALUES (?, ?, ?, ?)",
+                    (
+                        release_id,
+                        track["song_id"],
+                        track.get("show_id"),
+                        track.get("performance_score"),
+                    ),
+                )
+
+            await conn.commit()
+        finally:
+            await conn.close()
 
         # Record a zero-value digital sale so revenue tracking includes this
         # release.  Failures are silently ignored as sales tracking is
