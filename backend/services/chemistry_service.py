@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from pathlib import Path
 from typing import Callable
 
 from sqlalchemy import create_engine, func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.models.player_chemistry import Base, PlayerChemistry
@@ -19,6 +21,8 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 Base.metadata.create_all(bind=engine)
 
+logger = logging.getLogger(__name__)
+
 
 class ChemistryService:
     """Handles initialization and adjustment of player chemistry."""
@@ -29,8 +33,9 @@ class ChemistryService:
         self.session_factory = session_factory
         try:
             Base.metadata.create_all(bind=self.session_factory().get_bind())
-        except Exception:
-            pass
+        except SQLAlchemyError:
+            logger.exception("Failed to initialize ChemistryService database")
+            raise
 
     @staticmethod
     def _normalize(a_id: int, b_id: int) -> tuple[int, int]:
