@@ -70,5 +70,5 @@ class XPEventService:
     def get_active_multiplier(self, skill: str | None = None) -> float:
         mult = 1.0
         for e in self.get_active_events(skill):
-            mult *= e.multiplier
+            mult += e.multiplier - 1
         return mult
