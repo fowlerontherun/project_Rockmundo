@@ -74,7 +74,7 @@ class NotificationsService:
                 """SELECT id, user_id, type, title, body, created_at, read_at
                        FROM notifications
                        WHERE user_id = ?
-                       ORDER BY COALESCE(read_at, '9999-12-31') IS NOT NULL, created_at DESC
+                       ORDER BY read_at IS NULL DESC, COALESCE(read_at, '9999-12-31'), created_at DESC
                        LIMIT ? OFFSET ?""",
                 (user_id, limit, offset),
             )
