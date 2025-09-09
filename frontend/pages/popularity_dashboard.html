@@ -29,6 +29,10 @@
 <h3>Forecast</h3>
 <ul id="forecast"></ul>
 
+<h3>World Pulse Top Genres</h3>
+<button onclick="loadWorldPulse()">Refresh Snapshot</button>
+<ul id="worldPulse"></ul>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 async function loadPopularity() {
@@ -77,6 +81,19 @@ async function loadPopularity() {
   if (window.renderSentimentChart) {
     window.renderSentimentChart(sData.history);
   }
+}
+
+async function loadWorldPulse() {
+  const today = new Date().toISOString().slice(0, 10);
+  const res = await fetch(`/api/world-pulse/ranked?date=${today}&limit=10`);
+  const data = await res.json();
+  const list = document.getElementById('worldPulse');
+  list.innerHTML = '';
+  data.forEach(row => {
+    const li = document.createElement('li');
+    li.innerText = `${row.rank}. ${row.genre} (${row.score}) ${row.trend_emoji}`;
+    list.appendChild(li);
+  });
 }
 
 let trendChart = null;
