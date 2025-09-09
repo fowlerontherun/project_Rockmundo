@@ -1,5 +1,6 @@
 from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
+from services.notifications_service import NotificationsService
 from sqlalchemy.orm import Session
 from models.gig import Gig
 from schemas.gig import GigCreate, GigOut
@@ -17,6 +18,7 @@ def is_band_solo(band_id: int, db: Session) -> bool:
     return False  # Simulated solo check
 
 router = APIRouter()
+notif_svc = NotificationsService()
 
 @router.post(
     "/gigs/book",
@@ -50,6 +52,18 @@ def book_gig(
     db.add(new_gig)
     db.commit()
     db.refresh(new_gig)
+
+    # Persist notification for booking confirmation
+    try:
+        notif_svc.create(
+            user_id,
+            "Gig booked",
+            f"Band {gig.band_id} at venue {gig.venue_id} on {gig.date}",
+            type_="gig",
+        )
+    except Exception:
+        pass
+
     return new_gig
 
 @router.get("/gigs/{band_id}", response_model=list[GigOut])
