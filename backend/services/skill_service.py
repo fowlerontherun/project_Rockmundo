@@ -11,6 +11,7 @@ from __future__ import annotations
 import random
 import sqlite3
 from datetime import date
+import time
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -65,6 +66,15 @@ class SkillService:
         # Temporary XP buffs awarded for session successes
         # key -> (multiplier, remaining_uses)
         self._session_buffs: Dict[Tuple[int, int], Tuple[float, int]] = {}
+        # Rested XP tracking
+        self._rest_state: Dict[int, Dict[str, float]] = {}
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS rest_state (user_id INTEGER PRIMARY KEY, last_activity REAL, rest_hours REAL)"
+                )
+        except sqlite3.Error:
+            pass
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -110,6 +120,85 @@ class SkillService:
             return LearningStyle(row[0]) if row and row[0] else LearningStyle.BALANCED
         except ValueError:
             return LearningStyle.BALANCED
+
+    def _is_new_player(self, user_id: int) -> bool:
+        """Heuristically determine whether a user is considered new."""
+
+        # Try account age if available
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT created_at FROM users WHERE id = ?", (user_id,))
+                row = cur.fetchone()
+        except sqlite3.Error:
+            row = None
+        if row and row[0]:
+            try:
+                created = (
+                    date.fromisoformat(row[0])
+                    if isinstance(row[0], str)
+                    else date.fromtimestamp(row[0])
+                )
+                if (date.today() - created).days < 7:
+                    return True
+            except Exception:
+                pass
+        # Fallback: any skill at level >=5 means not new
+        for (uid, _sid), s in self._skills.items():
+            if uid == user_id and s.level >= 5:
+                return False
+        return True
+
+    def _load_rest_state(self, user_id: int) -> Dict[str, float]:
+        state = self._rest_state.get(user_id)
+        if state is not None:
+            return state
+        row = None
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT last_activity, rest_hours FROM rest_state WHERE user_id = ?",
+                    (user_id,),
+                )
+                row = cur.fetchone()
+        except sqlite3.Error:
+            row = None
+        if row:
+            state = {"last_activity": row[0], "rest_hours": row[1]}
+        else:
+            now = time.time()
+            state = {"last_activity": now, "rest_hours": 0.0}
+        self._rest_state[user_id] = state
+        return state
+
+    def _save_rest_state(self, user_id: int, state: Dict[str, float]) -> None:
+        self._rest_state[user_id] = state
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "INSERT INTO rest_state (user_id, last_activity, rest_hours) VALUES (?, ?, ?) "
+                    "ON CONFLICT(user_id) DO UPDATE SET last_activity=excluded.last_activity, rest_hours=excluded.rest_hours",
+                    (user_id, state["last_activity"], state["rest_hours"]),
+                )
+                conn.commit()
+        except sqlite3.Error:
+            pass
+
+    def _apply_rested_xp(self, user_id: int, duration: int) -> float:
+        cfg = get_config()
+        state = self._load_rest_state(user_id)
+        now = time.time()
+        elapsed = max(0.0, now - state["last_activity"])
+        state["rest_hours"] += elapsed / 3600
+        rest_covered = min(state["rest_hours"], float(duration))
+        ratio = (rest_covered / duration) if duration > 0 else 0.0
+        multiplier = 1 + (cfg.rested_xp_rate - 1) * ratio
+        state["rest_hours"] -= rest_covered
+        state["last_activity"] = now
+        self._save_rest_state(user_id, state)
+        return multiplier
 
     def _get_skill(self, user_id: int, skill: Skill) -> Skill:
         key = (user_id, skill.id)
@@ -237,6 +326,11 @@ class SkillService:
 
         attr_mult *= 1 + (discipline - 50) / 100
         modifier *= attr_mult
+
+        if self._is_new_player(user_id):
+            modifier *= cfg.new_player_multiplier
+
+        modifier *= self._apply_rested_xp(user_id, duration)
 
         max_mult = getattr(cfg, "max_multiplier", 0)
         if max_mult:

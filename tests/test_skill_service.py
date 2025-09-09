@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import types
 from pathlib import Path
+import time
 
 import pytest
 
@@ -102,6 +103,38 @@ def test_skill_gain_with_modifiers(tmp_path: Path) -> None:
     updated = svc.train(1, skill, 40)
     assert updated.xp == 150
     assert updated.level == 2
+
+
+def test_new_player_multiplier(monkeypatch: pytest.MonkeyPatch) -> None:
+    old_cfg = get_config()
+    set_config(XPConfig(new_player_multiplier=2.0))
+    svc = SkillService(xp_events=DummyXPEvents(1.0))
+    monkeypatch.setattr(svc, "_lifestyle_modifier", lambda _uid: 1.0)
+    skill = Skill(id=500, name="guitar", category="instrument")
+    updated = svc.train(1, skill, 10)
+    assert updated.xp == 20
+    set_config(old_cfg)
+
+
+def test_rested_xp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    old_cfg = get_config()
+    set_config(XPConfig(rested_xp_rate=2.0))
+    db = tmp_path / "db.sqlite"
+    svc = SkillService(xp_events=DummyXPEvents(1.0), db_path=db)
+    monkeypatch.setattr(svc, "_lifestyle_modifier", lambda _uid: 1.0)
+    skill = Skill(id=501, name="guitar", category="instrument")
+    base = 1_000.0
+    monkeypatch.setattr("backend.services.skill_service.time.time", lambda: base)
+    svc.train(1, skill, 10, duration=1)
+    # Advance 5 hours to accrue rest
+    monkeypatch.setattr(
+        "backend.services.skill_service.time.time", lambda: base + 5 * 3600
+    )
+    updated = svc.train(1, skill, 10, duration=1)
+    assert updated.xp == 30  # first 10 + rested bonus 20
+    state = svc._rest_state.get(1)
+    assert state and state["rest_hours"] == pytest.approx(4.0, rel=1e-3)
+    set_config(old_cfg)
 
 
 def test_max_multiplier_caps_xp(monkeypatch: pytest.MonkeyPatch) -> None:
