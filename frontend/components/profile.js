@@ -25,6 +25,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const avatarInput = document.getElementById('avatar-input');
   const chemTbody = document.querySelector('#chemistry-table tbody');
 
+  const bandForm = document.getElementById('band-form');
+  const bandNameInput = document.getElementById('band-name');
+  const bandGenreInput = document.getElementById('band-genre');
+  const bandFounderInput = document.getElementById('band-founder');
+  const bandError = document.getElementById('band-error');
+
+  if (bandFounderInput && USER_ID) bandFounderInput.value = USER_ID;
+
+  const avatarForm = document.getElementById('avatar-form');
+  const avatarError = document.getElementById('avatar-error');
+
   try {
     const res = await authFetch(`/api/user-settings/profile/${USER_ID}`);
     if (res && res.ok) {
@@ -74,4 +85,78 @@ document.addEventListener('DOMContentLoaded', async () => {
       await authFetch('/api/avatars', { method: 'POST', body: fd });
     }
   });
+
+  if (bandForm) {
+    bandForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (bandError) bandError.textContent = '';
+      const payload = {
+        name: bandNameInput.value,
+        genre: bandGenreInput.value,
+        founder_id: parseInt(bandFounderInput.value, 10),
+      };
+      const res = await authFetch('/api/bands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        bandForm.reset();
+        if (bandFounderInput && USER_ID) bandFounderInput.value = USER_ID;
+      } else {
+        let errText = 'Failed to create band';
+        try {
+          const data = await res.json();
+          if (Array.isArray(data.detail)) {
+            errText = data.detail.map((d) => d.msg).join(', ');
+          } else if (data.detail) {
+            errText = data.detail;
+          }
+        } catch (err) {
+          // ignore parse errors
+        }
+        if (bandError) bandError.textContent = errText;
+      }
+    });
+  }
+
+  if (avatarForm) {
+    avatarForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (avatarError) avatarError.textContent = '';
+      const payload = {
+        character_id: parseInt(document.getElementById('avatar-character-id').value, 10),
+        nickname: document.getElementById('avatar-nickname').value,
+        body_type: document.getElementById('avatar-body').value,
+        skin_tone: document.getElementById('avatar-skin').value,
+        face_shape: document.getElementById('avatar-face').value,
+        hair_style: document.getElementById('avatar-hair-style').value,
+        hair_color: document.getElementById('avatar-hair-color').value,
+        top_clothing: document.getElementById('avatar-top').value,
+        bottom_clothing: document.getElementById('avatar-bottom').value,
+        shoes: document.getElementById('avatar-shoes').value,
+      };
+      const res = await authFetch('/api/avatars', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        avatarForm.reset();
+      } else {
+        let errText = 'Failed to create avatar';
+        try {
+          const data = await res.json();
+          if (Array.isArray(data.detail)) {
+            errText = data.detail.map((d) => d.msg).join(', ');
+          } else if (data.detail) {
+            errText = data.detail;
+          }
+        } catch (err) {
+          // ignore parse errors
+        }
+        if (avatarError) avatarError.textContent = errText;
+      }
+    });
+  }
 });
