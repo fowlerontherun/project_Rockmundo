@@ -66,6 +66,8 @@ from utils.db import init_pool
 from utils.i18n import _
 
 from backend.services.scheduler_service import schedule_daily_loop_reset
+from backend.services.storage_service import get_storage_backend
+from backend.storage.local import LocalStorage
 from backend.utils.error_handlers import http_exception_handler
 from backend.utils.logging import setup_logging
 from backend.utils.metrics import CONTENT_TYPE_LATEST, generate_latest
@@ -108,6 +110,9 @@ def startup() -> None:
     init_db()
     init_pool()
     schedule_daily_loop_reset()
+    storage = get_storage_backend()
+    if isinstance(storage, LocalStorage):
+        os.makedirs(os.path.join(storage.root, "mail", "attachments"), exist_ok=True)
 
 
 # Existing routers
