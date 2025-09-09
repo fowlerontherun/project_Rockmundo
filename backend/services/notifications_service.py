@@ -1,6 +1,7 @@
 # File: backend/services/notifications_service.py
 
 import asyncio
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -16,8 +17,10 @@ except Exception:  # pragma: no cover - fallback or noop if unavailable
 
         def send_message(*args, **kwargs):  # type: ignore
             return None
-from utils.db import get_conn
 from backend.realtime.social_gateway import publish_notification
+from utils.db import get_conn
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationsError(Exception):
@@ -50,7 +53,7 @@ class NotificationsService:
                 content = f"{title}\n{body}".strip()
                 send_message(content)
             except DiscordServiceError as exc:
-                print(f"Discord notification failed: {exc}")
+                logger.warning("Discord notification failed: %s", exc)
 
         # Fire-and-forget realtime event
         try:
