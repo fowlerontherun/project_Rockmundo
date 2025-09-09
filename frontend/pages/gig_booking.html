@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book Gig</title>
+  <script type="module" src="../components/toast.js"></script>
+</head>
+<body>
+<h2>Book a Gig</h2>
+<form id="bookingForm">
+  <input type="number" name="band_id" placeholder="Band ID" required />
+  <input type="number" name="venue_id" placeholder="Venue ID" required />
+  <input type="date" name="date" required />
+  <input type="number" step="0.01" name="ticket_price" placeholder="Ticket Price" required />
+  <label><input type="checkbox" name="acoustic" /> Acoustic</label>
+  <button type="submit">Book</button>
+</form>
+
+<script>
+const form = document.getElementById('bookingForm');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = new FormData(form);
+  const payload = {
+    band_id: parseInt(data.get('band_id')),
+    venue_id: parseInt(data.get('venue_id')),
+    date: data.get('date'),
+    ticket_price: parseFloat(data.get('ticket_price')),
+    acoustic: data.get('acoustic') === 'on'
+  };
+  const res = await fetch('/gigs/book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    showToast('Booking confirmed');
+    await fetch('/notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Gig booked', body: `${payload.date}` })
+    });
+    form.reset();
+  } else {
+    const err = await res.json();
+    showToast(`Error: ${err.detail || 'booking failed'}`);
+  }
+});
+</script>
+</body>
+</html>

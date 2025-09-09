@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notifications</title>
+</head>
+<body>
+<h2>Notifications</h2>
+<ul id="notifList"></ul>
+
+<script>
+async function loadNotifications() {
+  const res = await fetch('/notification');
+  const data = await res.json();
+  const list = document.getElementById('notifList');
+  list.innerHTML = '';
+  (data.notifications || []).forEach(n => {
+    const li = document.createElement('li');
+    li.textContent = `${n.title} - ${n.body}`;
+    list.appendChild(li);
+  });
+}
+loadNotifications();
+</script>
+</body>
+</html>
