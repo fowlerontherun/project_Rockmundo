@@ -34,6 +34,11 @@ Open:
 
 > The API mounts `frontend/pages` at `/frontend` for convenient local testing.
 
+## Demo Credentials
+
+- Email: demo@rockmundo.test
+- Password: demo123
+
 ---
 
 ## 🌐 Frontend (static pages)
@@ -88,7 +93,7 @@ assets/ images/                   # branding & UI assets
 
 - JWT-based sessions with RBAC guards on sensitive routes.
 - Login flow routes are under `backend/auth/routes.py` and `backend/routes/*` where guarded.
-- For local testing, the seed script creates a demo user; check the console output and `.env` for default credentials/secret.
+- For local testing, the seed script creates a demo user (see **Demo Credentials** above).
 
 ---
 
