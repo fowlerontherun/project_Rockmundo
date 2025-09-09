@@ -128,41 +128,59 @@ def create_demo_records(conn: sqlite3.Connection) -> None:
             (DEMO_EMAIL, pw, DEMO_DISPLAY_NAME),
         )
         user_id = cur.lastrowid
-
-    # Character for avatar/band
-    cur.execute(
-        "INSERT INTO characters (name, genre, trait, birthplace) VALUES (?, ?, ?, ?)",
-        ("Demo Character", "Rock", "neutral", "LA"),
-    )
-    character_id = cur.lastrowid
-
-    # Avatar
-    cur.execute(
-        """
-        INSERT INTO avatars (
-            character_id, nickname, body_type, skin_tone, face_shape, hair_style,
-            hair_color, top_clothing, bottom_clothing, shoes, stamina, charisma
-        ) VALUES (?, ?, 'slim', 'pale', 'oval', 'short', 'black', 'tshirt', 'jeans', 'boots', 50, 50)
-        """,
-        (character_id, "DemoHero"),
-    )
-
-    # Band
-    cur.execute(
-        "INSERT INTO bands (name, founder_id, genre_id) VALUES (?, ?, ?)",
-        ("Demo Band", character_id, 1),
-    )
-
     # Sample venues
     venues = [
         ("Brixton Academy", "London", "UK", 4900),
         ("Barrowland Ballroom", "Glasgow", "UK", 1900),
         ("Paradiso", "Amsterdam", "NL", 1500),
+        ("The Roxy", "Los Angeles", "USA", 500),
+        ("Madison Square Garden", "New York", "USA", 20000),
     ]
     cur.executemany(
         "INSERT OR IGNORE INTO venues (name, city, country, capacity) VALUES (?, ?, ?, ?)",
         venues,
     )
+
+    # Sample bands with related characters and avatars
+    bands = [
+        {
+            "band_name": "Demo Band",
+            "character": ("Demo Character", "Rock", "neutral", "LA"),
+            "nickname": "DemoHero",
+        },
+        {
+            "band_name": "Synth Lords",
+            "character": ("Synth Lord", "Electronic", "aloof", "Berlin"),
+            "nickname": "SynthMaster",
+        },
+    ]
+
+    for b in bands:
+        # Skip existing bands to avoid orphan characters/avatars
+        cur.execute("SELECT id FROM bands WHERE name=?", (b["band_name"],))
+        if cur.fetchone():
+            continue
+
+        cur.execute(
+            "INSERT INTO characters (name, genre, trait, birthplace) VALUES (?, ?, ?, ?)",
+            b["character"],
+        )
+        character_id = cur.lastrowid
+
+        cur.execute(
+            """
+            INSERT INTO avatars (
+                character_id, nickname, body_type, skin_tone, face_shape, hair_style,
+                hair_color, top_clothing, bottom_clothing, shoes, stamina, charisma
+            ) VALUES (?, ?, 'slim', 'pale', 'oval', 'short', 'black', 'tshirt', 'jeans', 'boots', 50, 50)
+            """,
+            (character_id, b["nickname"]),
+        )
+
+        cur.execute(
+            "INSERT INTO bands (name, founder_id, genre_id) VALUES (?, ?, ?)",
+            (b["band_name"], character_id, 1),
+        )
 
     # Simple activity and daily schedule
     cur.execute(
@@ -175,6 +193,33 @@ def create_demo_records(conn: sqlite3.Connection) -> None:
     )
 
     conn.commit()
+
+    # Confirmation summary of seeded entities
+    cur.execute("SELECT COUNT(*) FROM users")
+    user_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM avatars")
+    avatar_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM bands")
+    band_count = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM venues")
+    venue_count = cur.fetchone()[0]
+
+    print("Seeded entities:")
+    print(f"  Users: {user_count}")
+    print(f"  Avatars: {avatar_count}")
+    print(f"  Bands: {band_count}")
+    for name, nick in cur.execute(
+        """
+        SELECT b.name, a.nickname
+        FROM bands b
+        JOIN characters c ON b.founder_id = c.id
+        JOIN avatars a ON a.character_id = c.id
+        """
+    ):
+        print(f"    - {name} (founder avatar: {nick})")
+    print(f"  Venues: {venue_count}")
+    for (v_name,) in cur.execute("SELECT name FROM venues"):
+        print(f"    - {v_name}")
 
     # Print and write credentials
     print(f"Demo user credentials:\n  email: {DEMO_EMAIL}\n  password: {DEMO_PASSWORD}")
