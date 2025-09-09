@@ -168,7 +168,7 @@ def generate_latest() -> bytes:
                 else:
                     lines.append(f"{c.name}_sum {data['sum']}")
                     lines.append(f"{c.name}_count {data['count']}")
-    return "\n".join(lines).encode("utf-8")
+    return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"

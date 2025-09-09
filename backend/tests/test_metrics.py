@@ -25,3 +25,9 @@ def test_histogram_observe():
     assert "test_histogram_bucket{label=\"value\",le=\"1.0\"} 1" in output
     assert "test_histogram_count{label=\"value\"} 1" in output
     assert "test_histogram_sum{label=\"value\"} 0.5" in output
+
+
+def test_generate_latest_has_trailing_newline():
+    c = Counter("newline_counter", "newline test")
+    c.labels().inc()
+    assert generate_latest().endswith(b"\n")
