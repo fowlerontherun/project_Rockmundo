@@ -17,6 +17,10 @@
     </select>
     <select id="playlistSelect"></select>
   </div>
+  <div>
+    <input type="text" id="mailSearch" placeholder="Search mail..." />
+    <ul id="mailResults"></ul>
+  </div>
   <div id="tabs">
     <button onclick="showTab('songs')">Songs</button>
     <button onclick="showTab('albums')">Albums</button>
@@ -164,9 +168,40 @@
     }
   }
 
+  async function searchMail() {
+    const q = document.getElementById('mailSearch').value.trim();
+    const list = document.getElementById('mailResults');
+    if (!q) {
+      list.innerHTML = '';
+      return;
+    }
+    try {
+      const res = await fetch(`/api/mail/search?q=${encodeURIComponent(q)}`);
+      if (!res.ok) {
+        list.innerHTML = '<li>Error searching mail</li>';
+        return;
+      }
+      const data = await res.json();
+      list.innerHTML = '';
+      if (data.length === 0) {
+        list.innerHTML = '<li>No results</li>';
+        return;
+      }
+      data.forEach(msg => {
+        const li = document.createElement('li');
+        li.textContent = msg.body;
+        list.appendChild(li);
+      });
+    } catch (err) {
+      console.error('Error searching mail', err);
+      list.innerHTML = '<li>Error searching mail</li>';
+    }
+  }
+
   window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('searchInput').addEventListener('input', handleInput);
     document.getElementById('sortSelect').addEventListener('change', handleInput);
+    document.getElementById('mailSearch').addEventListener('input', searchMail);
     loadPlaylists();
     handleInput();
   });
