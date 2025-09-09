@@ -73,12 +73,16 @@ from backend.utils.tracing import setup_tracing
 
 app = FastAPI(title="RockMundo API with Events, Lifestyle, and Sponsorships")
 app.add_exception_handler(HTTPException, http_exception_handler)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors.allowed_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+cors_kwargs = {
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+if settings.env == "dev":
+    cors_kwargs["allow_origin_regex"] = r"http://localhost(:[0-9]+)?"
+else:
+    cors_kwargs["allow_origins"] = settings.cors.allowed_origins
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 app.add_middleware(ObservabilityMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(LocaleMiddleware)
