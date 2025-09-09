@@ -211,6 +211,16 @@ class BandService:
             self.skill_service.train(uid, skill, xp)
 
     # ------------------------------------------------------------------
+    def increment_fame(self, band_id: int, amount: int) -> None:
+        """Increase a band's fame by ``amount``."""
+
+        with self.session_factory() as session:
+            with session.begin():
+                band = session.get(Band, band_id)
+                if band:
+                    band.fame = (band.fame or 0) + amount
+
+    # ------------------------------------------------------------------
     def split_earnings(
         self, band_id: int, amount: int, collaboration_band_id: int | None = None
     ) -> dict:
@@ -375,6 +385,10 @@ def share_band(user_a: int, user_b: int) -> bool:
     return _service.share_band(user_a, user_b)
 
 
+def increment_fame(band_id: int, amount: int) -> None:
+    _service.increment_fame(band_id, amount)
+
+
 __all__ = [
     "BandService",
     "Band",
@@ -387,6 +401,7 @@ __all__ = [
     "split_earnings",
     "decay_band_skills",
     "collective_training",
+    "increment_fame",
     "get_band_collaborations",
     "share_band",
 ]

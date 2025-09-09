@@ -9,14 +9,35 @@ from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod
 from backend.services.economy_service import EconomyService
 
+try:  # pragma: no cover - optional in minimal environments
+    from backend.services.band_service import BandService
+except Exception:  # pragma: no cover
+    class BandService:  # type: ignore
+        def get_band_info(self, _band_id: int):
+            return None
 
-class AvatarService:  # minimal stub for testing
-    def get_avatar(self, _user_id: int):
-        return None
+        def increment_fame(self, _band_id: int, _amount: int) -> None:
+            return None
+
+try:  # pragma: no cover - optional avatar dependency
+    from backend.services.avatar_service import AvatarService
+    from backend.schemas.avatar import AvatarUpdate
+except Exception:  # pragma: no cover
+    class AvatarUpdate:  # type: ignore
+        def __init__(self, **kwargs):
+            pass
+
+    class AvatarService:  # type: ignore
+        def get_avatar(self, _user_id: int):
+            return None
+
+        def update_avatar(self, *_args, **_kwargs):
+            return None
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 avatar_service = AvatarService()
+band_service = BandService()
 economy_service = EconomyService()
 economy_service.ensure_schema()
 
@@ -108,7 +129,13 @@ def simulate_gig_result(gig_id: int):
         fan_stats["total_fans"] * (fan_stats["average_loyalty"] / 100)
     )
     randomness = random.randint(-10, 10)
-    avatar = avatar_service.get_avatar(band_id)
+
+    band_info = band_service.get_band_info(band_id)
+    founder_id = band_info["founder_id"] if band_info else band_id
+    try:
+        avatar = avatar_service.get_avatar(founder_id)
+    except Exception:  # pragma: no cover - fallback if avatar tables missing
+        avatar = None
     voice_val = getattr(avatar, "voice", 50)
     stage_presence = getattr(avatar, "stage_presence", 50)
 
@@ -143,6 +170,16 @@ def simulate_gig_result(gig_id: int):
     conn.close()
 
     economy_service.record_gig_payout(band_id, earnings)
+    if hasattr(band_service, "increment_fame"):
+        band_service.increment_fame(band_id, fame_gain)
+    if avatar and hasattr(avatar_service, "update_avatar"):
+        new_fatigue = min(
+            100, getattr(avatar, "fatigue", 0) + max(1, venue_size // 100)
+        )
+        try:
+            avatar_service.update_avatar(avatar.id, AvatarUpdate(fatigue=new_fatigue))
+        except Exception:  # pragma: no cover - ignore if update fails
+            pass
 
     # Boost fans after gig
     fan_service.boost_fans_after_gig(band_id, city, attendance)
