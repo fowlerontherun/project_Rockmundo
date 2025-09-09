@@ -127,7 +127,7 @@ class AuthService:
             user_id = int(row[0])
             if row[2] is not None:
                 raise ValueError("REFRESH_REVOKED")
-            if row[1] < _now().isoformat():
+            if datetime.fromisoformat(row[1]) < _now():
                 raise ValueError("REFRESH_EXPIRED")
             await conn.execute(
                 "UPDATE refresh_tokens SET revoked_at=datetime('now') WHERE token_hash=?",
