@@ -109,6 +109,10 @@ assets/ images/                   # branding & UI assets
 
 - WebSocket hub for jam sessions and notifications (`tests/realtime/*` cover gateway basics).
 - SSE/WS are optional for the MVP vertical slice; the static pages fall back to polling where applicable.
+- The realtime routers mount only when `ROCKMUNDO_REALTIME_BACKEND` is *not* set to `disabled`.
+  - `ROCKMUNDO_REALTIME_BACKEND=memory` (default) keeps an in-process hub for local dev.
+  - `ROCKMUNDO_REALTIME_BACKEND=redis` enables Redis pub/sub.
+  - `ROCKMUNDO_REALTIME_BACKEND=disabled` skips the WebSocket routes so the frontend's polling fallback is used.
 
 ---
 

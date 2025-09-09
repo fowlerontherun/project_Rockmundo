@@ -61,6 +61,8 @@ from routes import (
     world_pulse_routes,
     skin_marketplace,
     festival_proposals_routes,
+    jam_ws,
+    notifications_ws,
 )
 from utils.db import init_pool
 from utils.i18n import _
@@ -196,6 +198,11 @@ app.include_router(
     prefix="/api",
     tags=["Festival Proposals"],
 )
+
+# Optional realtime features
+if settings.realtime.backend != "disabled":
+    app.include_router(jam_ws.router)
+    app.include_router(notifications_ws.router)
 
 
 
