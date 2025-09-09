@@ -4,12 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gig Simulator</title>
+  <script type="module" src="../components/toast.js"></script>
 </head>
 <body>
 <h2>Live Gig Simulator</h2>
 
 <form id="gigForm">
   <input type="text" name="band_id" placeholder="Band ID" required />
+  <input type="text" name="user_id" placeholder="User ID" required />
   <input type="text" name="city" placeholder="City" required />
   <input type="text" name="venue" placeholder="Venue" required />
 
@@ -92,6 +94,7 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
   const formData = new FormData(e.target);
   const payload = {
     band_id: parseInt(formData.get('band_id')),
+    user_id: parseInt(formData.get('user_id')),
     city: formData.get('city'),
     venue: formData.get('venue'),
     setlist: actions.map((a, i) => ({ ...a, position: i + 1 }))
@@ -105,6 +108,14 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
 
   const data = await res.json();
   document.getElementById('resultBox').innerText = JSON.stringify(data, null, 2);
+  if (res.ok) {
+    showToast('Gig performed');
+    await fetch('/notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Gig performed', body: `${payload.city} - ${payload.venue}` })
+    });
+  }
 });
 
 renderSetlist();

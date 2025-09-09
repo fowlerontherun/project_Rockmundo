@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 import types
 import sys
 
@@ -52,6 +52,45 @@ def load_gig_module(monkeypatch):
     gig_module.Gig = Gig
     sys.modules["models.gig"] = gig_module
 
+    # Provide a simple Venue model for capacity lookups
+    venue_module = types.ModuleType("models.venues")
+
+    class Venue:
+        def __init__(self, **kwargs):
+            self.id = kwargs.get("id", 0)
+            self.capacity = kwargs.get("capacity", 100)
+
+    venue_module.Venue = Venue
+    sys.modules["models.venues"] = venue_module
+
+    # Minimal i18n utility
+    i18n_module = types.ModuleType("utils.i18n")
+    i18n_module._ = lambda s: s
+    sys.modules["utils.i18n"] = i18n_module
+
+    # Stub band and skill services to avoid heavy imports
+    band_service_module = types.ModuleType("services.band_service")
+
+    class BandService:
+        def get_band_info(self, band_id):
+            return {"id": band_id, "fame": 0, "members": []}
+
+    band_service_module.BandService = BandService
+    sys.modules["services.band_service"] = band_service_module
+
+    skill_service_module = types.ModuleType("services.skill_service")
+
+    class _SkillResult:
+        def __init__(self, lvl=0):
+            self.level = lvl
+
+    class SkillService:
+        def train(self, uid, skill, xp):
+            return _SkillResult(0)
+
+    skill_service_module.skill_service = SkillService()
+    sys.modules["services.skill_service"] = skill_service_module
+
     # Minimal database module with get_db placeholder
     db_module = types.ModuleType("database")
 
@@ -64,6 +103,11 @@ def load_gig_module(monkeypatch):
     # Remove cached module if reloading
     sys.modules.pop("routes.gig", None)
     import routes.gig as gig_routes
+
+    # Default patches to bypass DB logic in tests
+    gig_routes.get_venue_capacity = lambda venue_id, db: 100
+    gig_routes.band_has_conflict = lambda *a, **k: False
+    gig_routes.venue_has_conflict = lambda *a, **k: False
 
     return gig_routes
 
@@ -81,7 +125,15 @@ class DummySession:
 
 class DummyGigCreate:
     def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+        defaults = {
+            "start_time": time(20, 0),
+            "end_time": time(22, 0),
+            "guarantee": 0.0,
+            "ticket_split": 0.0,
+            "expected_audience": 0,
+        }
+        defaults.update(kwargs)
+        self.__dict__.update(defaults)
 
     def dict(self):
         return self.__dict__

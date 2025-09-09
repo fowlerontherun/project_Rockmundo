@@ -30,5 +30,51 @@ async function loadEconomy() {
   document.getElementById('transactions').innerHTML = list;
 }
 </script>
+=======
+  <h1>Band & Avatar Dashboard</h1>
+
+  <section>
+    <h2>Bands</h2>
+    <ul id="band-list"></ul>
+  </section>
+
+  <section>
+    <h2>Avatars</h2>
+    <ul id="avatar-list"></ul>
+  </section>
+
+  <script src="../components/themeToggle.js"></script>
+  <script src="../components/globalSearch.js"></script>
+  <script type="module">
+    import { authFetch } from '../utils/auth.js';
+
+    async function load() {
+      const bandRes = await authFetch('/api/bands');
+      if (bandRes.ok) {
+        const bands = await bandRes.json();
+        const list = document.getElementById('band-list');
+        list.innerHTML = '';
+        bands.forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = `${b.id}: ${b.name} (${b.genre})`;
+          list.appendChild(li);
+        });
+      }
+
+      const avatarRes = await authFetch('/api/avatars');
+      if (avatarRes.ok) {
+        const avatars = await avatarRes.json();
+        const list = document.getElementById('avatar-list');
+        list.innerHTML = '';
+        avatars.forEach(a => {
+          const li = document.createElement('li');
+          li.textContent = `${a.id}: ${a.nickname}`;
+          list.appendChild(li);
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
 </body>
 </html>

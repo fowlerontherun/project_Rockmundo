@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gig Result</title>
+</head>
+<body>
+  <h2>Gig Performance Results</h2>
+  <div id="results">Loading...</div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const bandId = params.get('band_id');
+    async function load() {
+      if (!bandId) {
+        document.getElementById('results').innerText = 'Band ID required';
+        return;
+      }
+      try {
+        const res = await fetch(`/gigs/${bandId}`);
+        const gigs = await res.json();
+        if (!Array.isArray(gigs) || gigs.length === 0) {
+          document.getElementById('results').innerText = 'No gigs found';
+          return;
+        }
+        const gig = gigs[gigs.length - 1];
+        document.getElementById('results').innerText = `XP: ${gig.xp_gained}\nFans: ${gig.fans_gained}\nCash: ${gig.total_earned}`;
+      } catch (err) {
+        document.getElementById('results').innerText = 'Error loading results';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

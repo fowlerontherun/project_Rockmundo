@@ -1,18 +1,20 @@
-from fastapi import APIRouter
-from fastapi import Depends
-from auth.dependencies import get_current_user_id, require_permission
-from services.scheduler_service import *
+from fastapi import APIRouter, Depends
+from auth.dependencies import get_current_user_id
+from services.notifications_service import NotificationsService
 
-router = APIRouter()
+router = APIRouter(prefix="/notification", tags=["notification"])
+svc = NotificationsService()
 
-@router.post("/notify/send", dependencies=[Depends(require_permission(["user", "band_member", "moderator", "admin"]))])
-def send_notification(payload: dict, user_id: int = Depends(get_current_user_id)):
-    return send_user_notification(payload)
+@router.get("")
+def list_notifications(user_id: int = Depends(get_current_user_id)):
+    items = svc.list(user_id)
+    svc.mark_all_read(user_id)
+    return {"notifications": items}
 
-@router.post("/scheduler/schedule_event")
-def schedule_event(payload: dict, user_id: int = Depends(get_current_user_id)):
-    return schedule_game_event(payload)
-
-@router.get("/scheduler/upcoming"\)"
-def get_upcoming_events(user_id: int):
-    return fetch_user_schedule(user_id)
+@router.post("")
+def create_notification(payload: dict, user_id: int = Depends(get_current_user_id)):
+    title = payload.get("title", "")
+    body = payload.get("body", "")
+    type_ = payload.get("type", "system")
+    notif_id = svc.create(user_id, title, body, type_)
+    return {"id": notif_id}
