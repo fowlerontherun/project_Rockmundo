@@ -1,17 +1,29 @@
 # File: backend/services/tour_service.py
+
 from dataclasses import dataclass
 import logging
 from typing import Any, Dict, List, Optional
-
 from utils.db import get_conn
 from services.venue_availability import VenueAvailabilityService
 from core.errors import AppError, TourMinStopsError, VenueConflictError
+import sqlite3
+from typing import Any, Dict, List, Optional
+
+from core.errors import AppError, TourMinStopsError, VenueConflictError
+from models.economy_config import get_config
+from models.tour import Expense, TicketTier, TourLeg
+from models.tour import Tour as TourModel
 from services.achievement_service import AchievementService
-from services.weather_service import WeatherService
 from services.economy_service import EconomyService
 from services.fame_service import FameService
-from models.economy_config import get_config
-from models.tour import Tour as TourModel, TourLeg, TicketTier, Expense
+from services.venue_availability import VenueAvailabilityService
+from services.weather_service import WeatherService
+from sqlalchemy.exc import SQLAlchemyError
+
+from backend.utils.logging import get_logger
+from utils.db import get_conn
+
+logger = get_logger(__name__)
 
 RECORDING_FAME_THRESHOLD = 1000
 MAX_RECORDINGS_PER_YEAR = 5
@@ -46,8 +58,13 @@ class TourService:
         # Ensure economy tables exist for simulations
         try:
             self.economy.ensure_schema()
+
         except Exception as exc:  # pragma: no cover - logged and re-raised
             logger.exception("Failed to ensure economy schema: %s", exc)
+        except (sqlite3.Error, SQLAlchemyError) as exc:
+            logger.error("Economy schema setup failed: %s", exc)
+        except Exception:
+            logger.exception("Unexpected error ensuring economy schema")
             raise
 
         # in-memory storage for simulated tours
@@ -163,6 +180,7 @@ class TourService:
         tour = self.get_tour(tour_id)
         try:
             self.achievements.grant(tour["band_id"], "first_tour")
+
         except AppError as exc:
             logger.warning(
                 "Failed to grant achievement for tour %s: %s", tour_id, exc
@@ -172,6 +190,10 @@ class TourService:
                 "Unexpected error granting achievement for tour %s", tour_id
             )
             raise
+
+        except Exception as exc:
+            logger.error("Failed to grant tour achievement: %s", exc)
+
         return tour
 
     # ---- Stops ----
