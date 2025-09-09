@@ -21,7 +21,7 @@ cp .env.example .env
 cp .env.example.storage .env.storage
 
 # 3) Initialize DB (migrations + seeds)
-# Migrations are SQL files in backend/migrations/sql/*.sql
+./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 4) Run the API
@@ -99,7 +99,8 @@ assets/ images/                   # branding & UI assets
 
 ## 🗄️ Data, Migrations & Seeds
 
-- Migrations live in `backend/migrations/sql`. They are applied in-order by the startup DB initializer.
+- Run migrations with `backend/scripts/migrate.sh` – it skips revisions already applied.
+- `make db-reset` removes `rockmundo.db` and re-applies migrations for a clean slate.
 - Full-text search (FTS5) and **World Pulse** (daily/weekly charts) are included.
 - `backend/scripts/seed_demo.py` seeds minimum data (skills, genres, equipment, etc.) and creates test users and bands for smoke tests.
 
