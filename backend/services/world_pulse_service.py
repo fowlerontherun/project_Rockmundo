@@ -2,6 +2,11 @@
 from models.world_pulse import WorldPulse
 from datetime import datetime
 
+try:  # pragma: no cover - import shim for tests vs runtime
+    from services.jobs_world_pulse import WorldPulseService as GenrePulseService
+except Exception:  # pragma: no cover
+    from backend.services.jobs_world_pulse import WorldPulseService as GenrePulseService
+
 
 def get_current_season(now: datetime | None = None) -> str:
     """Return the meteorological season for ``now``.
@@ -43,6 +48,30 @@ class WorldPulseService:
 
         self.db.insert_world_pulse(pulse)
         return pulse.to_dict()
+
+    def store_top_10_snapshot(self, date: str | None = None) -> list[dict]:
+        """Generate and persist a daily World Pulse snapshot.
+
+        This helper is designed for scheduled jobs or an admin endpoint.  It
+        delegates the heavy lifting to :mod:`jobs_world_pulse` which writes
+        genre rankings to the ``genre_pulse_snapshots`` table.  The top ten
+        results are returned for convenience.
+
+        Parameters
+        ----------
+        date:
+            Optional ``YYYY-MM-DD`` string.  Defaults to ``datetime.utcnow()``.
+
+        Returns
+        -------
+        list[dict]
+            Top ten ranked rows as returned by ``ui_ranked_list``.
+        """
+
+        date = date or datetime.utcnow().strftime("%Y-%m-%d")
+        job = GenrePulseService()
+        job.run_daily(date)
+        return job.ui_ranked_list(date=date, limit=10)
 
     def _calculate_karma_level(self, avg_karma):
         if avg_karma >= 80:
