@@ -1,10 +1,11 @@
 # File: backend/services/tour_service.py
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
 from utils.db import get_conn
 from services.venue_availability import VenueAvailabilityService
-from core.errors import AppError, VenueConflictError, TourMinStopsError
+from core.errors import AppError, TourMinStopsError, VenueConflictError
 from services.achievement_service import AchievementService
 from services.weather_service import WeatherService
 from services.economy_service import EconomyService
@@ -14,6 +15,9 @@ from models.tour import Tour as TourModel, TourLeg, TicketTier, Expense
 
 RECORDING_FAME_THRESHOLD = 1000
 MAX_RECORDINGS_PER_YEAR = 5
+
+
+logger = logging.getLogger(__name__)
 
 class TourService:
     """Service handling both legacy DB backed operations and lightweight tour
@@ -42,8 +46,9 @@ class TourService:
         # Ensure economy tables exist for simulations
         try:
             self.economy.ensure_schema()
-        except Exception:
-            pass
+        except Exception as exc:  # pragma: no cover - logged and re-raised
+            logger.exception("Failed to ensure economy schema: %s", exc)
+            raise
 
         # in-memory storage for simulated tours
         self.tours: Dict[int, TourModel] = {}
@@ -158,8 +163,15 @@ class TourService:
         tour = self.get_tour(tour_id)
         try:
             self.achievements.grant(tour["band_id"], "first_tour")
+        except AppError as exc:
+            logger.warning(
+                "Failed to grant achievement for tour %s: %s", tour_id, exc
+            )
         except Exception:
-            pass
+            logger.exception(
+                "Unexpected error granting achievement for tour %s", tour_id
+            )
+            raise
         return tour
 
     # ---- Stops ----
