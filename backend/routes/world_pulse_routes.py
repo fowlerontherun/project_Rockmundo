@@ -9,20 +9,22 @@ aggregation from the database.
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from datetime import datetime
 
 # The service lives under ``services`` when the package root is ``backend``.
 try:  # pragma: no cover - import shim for tests vs runtime
     from services.jobs_world_pulse import WorldPulseService
-    from services.world_pulse_service import get_current_season
+    from services.world_pulse_service import get_current_season, WorldPulseService as SnapshotService
 except Exception:  # pragma: no cover
     from backend.services.jobs_world_pulse import WorldPulseService
-    from backend.services.world_pulse_service import get_current_season
+    from backend.services.world_pulse_service import get_current_season, WorldPulseService as SnapshotService
 
 
 router = APIRouter(prefix="/world-pulse", tags=["World Pulse"])
 
 # Instantiate the service once; it manages its own SQLite connections.
 svc = WorldPulseService()
+snapshot_svc = SnapshotService(db=None)  # snapshot helper only uses jobs service internally
 
 
 @router.get("/ranked")
@@ -91,6 +93,22 @@ def sparkline(
             top_n=top_n,
             points=points,
         )
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/snapshot")
+def run_snapshot(date: Optional[str] = None):
+    """Trigger a snapshot computation and return the top ten genres.
+
+    This endpoint is intended for admin/demo usage.  It delegates to
+    :func:`WorldPulseService.store_top_10_snapshot` which performs the
+    heavy lifting and persists the data.
+    """
+    try:
+        snapshot_date = date or datetime.utcnow().strftime("%Y-%m-%d")
+        rows = snapshot_svc.store_top_10_snapshot(snapshot_date)
+        return {"status": "ok", "date": snapshot_date, "top": rows}
     except Exception as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=500, detail=str(exc))
 
