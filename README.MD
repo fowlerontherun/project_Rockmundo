@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 # 2) Configure environment
 cp .env.example .env
-# If you plan to store attachments locally:
+# If you plan to store attachments locally (saved under ./var/storage):
 cp .env.example.storage .env.storage
 
 # 3) Initialize DB (migrations + seeds)
@@ -143,7 +143,7 @@ If any step fails, consult the **Outstanding work** checklist below.
 
 - Logs are JSON-formatted with request IDs; see `backend/core/logging.py`.
 - Admin/ops endpoints surface health checks, WAL status, counts, and job triggers.
-- Storage defaults to local disk; S3 adapter is scaffolded (enable via `.env.storage`).
+ - Storage defaults to the local filesystem. Attachments live under `var/storage/mail/attachments`, which is created on startup. To try S3 instead, copy `.env.example.storage` to `.env.storage` and set `STORAGE_BACKEND=s3` with your bucket details.
 
 ---
 

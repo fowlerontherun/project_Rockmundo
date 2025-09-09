@@ -54,6 +54,18 @@ class RealtimeSettings(BaseModel):
     )
 
 
+class StorageSettings(BaseModel):
+    """File storage configuration."""
+
+    backend: str = Field("local", env="STORAGE_BACKEND")
+    local_root: str = Field("./var/storage", env="STORAGE_LOCAL_ROOT")
+    public_base_url: str = Field("", env="STORAGE_PUBLIC_BASE_URL")
+    s3_bucket: str = Field("", env="S3_BUCKET")
+    s3_region: str = Field("eu-west-2", env="S3_REGION")
+    s3_endpoint_url: str = Field("", env="S3_ENDPOINT_URL")
+    s3_force_path_style: bool = Field(True, env="S3_FORCE_PATH_STYLE")
+
+
 class Settings(BaseModel):
     """Top level application settings."""
 
@@ -64,6 +76,7 @@ class Settings(BaseModel):
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
     cors: CORSSettings = Field(default_factory=CORSSettings)
     realtime: RealtimeSettings = Field(default_factory=RealtimeSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
 
 
 settings = Settings()
