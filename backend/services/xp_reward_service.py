@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+from backend.models.xp_config import get_config
+
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
 
@@ -171,6 +173,7 @@ class XPRewardService:
 
         with sqlite3.connect(self.db_path) as conn:
             cur = conn.cursor()
+            self._ensure_schema(cur)
             cur.execute(
                 """
                 SELECT sleep_hours, stress, training_discipline,
@@ -201,6 +204,23 @@ class XPRewardService:
 
             score = calculate_lifestyle_score(data)
             amount = max(0, int(score / 5))
+
+            cfg = get_config()
+            cap = cfg.daily_cap
+            if cap:
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(amount), 0)
+                    FROM hidden_xp_rewards
+                    WHERE user_id = ? AND date(created_at) = date('now')
+                    """,
+                    (user_id,),
+                )
+                used = cur.fetchone()[0] or 0
+                allowed = max(0, cap - used)
+                if amount > allowed:
+                    amount = allowed
+
             if amount > 0:
                 self.grant_hidden_xp(
                     user_id, reason="baseline", amount=amount, conn=conn
