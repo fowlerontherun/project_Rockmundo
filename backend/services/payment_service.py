@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 from uuid import uuid4
-from abc import ABC, abstractmethod
 
 from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
 from backend.services.economy_service import EconomyService
@@ -21,8 +20,8 @@ class PaymentError(Exception):
 
 @dataclass
 class PaymentGateway(ABC):
-    """Minimal gateway interface used for testing.
     """Abstract payment gateway definition.
+
     Concrete subclasses integrate with providers like Stripe or PayPal and
     must implement the methods below.
     """
@@ -30,11 +29,6 @@ class PaymentGateway(ABC):
     @abstractmethod
     def create_payment(self, amount_cents: int, currency: str) -> str:
         """Create a payment request and return its provider identifier."""
-
-    @abstractmethod
-    def verify_payment(self, payment_id: str) -> bool:
-        """Return ``True`` if the payment completed successfully."""
-        """Create a remote payment and return its provider identifier."""
 
     @abstractmethod
     def verify_payment(self, payment_id: str) -> bool:
@@ -168,6 +162,30 @@ class PaymentService:
         self.economy_service.credit_purchase(record.user_id, record.amount_cents,
                                              self.premium_currency)
         return record
+
+    # Convenience wrapper ----------------------------------------------
+    def purchase_item(self, user_id: int, amount_cents: int, currency: str = "USD") -> str:
+        """Initiate and immediately verify a payment for a virtual item.
+
+        This helper is mainly used by lightweight routes like the skin
+        marketplace where we don't expose a callback endpoint.  It
+        delegates to :meth:`initiate_purchase` and
+        :meth:`verify_callback` under the hood and returns the payment
+        identifier if the transaction completed successfully.
+
+        Parameters
+        ----------
+        user_id:
+            Identifier of the purchasing user.
+        amount_cents:
+            Price of the item in cents.
+        currency:
+            ISO currency code, defaulting to ``USD``.
+        """
+
+        pid = self.initiate_purchase(user_id, amount_cents, currency)
+        self.verify_callback(pid)
+        return pid
 
     # -------- subscriptions --------
     def create_subscription(self, user_id: int, plan: SubscriptionPlan) -> None:
