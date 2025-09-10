@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compose Mail</title>
+</head>
+<body>
+  <h1>Compose Mail</h1>
+  <form id="mail-form">
+    <input type="number" id="recipient" placeholder="Recipient ID" required />
+    <input type="text" id="subject" placeholder="Subject" required />
+    <textarea id="body" placeholder="Message" required></textarea>
+    <input type="file" id="files" multiple />
+    <button type="submit">Send</button>
+  </form>
+  <script type="module">
+    import { authFetch } from '../utils/auth.js';
+
+    document.getElementById('mail-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = new FormData();
+      form.append('recipient_id', document.getElementById('recipient').value);
+      form.append('subject', document.getElementById('subject').value);
+      form.append('body', document.getElementById('body').value);
+      const files = document.getElementById('files').files;
+      for (const f of files) form.append('files', f);
+      await authFetch('/mail', { method: 'POST', body: form });
+      window.location.href = '/mailbox.html';
+    });
+  </script>
+</body>
+</html>
+

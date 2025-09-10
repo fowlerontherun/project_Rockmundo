@@ -1,6 +1,12 @@
 from __future__ import annotations
+
 import os
-from typing import Optional
+import time
+import uuid
+from typing import Optional, Dict, Any
+
+from fastapi import UploadFile
+
 from backend.core.config import settings
 from backend.storage.local import LocalStorage
 try:
@@ -10,6 +16,7 @@ except Exception:  # pragma: no cover
     S3Storage = None  # type: ignore
 
 _backend = None
+
 
 def get_storage_backend():
     global _backend
@@ -41,3 +48,17 @@ def get_storage_backend():
         raise RuntimeError(f"Unknown STORAGE_BACKEND: {backend_name}")
 
     return _backend
+
+
+async def save_attachment(file: UploadFile) -> Dict[str, Any]:
+    """Persist an uploaded file and return metadata.
+
+    The file is stored using the configured storage backend under a unique key.
+    Returns a dictionary with the original filename and public URL.
+    """
+
+    backend = get_storage_backend()
+    data = await file.read()
+    key = f"mail/attachments/{int(time.time())}_{uuid.uuid4().hex}_{file.filename}"
+    obj = backend.upload_bytes(data, key, content_type=file.content_type)
+    return {"filename": file.filename, "url": obj.url}

@@ -6,7 +6,11 @@ from utils.db import aget_conn
 
 
 async def send_message(
-    sender_id: int, receiver_id: int, subject: str, body: str
+    sender_id: int,
+    receiver_id: int,
+    subject: str,
+    body: str,
+    attachments: List[Dict[str, str]] | None = None,
 ) -> Dict[str, int | str]:
     async with aget_conn(DB_PATH) as conn:
         cur = await conn.execute(
@@ -17,6 +21,24 @@ async def send_message(
             (sender_id, receiver_id, subject, body, datetime.utcnow().isoformat()),
         )
         message_id = cur.lastrowid
+
+        if attachments:
+            await conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS mail_attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    message_id INTEGER NOT NULL,
+                    filename TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+                )
+                """
+            )
+            await conn.executemany(
+                "INSERT INTO mail_attachments (message_id, filename, url) VALUES (?, ?, ?)",
+                [(message_id, att["filename"], att["url"]) for att in attachments],
+            )
+
     return {"status": "ok", "message_id": message_id}
 
 
@@ -32,6 +54,20 @@ async def get_inbox(user_id: int) -> List[Dict[str, object]]:
             (user_id,),
         )
         rows = await cur.fetchall()
+
+        attachments_map: Dict[int, List[Dict[str, str]]] = {}
+        check = await conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='mail_attachments'"
+        )
+        if await check.fetchone():
+            cur = await conn.execute(
+                "SELECT message_id, filename, url FROM mail_attachments WHERE message_id IN ({seq})".format(
+                    seq=",".join(str(r[0]) for r in rows) or "0"
+                )
+            )
+            for msg_id, filename, url in await cur.fetchall():
+                attachments_map.setdefault(msg_id, []).append({"filename": filename, "url": url})
+
     return [
         {
             "message_id": row[0],
@@ -40,6 +76,7 @@ async def get_inbox(user_id: int) -> List[Dict[str, object]]:
             "body": row[3],
             "sent_at": row[4],
             "read": row[5],
+            "attachments": attachments_map.get(row[0], []),
         }
         for row in rows
     ]
@@ -57,6 +94,20 @@ async def get_sent(user_id: int) -> List[Dict[str, object]]:
             (user_id,),
         )
         rows = await cur.fetchall()
+
+        attachments_map: Dict[int, List[Dict[str, str]]] = {}
+        check = await conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='mail_attachments'"
+        )
+        if await check.fetchone():
+            cur = await conn.execute(
+                "SELECT message_id, filename, url FROM mail_attachments WHERE message_id IN ({seq})".format(
+                    seq=",".join(str(r[0]) for r in rows) or "0"
+                )
+            )
+            for msg_id, filename, url in await cur.fetchall():
+                attachments_map.setdefault(msg_id, []).append({"filename": filename, "url": url})
+
     return [
         {
             "message_id": row[0],
@@ -64,6 +115,7 @@ async def get_sent(user_id: int) -> List[Dict[str, object]]:
             "subject": row[2],
             "body": row[3],
             "sent_at": row[4],
+            "attachments": attachments_map.get(row[0], []),
         }
         for row in rows
     ]
