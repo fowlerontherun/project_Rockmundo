@@ -6,6 +6,7 @@
   <title>Tour Planner</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Tour Planner</h2>
 
 <link
@@ -80,14 +81,14 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
     route: route
   };
 
-  const res = await fetch('/api/tour-planner/optimize', {
+  const res = await apiFetch('/api/tour-planner/optimize', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 
   const result = await res.json();
-  const quotaRes = await fetch(`/api/bands/${payload.band_id}/recording-slots`);
+  const quotaRes = await apiFetch(`/api/bands/${payload.band_id}/recording-slots`);
   const { remaining_slots } = await quotaRes.json();
   const itineraryDiv = document.getElementById('itinerary');
   let remainingSlots = remaining_slots;
@@ -135,7 +136,7 @@ document.getElementById('tourForm').addEventListener('submit', async (e) => {
     )
       .filter((cb) => cb.checked)
       .map((cb) => parseInt(cb.dataset.idx));
-    await fetch('/api/tour-planner/schedule/update', {
+    await apiFetch('/api/tour-planner/schedule/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ updates: recordStops.map((id) => ({ stop_id: id, is_recorded: true })) }),

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../index.css" />
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h2>Playlist Manager</h2>
   <form id="newPlaylistForm">
     <input type="text" id="playlistName" placeholder="Playlist name" required />
@@ -17,7 +18,7 @@
 
   <script>
   async function loadPlaylists() {
-    const res = await fetch('/playlists');
+    const res = await apiFetch('/api/playlists');
     const data = await res.json();
     const list = document.getElementById('playlistList');
     list.innerHTML = '';
@@ -58,7 +59,7 @@
     e.preventDefault();
     const name = document.getElementById('playlistName').value;
     const is_public = document.getElementById('isPublic').checked;
-    await fetch('/playlists', {
+    await apiFetch('/api/playlists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, is_public })
@@ -69,7 +70,7 @@
 
   async function addSong(playlistId, songId) {
     if (!songId) return;
-    await fetch(`/playlists/${playlistId}/songs`, {
+    await apiFetch(`/api/playlists/${playlistId}/songs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ song_id: parseInt(songId) })
@@ -78,12 +79,12 @@
   }
 
   async function removeSong(playlistId, songId) {
-    await fetch(`/playlists/${playlistId}/songs/${songId}`, { method: 'DELETE' });
+    await apiFetch(`/api/playlists/${playlistId}/songs/${songId}`, { method: 'DELETE' });
     loadPlaylists();
   }
 
   async function deletePlaylist(id) {
-    await fetch(`/playlists/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/playlists/${id}`, { method: 'DELETE' });
     loadPlaylists();
   }
 

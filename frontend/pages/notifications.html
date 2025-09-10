@@ -6,12 +6,13 @@
   <title>Notifications</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Notifications</h2>
 <ul id="notifList"></ul>
 
 <script>
 async function loadNotifications() {
-  const res = await fetch('/notification');
+  const res = await apiFetch('/api/notification');
   const data = await res.json();
   const list = document.getElementById('notifList');
   list.innerHTML = '';

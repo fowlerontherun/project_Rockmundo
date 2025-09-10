@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../index.css" />
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h2 id="playlistName">Playlist</h2>
   <ul id="songList"></ul>
   <script>
@@ -14,7 +15,7 @@
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     if (!id) return;
-    const res = await fetch(`/playlists/public/${id}`);
+    const res = await apiFetch(`/api/playlists/public/${id}`);
     if (res.status !== 200) {
       document.getElementById('playlistName').textContent = 'Playlist unavailable';
       return;
