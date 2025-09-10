@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../index.css">
 </head>
 <body>
+<script src="../utils/api.js"></script>
     <div id="react-root"></div>
     <h1>Welcome to RockMundo</h1>
     <div id="notification-root"></div>
@@ -23,7 +24,7 @@
     <script type="module" src="../components/NotificationCenter.jsx"></script>
     <script>
     async function loadDaily() {
-        const res = await fetch('/api/daily/status/1');
+        const res = await apiFetch('/api/daily/status/1');
         const data = await res.json();
         document.getElementById('streak').textContent = `Streak: ${data.login_streak}`;
         document.getElementById('challenge').textContent = `Today's challenge: ${data.current_challenge}`;
@@ -31,7 +32,7 @@
         document.getElementById('claim-btn').disabled = data.reward_claimed;
     }
     document.getElementById('claim-btn').addEventListener('click', async () => {
-        await fetch('/api/daily/claim', {
+        await apiFetch('/api/daily/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: 1 })

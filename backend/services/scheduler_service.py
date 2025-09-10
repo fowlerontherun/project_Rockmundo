@@ -150,20 +150,47 @@ EVENT_HANDLERS = {
 def schedule_task(event_type: str, params: dict, run_at: str, recurring: bool=False, interval_days: int=None) -> dict:
     """
     Schedule a new task.
-    event_type: key in EVENT_HANDLERS
-    params: dict passed to handler
-    run_at: ISO datetime string
-    recurring: whether to repeat
-    interval_days: days between repeats
+
+    Parameters
+    ----------
+    event_type:
+        Key in ``EVENT_HANDLERS`` identifying the job to run.
+    params:
+        Dictionary of parameters passed to the handler.
+    run_at:
+        ISO datetime string representing when the task should run.
+    recurring:
+        Whether the task should repeat.
+    interval_days:
+        Number of days between repeats for recurring tasks.
     """
+
+    # --- Constraint checks -------------------------------------------------
+    if event_type not in EVENT_HANDLERS:
+        raise ValueError(f"Unknown event type: {event_type}")
+
+    try:
+        run_dt = datetime.fromisoformat(run_at)
+    except ValueError as exc:
+        raise ValueError("run_at must be an ISO datetime string") from exc
+
+    if run_dt < datetime.utcnow():
+        raise ValueError("run_at must be in the future")
+
+    if recurring and (not interval_days or interval_days <= 0):
+        raise ValueError("Recurring tasks require a positive interval_days")
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    cur.execute(""" 
-        INSERT INTO scheduled_tasks 
-        (event_type, params, run_at, recurring, interval_days, last_run) 
+    cur.execute(
+        """
+        INSERT INTO scheduled_tasks
+        (event_type, params, run_at, recurring, interval_days, last_run)
         VALUES (?, ?, ?, ?, ?, NULL)
-    """, (event_type, json.dumps(params), run_at, int(recurring), interval_days))
+        """,
+        (event_type, json.dumps(params), run_at, int(recurring), interval_days),
+    )
     task_id = cur.lastrowid
     conn.commit()
     conn.close()

@@ -6,11 +6,12 @@
   <title>Festival Genre Trends</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Festival Genre Trends</h2>
 <ul id="trendList"></ul>
 <script>
 async function loadTrends() {
-  const res = await fetch('/festival/proposals/trends/genres');
+  const res = await apiFetch('/api/festival/proposals/trends/genres');
   const data = await res.json();
   const list = document.getElementById('trendList');
   list.innerHTML = '';

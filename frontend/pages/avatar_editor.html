@@ -5,6 +5,7 @@
     <title>Avatar Editor</title>
   </head>
   <body>
+<script src="../utils/api.js"></script>
     <h1>Avatar Editor</h1>
     <form id="avatarForm">
       <label>
@@ -31,7 +32,7 @@
           display_name: document.getElementById('nickname').value || undefined,
           body_type: document.getElementById('bodyType').value || undefined,
         };
-        await fetch(`/api/avatars/${id}`, {
+        await apiFetch(`/api/avatars/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

@@ -6,6 +6,7 @@
   <title>Media Mentions</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Media Mentions Monitor</h2>
 <button onclick="pollFeed()">Poll Media Feed</button>
 <ul id="mentions"></ul>
@@ -20,7 +21,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 async function loadMentions() {
-  const res = await fetch('/song-popularity/events?source=media');
+  const res = await apiFetch('/api/song-popularity/events?source=media');
   const data = await res.json();
   const list = document.getElementById('mentions');
   list.innerHTML = '';
@@ -32,11 +33,11 @@ async function loadMentions() {
   });
 }
 async function pollFeed() {
-  await fetch('/song-popularity/media/poll', {method: 'POST'});
+  await apiFetch('/api/song-popularity/media/poll', {method: 'POST'});
   loadMentions();
 }
 async function showImpact(songId) {
-  const res = await fetch(`/music/metrics/songs/${songId}/popularity`);
+  const res = await apiFetch(`/music/metrics/songs/${songId}/popularity`);
   const data = await res.json();
   const labels = data.history.map(h => h.updated_at);
   const scores = data.history.map(h => h.popularity_score);
@@ -51,7 +52,7 @@ async function sendAdjust() {
   const songId = parseInt(document.getElementById('adjSong').value);
   const amount = parseInt(document.getElementById('adjAmount').value);
   const details = document.getElementById('adjDetails').value;
-  await fetch('/song-popularity/media/adjust', {
+  await apiFetch('/api/song-popularity/media/adjust', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({song_id: songId, amount: amount, details: details})

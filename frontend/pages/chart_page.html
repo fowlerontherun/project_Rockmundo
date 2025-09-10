@@ -6,6 +6,7 @@
   <title>Chart Page</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Global Top 100 Chart</h2>
 
 <div>
@@ -19,7 +20,7 @@
 <script>
 async function loadChart() {
   const week = document.getElementById('weekInput').value;
-  const res = await fetch(`/charts/global/${week}`);
+  const res = await apiFetch(`/api/charts/global/${week}`);
   const data = await res.json();
   const list = document.getElementById('chartList');
   list.innerHTML = '';

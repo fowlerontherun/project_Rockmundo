@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AdminApp from '../../src/admin/App';
+import { apiFetch } from '../../utils/api.js';
 
 function isAuthenticated(): boolean {
   const jwt = localStorage.getItem('jwt');
@@ -21,8 +22,8 @@ const AdminPage: React.FC = () => {
     const jwt = localStorage.getItem('jwt');
 
     Promise.all([
-      fetch('/auth/permissions').then((r) => r.json()),
-      fetch('/auth/me', {
+      apiFetch('/auth/permissions').then((r) => r.json()),
+      apiFetch('/auth/me', {
         headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
       })
         .then((r) => (r.ok ? r.json() : { roles: [] }))

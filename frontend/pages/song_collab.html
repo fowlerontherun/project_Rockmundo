@@ -6,7 +6,7 @@
   <title>Song Collaboration</title>
   <script>
     async function loadVersions(draftId) {
-      const res = await fetch(`/songwriting/drafts/${draftId}/versions`);
+      const res = await apiFetch(`/api/songwriting/drafts/${draftId}/versions`);
       const versions = await res.json();
       const list = document.getElementById('versions');
       list.innerHTML = '';
@@ -30,6 +30,7 @@
   </script>
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h1>Collaborative Song Editor</h1>
   <textarea id="lyrics" rows="10" cols="60"></textarea>
   <h3>Version History</h3>

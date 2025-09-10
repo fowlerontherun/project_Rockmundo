@@ -6,6 +6,7 @@
   <title>Tour Collab</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Tour Collaboration Planner</h2>
 <form id="collabForm">
   <label>Band IDs (comma separated):</label>
@@ -71,7 +72,7 @@ document.getElementById('collabForm').addEventListener('submit', async (e) => {
   const setlist = JSON.parse(document.getElementById('setlist').value || '[]');
   const revenueSplit = document.getElementById('revenueSplit').value ? JSON.parse(document.getElementById('revenueSplit').value) : {};
   const payload = { band_ids: bandIds, setlist, revenue_split: revenueSplit, schedule, expenses };
-  const res = await fetch('/api/tour-collab', {
+  const res = await apiFetch('/api/tour-collab', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { apiFetch } from '../utils/api.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -29,7 +30,7 @@ const Dashboard = () => {
       return;
     }
 
-    fetch('/dashboard/summary')
+    apiFetch('/api/dashboard/summary')
       .then((res) => {
         if (!res.ok) {
           throw new Error('Network response was not ok');

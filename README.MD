@@ -81,6 +81,7 @@ backend/
 frontend/
   pages/*.html                    # static testable pages
   components/*.js / *.vue         # widgets (notifications, schedule, player, charts, etc.)
+live3d/                    # 3D performance rendering prototype
 tests/
   ...                             # ~50+ pytest suites (realtime, lifestyle, charts, etc.)
 docs/ TDD_with_diagrams.md        # high-level design notes/diagrams

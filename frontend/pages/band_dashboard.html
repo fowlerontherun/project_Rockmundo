@@ -6,6 +6,7 @@
   <title>Band Dashboard</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Band Dashboard</h2>
 
 <div>
@@ -20,11 +21,11 @@
 <script>
 async function loadEconomy() {
   const id = document.getElementById('bandIdInput').value;
-  const balRes = await fetch(`/economy/accounts/${id}`);
+  const balRes = await apiFetch(`/api/economy/accounts/${id}`);
   const balData = await balRes.json();
   document.getElementById('balance').innerText = `Balance: ${balData.balance_cents}¢`;
 
-  const txRes = await fetch(`/economy/accounts/${id}/transactions?limit=5`);
+  const txRes = await apiFetch(`/api/economy/accounts/${id}/transactions?limit=5`);
   const txData = await txRes.json();
   const list = txData.map(t => `<li>${t.type}: ${t.amount_cents} ${t.currency}</li>`).join('');
   document.getElementById('transactions').innerHTML = list;

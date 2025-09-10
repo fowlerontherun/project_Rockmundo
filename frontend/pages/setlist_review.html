@@ -6,6 +6,7 @@
   <title>Setlist Review</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Setlist Review</h2>
 
 <input type="number" id="performanceId" placeholder="Performance ID" />
@@ -30,7 +31,7 @@
 document.getElementById('loadBtn').onclick = async () => {
   const id = document.getElementById('performanceId').value;
   if (!id) return;
-  const res = await fetch(`/analysis/setlist/${id}`);
+  const res = await apiFetch(`/analysis/setlist/${id}`);
   const data = await res.json();
   const body = document.getElementById('summaryBody');
   body.innerHTML = '';

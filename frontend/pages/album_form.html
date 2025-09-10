@@ -7,6 +7,7 @@
   <title>Album Form</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <div id="react-root"></div>
 <h2>Create Release</h2>
 <form id="albumForm">
@@ -103,7 +104,7 @@
       };
 
       li.append(up, down, remove);
-      fetch(`/songs/${id}`)
+      apiFetch(`/api/songs/${id}`)
         .then(r => r.json())
         .then(data => {
           li.append(` ${data.title || 'Song ' + id}`);
@@ -146,7 +147,7 @@
       tracks
     };
     try {
-      const res = await fetch('/albums', {
+      const res = await apiFetch('/api/albums', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

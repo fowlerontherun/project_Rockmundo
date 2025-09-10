@@ -6,6 +6,7 @@
   <title>Gig Result</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h2>Gig Performance Results</h2>
   <div id="results">Loading...</div>
   <script>
@@ -17,7 +18,7 @@
         return;
       }
       try {
-        const res = await fetch(`/gigs/${bandId}`);
+        const res = await apiFetch(`/api/gigs/${bandId}`);
         const gigs = await res.json();
         if (!Array.isArray(gigs) || gigs.length === 0) {
           document.getElementById('results').innerText = 'No gigs found';

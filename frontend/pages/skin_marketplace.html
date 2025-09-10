@@ -5,6 +5,7 @@
     <title>Skin Marketplace</title>
   </head>
   <body>
+<script src="../utils/api.js"></script>
     <h1>Skin Marketplace</h1>
     <form id="uploadForm">
       <input name="name" placeholder="Name" required />
@@ -53,7 +54,7 @@
       };
 
       async function loadSkins() {
-        const res = await fetch('/api/skins');
+        const res = await apiFetch('/api/skins');
         const skins = await res.json();
         const list = document.getElementById('skinList');
         list.innerHTML = '';
@@ -68,6 +69,8 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ avatar_id: avatarId }),
             });
+
+            await apiFetch(`/api/skins/${skin.id}/purchase`, { method: 'POST' });
             alert('Purchased ' + skin.name);
           };
           item.appendChild(btn);
