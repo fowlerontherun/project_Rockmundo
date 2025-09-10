@@ -6,6 +6,7 @@
   <title>Popularity Dashboard</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Song Popularity Dashboard</h2>
 
 <div>
@@ -37,7 +38,7 @@
 <script>
 async function loadPopularity() {
   const id = document.getElementById('songId').value;
-  const res = await fetch(`/music/metrics/songs/${id}/popularity`);
+  const res = await apiFetch(`/music/metrics/songs/${id}/popularity`);
   const data = await res.json();
   document.getElementById('currentPopularity').innerText = data.current_popularity;
   document.getElementById('halfLife').innerText = data.half_life_days.toFixed(2);
@@ -50,7 +51,7 @@ async function loadPopularity() {
     list.appendChild(li);
   });
 
-  const sRes = await fetch(`/music/metrics/songs/${id}/sentiment`);
+  const sRes = await apiFetch(`/music/metrics/songs/${id}/sentiment`);
   const sData = await sRes.json();
   document.getElementById('currentSentiment').innerText = sData.current_sentiment.toFixed(2);
   const sList = document.getElementById('sentimentHistory');
@@ -63,7 +64,7 @@ async function loadPopularity() {
 
   renderTrendChart(data.history, sData.history);
 
-  const fRes = await fetch(`/music/metrics/songs/${id}/forecast`);
+  const fRes = await apiFetch(`/music/metrics/songs/${id}/forecast`);
 
   // Hooks for custom chart rendering if available
   const fData = await fRes.json();
@@ -85,7 +86,7 @@ async function loadPopularity() {
 
 async function loadWorldPulse() {
   const today = new Date().toISOString().slice(0, 10);
-  const res = await fetch(`/api/world-pulse/ranked?date=${today}&limit=10`);
+  const res = await apiFetch(`/api/world-pulse/ranked?date=${today}&limit=10`);
   const data = await res.json();
   const list = document.getElementById('worldPulse');
   list.innerHTML = '';

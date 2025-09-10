@@ -14,6 +14,7 @@
   </style>
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h2>Schedule Planner</h2>
   <div id="scheduleStats">
     <h3>Daily Stats</h3>
@@ -134,7 +135,7 @@
     document.getElementById('historyBtn').addEventListener('click', async () => {
       const date = document.getElementById('historyDate').value;
       if (!date) return;
-      const res = await fetch(`/schedule/history/${date}`);
+      const res = await apiFetch(`/api/schedule/history/${date}`);
       const data = await res.json();
       const list = document.getElementById('historyList');
       list.innerHTML = '';
@@ -148,7 +149,7 @@
       const userId = document.getElementById('exportUserId').value;
       const date = document.getElementById('exportDate').value;
       if (!userId || !date) return;
-      window.location = `/schedule/export/ics?user_id=${userId}&date=${date}`;
+      window.location = `/api/schedule/export/ics?user_id=${userId}&date=${date}`;
     });
 
     document.getElementById('copyBtn').addEventListener('click', async () => {
@@ -164,7 +165,7 @@
         dates.push(d.toISOString().slice(0,10));
         d.setDate(d.getDate() + 1);
       }
-      await fetch('/schedule/copy', {
+      await apiFetch('/api/schedule/copy', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({user_id: parseInt(uid), src_date: src, dest_dates: dates})
@@ -175,7 +176,7 @@
     async function loadTemplates() {
       const uid = document.getElementById('tmplUser').value;
       if (!uid) return;
-      const res = await fetch(`/schedule/templates/${uid}`);
+      const res = await apiFetch(`/api/schedule/templates/${uid}`);
       const data = await res.json();
       tmplSelect.innerHTML = '';
       for (const t of data.templates) {
@@ -192,9 +193,9 @@
       const day = document.getElementById('tmplDay').value;
       const name = document.getElementById('tmplName').value;
       if (!uid || !day || !name) return;
-      const res = await fetch(`/schedule/default-plan/${uid}/${day}`);
+      const res = await apiFetch(`/api/schedule/default-plan/${uid}/${day}`);
       const plan = await res.json();
-      await fetch(`/schedule/templates/${uid}`, {
+      await apiFetch(`/api/schedule/templates/${uid}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({name, entries: plan.plan})
@@ -207,7 +208,7 @@
       const date = document.getElementById('tmplDate').value;
       const tid = tmplSelect.value;
       if (!uid || !date || !tid) return;
-      await fetch(`/schedule/apply-template/${uid}/${date}/${tid}`, {method: 'POST'});
+      await apiFetch(`/api/schedule/apply-template/${uid}/${date}/${tid}`, {method: 'POST'});
     });
   </script>
   <script src="../components/themeToggle.js"></script>

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../index.css" />
 </head>
 <body>
+<script src="../utils/api.js"></script>
   <h2>Your Music Library</h2>
   <div>
     <input type="text" id="searchInput" placeholder="Search..." />
@@ -45,7 +46,7 @@
 
   async function loadPlaylists() {
     try {
-      const res = await fetch('/playlists');
+      const res = await apiFetch('/api/playlists');
       if (!res.ok) {
         console.error('Failed to load playlists', res.status);
         playlistSelect.innerHTML = '<option>Error loading playlists</option>';
@@ -67,7 +68,7 @@
 
   async function loadSongs(search = '', sort = 'title') {
     try {
-      const res = await fetch(`/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+      const res = await apiFetch(`/api/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
       if (!res.ok) {
         console.error('Failed to load songs', res.status);
         document.getElementById('songList').innerHTML = '<li>Error loading songs</li>';
@@ -98,7 +99,7 @@
 
   async function loadAlbums(search = '', sort = 'title') {
     try {
-      const res = await fetch(`/albums/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
+      const res = await apiFetch(`/api/albums/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
       if (!res.ok) {
         console.error('Failed to load albums', res.status);
         document.getElementById('albumList').innerHTML = '<li>Error loading albums</li>';
@@ -138,7 +139,7 @@
     const pid = playlistSelect.value;
     if (!pid) return;
     try {
-      const res = await fetch(`/playlists/${pid}/songs`, {
+      const res = await apiFetch(`/api/playlists/${pid}/songs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ song_id: songId })
@@ -157,7 +158,7 @@
     const pid = playlistSelect.value;
     if (!pid) return;
     try {
-      const res = await fetch(`/playlists/${pid}/songs/${songId}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/playlists/${pid}/songs/${songId}`, { method: 'DELETE' });
       if (!res.ok) {
         console.error('Failed to remove song from playlist', res.status);
         alert('Failed to remove song from playlist.');
@@ -176,7 +177,7 @@
       return;
     }
     try {
-      const res = await fetch(`/api/mail/search?q=${encodeURIComponent(q)}`);
+      const res = await apiFetch(`/api/mail/search?q=${encodeURIComponent(q)}`);
       if (!res.ok) {
         list.innerHTML = '<li>Error searching mail</li>';
         return;

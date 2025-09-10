@@ -6,6 +6,7 @@
   <title>Cover Licensing</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Cover Licensing</h2>
 <table id="royalties">
   <thead>
@@ -23,7 +24,7 @@
   const BAND_ID = 1; // Placeholder for current band
 
   function loadRoyalties() {
-    fetch(`/cover_royalties/band/${BAND_ID}`)
+    apiFetch(`/api/cover_royalties/band/${BAND_ID}`)
       .then(r => r.json())
       .then(list => {
         const body = document.querySelector('#royalties tbody');
@@ -42,7 +43,7 @@
     e.preventDefault();
     const form = e.target;
     const data = new FormData(form);
-    await fetch(`/cover_royalties/band/${BAND_ID}`, { method: 'POST', body: data });
+    await apiFetch(`/api/cover_royalties/band/${BAND_ID}`, { method: 'POST', body: data });
     form.reset();
     loadRoyalties();
   });

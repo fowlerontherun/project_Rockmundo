@@ -7,6 +7,7 @@
   <script type="module" src="../components/toast.js"></script>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Live Gig Simulator</h2>
 
 <form id="gigForm">
@@ -100,7 +101,7 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
     setlist: actions.map((a, i) => ({ ...a, position: i + 1 }))
   };
 
-  const res = await fetch('/gigs/simulate', {
+  const res = await apiFetch('/api/gigs/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -110,7 +111,7 @@ document.getElementById('gigForm').addEventListener('submit', async (e) => {
   document.getElementById('resultBox').innerText = JSON.stringify(data, null, 2);
   if (res.ok) {
     showToast('Gig performed');
-    await fetch('/notification', {
+    await apiFetch('/api/notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Gig performed', body: `${payload.city} - ${payload.venue}` })

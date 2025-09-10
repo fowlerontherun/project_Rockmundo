@@ -7,6 +7,7 @@
   <script type="module" src="../components/toast.js"></script>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Book a Gig</h2>
 <form id="bookingForm">
   <input type="number" name="band_id" placeholder="Band ID" required />
@@ -29,14 +30,14 @@ form.addEventListener('submit', async (e) => {
     ticket_price: parseFloat(data.get('ticket_price')),
     acoustic: data.get('acoustic') === 'on'
   };
-  const res = await fetch('/gigs/book', {
+  const res = await apiFetch('/api/gigs/book', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   if (res.ok) {
     showToast('Booking confirmed');
-    await fetch('/notification', {
+    await apiFetch('/api/notification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Gig booked', body: `${payload.date}` })

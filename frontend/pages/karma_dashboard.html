@@ -6,6 +6,7 @@
   <title>Karma Dashboard</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Karma Dashboard</h2>
 
 <div>
@@ -20,7 +21,7 @@
 <script>
 async function loadKarma() {
   const userId = document.getElementById('userId').value;
-  const res = await fetch(`/karma/${userId}`);
+  const res = await apiFetch(`/api/karma/${userId}`);
   const data = await res.json();
 
   document.getElementById('karmaTotal').innerText = data.total;

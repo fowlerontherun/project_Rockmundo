@@ -6,6 +6,7 @@
   <title>Fame Dashboard</title>
 </head>
 <body>
+<script src="../utils/api.js"></script>
 <h2>Fame Dashboard</h2>
 
 <div>
@@ -20,11 +21,11 @@
 <script>
 async function loadFame() {
   const bandId = document.getElementById('bandId').value;
-  const fameRes = await fetch(`/fame/${bandId}/total`);
+  const fameRes = await apiFetch(`/api/fame/${bandId}/total`);
   const fameData = await fameRes.json();
   document.getElementById('fameTotal').innerText = fameData.fame;
 
-  const historyRes = await fetch(`/fame/${bandId}`);
+  const historyRes = await apiFetch(`/api/fame/${bandId}`);
   const historyData = await historyRes.json();
   const list = document.getElementById('fameHistory');
   list.innerHTML = '';
