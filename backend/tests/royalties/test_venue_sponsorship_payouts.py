@@ -1,7 +1,8 @@
 import sqlite3
+
 from backend.config import revenue
-from backend.services.venue_sponsorships_service import VenueSponsorshipsService, SponsorshipIn
 from backend.services.jobs_royalties import RoyaltyJobsService
+from backend.services.venue_sponsorships_service import SponsorshipIn, VenueSponsorshipsService
 
 
 def test_venue_sponsorship_payout(tmp_path):
@@ -28,6 +29,7 @@ def test_venue_sponsorship_payout(tmp_path):
 
     rsvc = RoyaltyJobsService(str(db_path))
     stats = rsvc.run_royalties("2000-01-01", "2030-01-01")
+    stats = stats["global"]
     assert stats["sponsorship"] == 1
 
     with sqlite3.connect(db_path) as conn:

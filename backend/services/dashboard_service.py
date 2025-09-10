@@ -1,10 +1,11 @@
 # File: backend/services/dashboard_service.py
 from __future__ import annotations
+
 import sqlite3
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from utils.db import get_conn
+
 
 class DashboardService:
     """
@@ -33,6 +34,7 @@ class DashboardService:
                 "badge": self._badge(conn, user_id),
                 "pulse": self._pulse_snippet(conn, top_n=top_n),
                 "music": self._music_totals(conn),
+                "chart_regions": self._chart_region_breakdown(conn),
             }
 
     # ---------- sections ----------
@@ -82,29 +84,47 @@ class DashboardService:
 
     def _pulse_snippet(self, conn: sqlite3.Connection, top_n: int = 10) -> List[Dict[str, Any]]:
         # Prefer cached weekly view/table if available
-        table_candidates = ["world_pulse_weekly_cache", "world_pulse_rankings", "world_pulse_metrics"]
+        table_candidates = [
+            "world_pulse_weekly_cache",
+            "world_pulse_rankings",
+            "world_pulse_metrics",
+        ]
         table = next((t for t in table_candidates if self._table_exists(conn, t)), None)
         if not table:
             return []
         cur = conn.cursor()
-        # Try to read a generic compact shape
-        # We infer columns conservatively and alias to a standard response.
+        cur.execute(f"PRAGMA table_info({table})")
+        cols = {row[1].lower() for row in cur.fetchall()}
+        name_cols = [c for c in ("name", "artist", "band_name") if c in cols]
+        rank_cols = [c for c in ("rank", "ranking", "position") if c in cols]
+        pct_cols = [c for c in ("pct_change", "change_pct", "delta_pct") if c in cols]
+        if not rank_cols:
+            return []
+        name_expr = (
+            "COALESCE(" + ",".join(name_cols) + ")" if len(name_cols) > 1 else name_cols[0]
+        ) if name_cols else "''"
+        rank_expr = (
+            "COALESCE(" + ",".join(rank_cols) + ")" if len(rank_cols) > 1 else rank_cols[0]
+        )
+        pct_base = (
+            "COALESCE(" + ",".join(pct_cols + ["0.0"]) + ")"
+            if pct_cols
+            else "0.0"
+        )
+        query = f"""
+            SELECT
+                {name_expr} AS name,
+                {rank_expr} AS rank,
+                {pct_base} AS pct_change,
+                CASE WHEN {pct_base} > 0 THEN '↑'
+                     WHEN {pct_base} < 0 THEN '↓'
+                     ELSE '→' END AS trend
+            FROM {table}
+            ORDER BY {rank_expr} ASC
+            LIMIT ?
+        """
         try:
-            cur.execute(
-                f"""
-                SELECT
-                    COALESCE(name, artist, band_name) AS name,
-                    COALESCE(rank, ranking, position, 0) AS rank,
-                    COALESCE(pct_change, change_pct, delta_pct, 0.0) AS pct_change,
-                    CASE WHEN COALESCE(pct_change, change_pct, delta_pct, 0.0) > 0 THEN '↑'
-                         WHEN COALESCE(pct_change, change_pct, delta_pct, 0.0) < 0 THEN '↓'
-                         ELSE '→' END AS trend
-                FROM {table}
-                ORDER BY rank ASC
-                LIMIT ?
-                """,
-                (top_n,),
-            )
+            cur.execute(query, (top_n,))
             rows = [dict(r) for r in cur.fetchall()]
         except Exception:
             rows = []
@@ -156,4 +176,21 @@ class DashboardService:
             r = cur.fetchone()
             out["last_7d"]["streams"] = int(r["c7"] or 0)
             out["last_30d"]["streams"] = int(r["c30"] or 0)
+        return out
+
+    def _chart_region_breakdown(self, conn: sqlite3.Connection) -> Dict[str, int]:
+        if not self._table_exists(conn, "chart_snapshots"):
+            return {}
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT region, MAX(period_start) AS latest FROM chart_snapshots GROUP BY region"
+        )
+        rows = cur.fetchall()
+        out: Dict[str, int] = {}
+        for region, latest in rows:
+            cur.execute(
+                "SELECT COUNT(*) FROM chart_snapshots WHERE region=? AND period_start=?",
+                (region, latest),
+            )
+            out[region] = int(cur.fetchone()[0] or 0)
         return out

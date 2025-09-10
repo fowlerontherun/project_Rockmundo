@@ -1,6 +1,7 @@
 # File: backend/tests/test_dashboard_summary_smoke.py
-from utils.db import get_conn
 from services.dashboard_service import DashboardService
+
+from utils.db import get_conn
 
 DDL = """
 CREATE TABLE IF NOT EXISTS venues (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, city TEXT, country TEXT, capacity INTEGER, created_at TEXT DEFAULT (datetime('now')));
@@ -35,3 +36,4 @@ def test_dashboard_summary(tmp_path):
     assert "badge" in summary and isinstance(summary["badge"], dict)
     assert "pulse" in summary and len(summary["pulse"]) >= 1
     assert "music" in summary and "last_7d" in summary["music"]
+    assert "chart_regions" in summary and isinstance(summary["chart_regions"], dict)
