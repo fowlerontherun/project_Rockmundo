@@ -4,10 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-from typing import Dict, Any
+from typing import Any, Dict
 
 from backend.services.jobs_royalties import RoyaltyJobsService
 from backend.services.sponsorship_service import SponsorshipService
+from backend.utils.metrics import Counter
+
+RECONCILIATION_JOB_FAILURES = Counter(
+    "sponsor_reconciliation_failures_total",
+    "Total sponsor reconciliation job failures",
+)
 
 
 def _sum_sponsorship_payouts(db_path: str) -> int:
@@ -32,7 +38,8 @@ def run(period_start: str, period_end: str, db: str) -> Dict[str, Any]:
     """
 
     rsvc = RoyaltyJobsService(db)
-    stats = rsvc.run_royalties(period_start, period_end)
+    stats_map = rsvc.run_royalties(period_start, period_end)
+    stats = stats_map.get("global", next(iter(stats_map.values())))
     run_id = stats["run_id"]
 
     expected = _sum_sponsorship_payouts(db)
@@ -45,9 +52,13 @@ def run(period_start: str, period_end: str, db: str) -> Dict[str, Any]:
         )
         actual = int(cur.fetchone()[0] or 0)
 
-    if actual != expected:
-        raise RuntimeError(
-            f"Sponsorship payouts mismatch: royalty lines={actual} expected={expected}"
-        )
-
-    return {"run_id": run_id, "sponsorship_payout_cents": actual}
+    try:
+        if actual != expected:
+            RECONCILIATION_JOB_FAILURES.labels().inc()
+            raise RuntimeError(
+                f"Sponsorship payouts mismatch: royalty lines={actual} expected={expected}"
+            )
+        return {"run_id": run_id, "sponsorship_payout_cents": actual}
+    except Exception:
+        RECONCILIATION_JOB_FAILURES.labels().inc()
+        raise

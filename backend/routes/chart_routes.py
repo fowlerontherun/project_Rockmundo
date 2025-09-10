@@ -1,11 +1,40 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
 import sqlite3
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+
 from backend.auth.dependencies import get_current_user_id
-from backend.services.chart_service import calculate_weekly_chart, get_chart
 from backend.database import DB_PATH
+from backend.services.chart_service import calculate_weekly_chart, get_chart
 
 router = APIRouter(prefix="/charts", tags=["Charts"])
+
+
+@router.get("/regions/breakdown")
+def charts_region_breakdown(chart_type: str = "streams_song", period: str = "daily"):
+    """Return latest chart entry counts per region."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT region, MAX(period_start) AS latest
+            FROM chart_snapshots
+            WHERE chart_type = ? AND period = ?
+            GROUP BY region
+            """,
+            (chart_type, period),
+        )
+        rows = cur.fetchall()
+        out = {}
+        for region, latest in rows:
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM chart_snapshots
+                WHERE chart_type = ? AND period = ? AND region = ? AND period_start = ?
+                """,
+                (chart_type, period, region, latest),
+            )
+            out[region] = int(cur.fetchone()[0] or 0)
+    return out
 
 
 @router.get("/{country}")
