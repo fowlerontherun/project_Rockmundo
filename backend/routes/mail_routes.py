@@ -5,29 +5,28 @@ Endpoints for sending, listing, and deleting mail messages.
 
 import sqlite3
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from auth.dependencies import get_current_user_id
 from services.mailbox_service import delete_message, get_inbox, send_message
+from services.storage_service import save_attachment
 from utils.db import aget_conn
 
 
 router = APIRouter(prefix="/mail", tags=["Mail"])
 
 
-class MailSendIn(BaseModel):
-    """Payload for sending a new mail message."""
-
-    recipient_id: int
-    subject: str
-    body: str
-
-
 @router.post("/")
-async def send_mail(payload: MailSendIn, user_id: int = Depends(get_current_user_id)):
+async def send_mail(
+    recipient_id: int = Form(...),
+    subject: str = Form(...),
+    body: str = Form(...),
+    files: list[UploadFile] = File([]),
+    user_id: int = Depends(get_current_user_id),
+):
     """Send a mail message from the authenticated user."""
-    return await send_message(user_id, payload.recipient_id, payload.subject, payload.body)
+    attachments = [await save_attachment(f) for f in files]
+    return await send_message(user_id, recipient_id, subject, body, attachments)
 
 
 @router.get("/")
