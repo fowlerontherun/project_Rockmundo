@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  REACT_APP_API_BASE = "https://backend.example.com"
 
 [[redirects]]
   from = "/api/*"
