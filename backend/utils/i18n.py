@@ -45,7 +45,12 @@ def _load_translations(locale: str) -> gettext.NullTranslations:
     if not mo_path.exists():
         # Generate the compiled catalog; ``msgfmt`` is widely available and
         # avoids a heavy runtime dependency such as ``polib``.
-        subprocess.run(["msgfmt", str(po_path), "-o", str(mo_path)], check=True)
+        try:
+            subprocess.run(["msgfmt", str(po_path), "-o", str(mo_path)], check=True)
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                "The 'msgfmt' command is required to compile translation catalogs"
+            ) from exc
 
     with mo_path.open("rb") as fp:  # noqa: PTH123
         return gettext.GNUTranslations(fp)
