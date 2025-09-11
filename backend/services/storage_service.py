@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import time
 import uuid
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 
 from fastapi import UploadFile
 
@@ -59,6 +59,7 @@ async def save_attachment(file: UploadFile) -> Dict[str, Any]:
 
     backend = get_storage_backend()
     data = await file.read()
-    key = f"mail/attachments/{int(time.time())}_{uuid.uuid4().hex}_{file.filename}"
+    filename = os.path.basename(file.filename)
+    key = f"mail/attachments/{int(time.time())}_{uuid.uuid4().hex}_{filename}"
     obj = backend.upload_bytes(data, key, content_type=file.content_type)
     return {"filename": file.filename, "url": obj.url}
