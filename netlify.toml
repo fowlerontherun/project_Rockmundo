@@ -1,6 +1,6 @@
 [build]
   base = "frontend"
-  publish = "frontend/build"
+  publish = "build"
   command = "npm ci && npm run build"
 
 [build.environment]
@@ -8,7 +8,6 @@
   REACT_APP_API_BASE = "https://backend.example.com"
 
 [[redirects]]
-  from = "/api/*"
-  to = "http://localhost:8000/api/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
-  force = true
