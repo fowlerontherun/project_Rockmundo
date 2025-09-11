@@ -1,0 +1,10 @@
+[build]
+  base = "frontend"
+  publish = "frontend/build"
+  command = "npm ci && npm run build"
+
+[[redirects]]
+  from = "/api/*"
+  to = "http://localhost:8000/api/:splat"
+  status = 200
+  force = true
