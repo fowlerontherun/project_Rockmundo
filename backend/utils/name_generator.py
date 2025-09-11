@@ -8,7 +8,7 @@ and optionally decorated with stage-style suffixes or aliases.
 
 from __future__ import annotations
 
-import csv
+import csv  # required for csv.reader in _load_names
 import random
 import sqlite3
 from pathlib import Path
