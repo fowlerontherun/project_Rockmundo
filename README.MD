@@ -8,7 +8,7 @@ This README gives you a **1‑file quickstart** for running a *testable* local b
 
 ## ⚡ Quick Start (Backend)
 
-**Prereqs**: Python 3.11+, SQLite 3.39+, Git. (Node is optional for frontend dev; HTML pages can be served directly.)
+**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 18+, Git. (Static frontend pages can be served directly without Node.)
 
 ```bash
 # 1) Create venv + install deps
