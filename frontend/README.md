@@ -8,6 +8,13 @@ Install dependencies with [npm](https://www.npmjs.com/):
 npm install
 ```
 
+Copy the example environment file and update the backend URL:
+
+```bash
+cp .env.example .env
+# edit REACT_APP_API_BASE to point at your backend
+```
+
 ## Development
 
 Start a development server that proxies API requests to the FastAPI backend:
