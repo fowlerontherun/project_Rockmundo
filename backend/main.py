@@ -64,7 +64,7 @@ from routes import (
     jam_ws,
     notifications_ws,
 )
-from utils.db import init_pool
+import backend.utils.db
 from utils.i18n import _
 
 from backend.services.scheduler_service import schedule_daily_loop_reset
@@ -101,7 +101,7 @@ if frontend_pages.exists():
 
 
 @app.on_event("startup")
-def startup() -> None:
+async def startup() -> None:
     """Initialize logging, tracing and database connections.
 
     The tracing exporter can be selected with the ``TRACING_EXPORTER``
@@ -114,7 +114,7 @@ def startup() -> None:
     exporter = os.getenv("TRACING_EXPORTER", "console")
     setup_tracing(exporter)
     init_db()
-    init_pool()
+    await backend.utils.db._init_pool_async()
     schedule_daily_loop_reset()
     storage = get_storage_backend()
     if isinstance(storage, LocalStorage):
