@@ -27,8 +27,6 @@ mkdir -p var/storage                      # create storage dir
 # ensure the runtime user can write to it
 chmod -R 775 var/storage                  # adjust UID/GID as needed
 # 4) Initialize DB (migrations + seeds)
-./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
-# 3) Initialize DB (migrations + seeds)
 ./scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
