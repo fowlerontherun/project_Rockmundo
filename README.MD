@@ -4,7 +4,6 @@ RockMundo is a modern, AI‑assisted music‑career simulation inspired by class
 
 This README gives you a **1‑file quickstart** for running a *testable* local build, a tour of the repo, and a checklist to validate the vertical slice.
 
----
 
 ## ⚡ Quick Start (Backend)
 
@@ -13,6 +12,7 @@ If you work on the frontend, ensure Node 18 is active, e.g. with `nvm use 18`.
 
 ```bash
 # 1) Create venv + install deps
+
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
@@ -26,9 +26,10 @@ cp .env.example.storage .env.storage
 mkdir -p var/storage                      # create storage dir
 # ensure the runtime user can write to it
 chmod -R 775 var/storage                  # adjust UID/GID as needed
-
 # 4) Initialize DB (migrations + seeds)
 ./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
+# 3) Initialize DB (migrations + seeds)
+./scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 5) Run the API
@@ -115,7 +116,7 @@ assets/ images/                   # branding & UI assets
 
 ## 🗄️ Data, Migrations & Seeds
 
-- Run migrations with `backend/scripts/migrate.sh` – it skips revisions already applied.
+- Run migrations with `scripts/migrate.sh` – it skips revisions already applied.
 - `make db-reset` removes `rockmundo.db` and re-applies migrations for a clean slate.
 - Full-text search (FTS5) and **World Pulse** (daily/weekly charts) are included.
 - `backend/scripts/seed_demo.py` seeds minimum data (skills, genres, equipment, etc.) and creates test users and bands for smoke tests.
