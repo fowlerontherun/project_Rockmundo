@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import List, Optional
 
-from backend.models.book import Book
+from models.book import Book
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
