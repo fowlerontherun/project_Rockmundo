@@ -1,0 +1,64 @@
+name: Preflight — Startup Doctor
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "**/*.py"
+      - "backend/**"
+      - "frontend/**"
+      - ".env.example*"
+      - ".github/workflows/ci-preflight.yml"
+  push:
+    branches: [ main ]
+    paths:
+      - "**/*.py"
+      - "backend/**"
+      - "frontend/**"
+      - ".env.example*"
+      - ".github/workflows/ci-preflight.yml"
+
+jobs:
+  preflight:
+    name: Run Startup Doctor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: ⚙️ Setup Node (for version checks)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: 📦 Install system deps (gettext for msgfmt)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext
+
+      - name: 🔧 Install Python deps (best-effort)
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found — continuing."
+          fi
+
+      - name: 🩺 Run Startup Doctor (read-only)
+        run: |
+          set -o pipefail
+          python rockmundo_startup_doctor.py 2>&1 | tee doctor.log
+
+      - name: ⬆️ Upload Doctor log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-doctor-log
+          path: doctor.log
