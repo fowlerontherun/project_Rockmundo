@@ -3,6 +3,16 @@
 This directory contains sample configuration for deploying a Prometheus and Grafana
 stack to observe Rockmundo services.
 
+## Admin monitoring endpoints
+
+The HTTP API for basic system metrics and session management lives in
+`routes/admin_monitoring_routes.py`.
+
+## Realtime admin gateway
+
+WebSocket alerts for administrative dashboards are served from
+`realtime/admin_gateway.py` at `/admin/realtime/ws`.
+
 ## Prometheus
 
 Use `monitoring/prometheus.yml` as a starting point. It scrapes the FastAPI
