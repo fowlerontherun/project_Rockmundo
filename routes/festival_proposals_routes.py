@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 try:
-    from backend.auth.dependencies import get_current_user_id, require_permission
+    from auth.dependencies import get_current_user_id, require_permission
 except Exception:  # pragma: no cover
     def require_permission(_: list[str]):
         async def _noop() -> None:  # type: ignore[return-value]

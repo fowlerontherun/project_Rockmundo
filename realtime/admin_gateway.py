@@ -11,7 +11,7 @@ from .gateway import hub, get_current_user_id_dep
 from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 
 try:  # pragma: no cover - fallback during tests
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
     async def require_permission(roles, user_id):  # type: ignore
         if user_id != 1:

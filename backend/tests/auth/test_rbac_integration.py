@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from backend.auth import rbac
 
 

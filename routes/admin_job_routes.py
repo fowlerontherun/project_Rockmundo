@@ -1,6 +1,6 @@
 # File: backend/routes/admin_job_routes.py
 from fastapi import APIRouter, HTTPException, Request, Depends
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from utils.i18n import _
 from services.admin_audit_service import audit_dependency
 
@@ -11,7 +11,7 @@ except Exception:
     run_weekly_rollup = None
 
 try:
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:
     def require_permission(_roles):
         async def _ok():

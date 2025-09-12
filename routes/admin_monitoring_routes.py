@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 try:  # pragma: no cover - optional auth dependency
-    from backend.auth.dependencies import get_current_user_id, require_permission
+    from auth.dependencies import get_current_user_id, require_permission
 except Exception:  # pragma: no cover
     async def get_current_user_id(req: Request) -> int:  # type: ignore
         header = req.headers.get("X-User-Id")

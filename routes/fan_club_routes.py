@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, HTTPException
 from models.fan_club_models import *
 from schemas.fan_club_schemas import *

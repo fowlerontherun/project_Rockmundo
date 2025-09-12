@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import List, Optional
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from services.media_event_service import media_event_service
 from services.media_moderation_service import media_moderation_service

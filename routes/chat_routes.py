@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 from schemas.chat_schemas import GroupMembershipSchema, GroupMessageSchema, MessageSchema
 
-from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
+from auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from services.chat_service import (
     add_user_to_group,
     get_user_chat_history,

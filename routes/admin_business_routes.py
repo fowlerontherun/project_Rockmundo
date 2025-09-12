@@ -1,7 +1,7 @@
 """Administrative CRUD routes for businesses."""
 from fastapi import APIRouter, HTTPException, Request, Depends
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.business_service import BusinessService
 from services.admin_audit_service import audit_dependency
 

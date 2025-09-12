@@ -1,6 +1,6 @@
 from typing import List
 
-from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
+from auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from services.economy_service import EconomyService
 from services.merch_service import MerchError, MerchService
 from backend.models.merch import ProductIn, SKUIn

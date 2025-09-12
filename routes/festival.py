@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date

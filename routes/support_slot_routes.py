@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 try:  # Authentication dependencies may not be available during tests
-    from backend.auth.dependencies import get_current_user_id, require_permission
+    from auth.dependencies import get_current_user_id, require_permission
 except Exception:  # pragma: no cover - fallback for docs builds
     def require_permission(_: List[str]):
         async def _noop() -> None:  # type: ignore[return-value]

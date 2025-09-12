@@ -5,7 +5,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id
+from auth.dependencies import get_current_user_id
 from services.economy_service import EconomyService
 from services.recording_service import RecordingService
 

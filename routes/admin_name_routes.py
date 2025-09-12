@@ -4,7 +4,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services import name_dataset_service as dataset_service
 from services.admin_audit_service import audit_dependency
 from pydantic import BaseModel

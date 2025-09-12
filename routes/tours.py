@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi import Depends
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from sqlalchemy.orm import Session
 from database import get_db
 from models.tours import Tour, TourStop

@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 
 from flask import Blueprint, request, jsonify
 from services import live_performance_service

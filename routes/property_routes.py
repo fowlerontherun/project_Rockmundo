@@ -2,7 +2,7 @@ from services.achievement_service import AchievementService
 from services.economy_service import EconomyService
 from services.property_service import PropertyError, PropertyService
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 

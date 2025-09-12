@@ -14,7 +14,7 @@ except Exception:  # pragma: no cover - fallback for stubs
     def Depends(dependency: Any) -> Any:  # type: ignore[misc]
         return dependency
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from utils.db import get_conn
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
