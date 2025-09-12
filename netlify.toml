@@ -4,7 +4,7 @@
   command = "npm cache clean --force && npm ci && npm run build"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "20.11.1"
   REACT_APP_API_BASE = "https://backend.example.com"
 
 [[redirects]]

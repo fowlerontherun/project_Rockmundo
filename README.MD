@@ -7,8 +7,8 @@ This README gives you a **1‑file quickstart** for running a *testable* local b
 
 ## ⚡ Quick Start (Backend)
 
-**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 18+, Git, GNU gettext (`msgfmt`). (Static frontend pages can be served directly without Node.)
-If you work on the frontend, ensure Node 18 is active, e.g. with `nvm use 18`.
+**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 20.11.1 (see `.nvmrc`), Git, GNU gettext (`msgfmt`). (Static frontend pages can be served directly without Node.)
+If you work on the frontend, ensure Node 20.11.1 is active; `nvm use` will read the repo's `.nvmrc`.
 
 ```bash
 # 1) Create venv + install deps
