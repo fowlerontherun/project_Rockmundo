@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Dict, List, Optional, Tuple
 
 try:  # pragma: no cover - prefer local stub if available
-    import aiosqlite_local as aiosqlite
+    import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
 
