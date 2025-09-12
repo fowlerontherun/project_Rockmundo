@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 # ensure backend package importable
 root_path = pathlib.Path(__file__).resolve().parents[1]
 sys.path.append(str(root_path))
-sys.path.append(str(root_path / "backend"))
 
 # Stub auth dependency modules expected by band routes
 import types
@@ -38,7 +37,7 @@ sys.modules["services"] = services_pkg
 sys.modules["services.band_service"] = band_service_stub
 sys.modules["services.tour_service"] = tour_service_stub
 
-from backend.routes import band  # type: ignore
+from routes import band  # type: ignore
 MAX_RECORDINGS_PER_YEAR = band.MAX_RECORDINGS_PER_YEAR
 
 

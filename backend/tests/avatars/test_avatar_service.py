@@ -7,7 +7,7 @@ import pytest
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate, AvatarUpdate
-from services.avatar_service import AvatarService
+from backend.services.avatar_service import AvatarService
 
 
 def get_service():

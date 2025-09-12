@@ -1,8 +1,8 @@
 import tempfile
 
-from services.economy_service import EconomyService
-from services.skill_service import SkillService
-from services.video_service import SERVICE_LATENCY_MS, VideoService, XP_PER_VIEW
+from backend.services.economy_service import EconomyService
+from backend.services.skill_service import SkillService
+from backend.services.video_service import SERVICE_LATENCY_MS, VideoService, XP_PER_VIEW
 from seeds.skill_seed import SEED_SKILLS
 CONTENT_CREATION_SKILL = next(s for s in SEED_SKILLS if s.name == "content_creation")
 

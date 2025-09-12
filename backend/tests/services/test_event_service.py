@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 from seeds.skill_seed import SKILL_NAME_TO_ID
-from services import event_service
+from backend.services import event_service
 
 from backend.models.event import Event, EventType
 from backend.models.skill import Skill

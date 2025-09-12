@@ -1,5 +1,5 @@
 # File: backend/tests/test_dashboard_summary_smoke.py
-from services.dashboard_service import DashboardService
+from backend.services.dashboard_service import DashboardService
 
 from utils.db import get_conn
 

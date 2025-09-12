@@ -7,7 +7,7 @@ import pytest
 root_dir = Path(__file__).resolve().parents[1]
 sys.path.append(str(root_dir))
 
-from backend.services import chat_service  # noqa: E402
+from services import chat_service  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

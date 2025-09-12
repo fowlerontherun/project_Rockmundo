@@ -3,9 +3,9 @@ import types
 import sys
 from datetime import datetime
 
-from backend.services import addiction_service as global_addiction_service
-from backend.services import lifestyle_scheduler
-from backend import database
+from services import addiction_service as global_addiction_service
+from services import lifestyle_scheduler
+import database
 
 # Minimal stubs required for importing random_event_service
 skill_seed = types.SimpleNamespace(SKILL_NAME_TO_ID={})
@@ -23,7 +23,7 @@ sys.modules.setdefault(
     "utils.db", types.SimpleNamespace(get_conn=lambda: None)
 )
 
-import backend.services.random_event_service as random_event_module
+import services.random_event_service as random_event_module
 
 
 def test_scheduler_removes_events_on_high_addiction(tmp_path, monkeypatch):
@@ -35,7 +35,7 @@ def test_scheduler_removes_events_on_high_addiction(tmp_path, monkeypatch):
 
     # Stub external dependencies not relevant for this test
     monkeypatch.setattr(
-        "backend.services.lifestyle_service.grant_daily_xp", lambda *a, **k: 0
+        "services.lifestyle_service.grant_daily_xp", lambda *a, **k: 0
     )
     monkeypatch.setattr(
         lifestyle_scheduler,

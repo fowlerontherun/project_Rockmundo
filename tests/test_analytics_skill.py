@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.services.analytics_service import AnalyticsService
+from services.analytics_service import AnalyticsService
 
 
 def test_data_analytics_skill_improves_forecast_accuracy():

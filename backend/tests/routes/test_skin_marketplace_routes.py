@@ -3,11 +3,11 @@ import base64
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from backend.storage.local import LocalStorage
-from services.skin_service import SkinService, engine
+from backend.services.skin_service import SkinService, engine
 from models.skin import Skin
 from models.avatar import Base as AvatarBase
-from services.payment_service import PaymentService, MockGateway
-from services.economy_service import EconomyService
+from backend.services.payment_service import PaymentService, MockGateway
+from backend.services.economy_service import EconomyService
 from routes import skin_marketplace
 
 

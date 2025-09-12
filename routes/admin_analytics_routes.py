@@ -1,0 +1,123 @@
+# File: backend/routes/admin_analytics_routes.py
+from services.admin_audit_service import audit_dependency
+from services.admin_service import AdminService, AdminActionRepository
+
+from auth.dependencies import get_current_user_id, require_permission
+from services.analytics_service import AnalyticsService
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+# Auth middleware / role dependency hook
+try:
+    from auth.dependencies import require_permission
+except Exception:
+    def require_permission(roles):
+        async def _noop():
+            return True
+        return _noop
+
+router = APIRouter(
+    prefix="/analytics", tags=["Admin Analytics"], dependencies=[Depends(audit_dependency)]
+)
+svc = AnalyticsService()
+
+
+# Real admin action logger backed by SQLite
+admin_logger = AdminService(AdminActionRepository())
+
+@router.get("/kpis")
+async def kpis(req: Request, period_start: str, period_end: str):
+    """KPIs for streams, digital, vinyl, and tickets between [period_start, period_end]."""
+    try:
+        admin_id = await get_current_user_id(req)
+        await require_permission(["admin", "moderator"], admin_id)
+        result = svc.kpis(period_start, period_end)
+        await admin_logger.log_action(
+            admin_id,
+            "analytics_kpis",
+            {"period_start": period_start, "period_end": period_end},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/top-songs")
+async def top_songs(
+    req: Request,
+    period_start: str,
+    period_end: str,
+    limit: int = 20,
+):
+    """Top songs by streams and by digital revenue."""
+    try:
+        admin_id = await get_current_user_id(req)
+        await require_permission(["admin", "moderator"], admin_id)
+        result = svc.top_songs(period_start, period_end, limit)
+        await admin_logger.log_action(
+            admin_id,
+            "analytics_top_songs",
+            {
+                "period_start": period_start,
+                "period_end": period_end,
+                "limit": limit,
+            },
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/top-albums")
+async def top_albums(
+    req: Request,
+    period_start: str,
+    period_end: str,
+    limit: int = 20,
+):
+    """Top albums by digital revenue and by vinyl revenue."""
+    try:
+        admin_id = await get_current_user_id(req)
+        await require_permission(["admin", "moderator"], admin_id)
+        result = svc.top_albums(period_start, period_end, limit)
+        await admin_logger.log_action(
+            admin_id,
+            "analytics_top_albums",
+            {
+                "period_start": period_start,
+                "period_end": period_end,
+                "limit": limit,
+            },
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/royalty-runs/recent")
+async def recent_royalty_runs(req: Request, limit: int = 20):
+    """Recent royalty runs."""
+    try:
+        admin_id = await get_current_user_id(req)
+        await require_permission(["admin", "moderator"], admin_id)
+        result = svc.recent_royalty_runs(limit)
+        await admin_logger.log_action(
+            admin_id,
+            "analytics_recent_royalty_runs",
+            {"limit": limit},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/royalties/by-band")
+async def royalties_by_band(req: Request, run_id: int):
+    """Sum of royalty amounts by band for a specific run."""
+    try:
+        admin_id = await get_current_user_id(req)
+        await require_permission(["admin", "moderator"], admin_id)
+        result = svc.royalties_summary_by_band(run_id)
+        await admin_logger.log_action(
+            admin_id,
+            "analytics_royalties_by_band",
+            {"run_id": run_id},
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

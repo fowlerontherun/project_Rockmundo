@@ -2,10 +2,10 @@ import tempfile
 
 import pytest
 
-from services.economy_service import EconomyService
-from services.media_moderation_service import media_moderation_service
-from services.skill_service import SkillService
-from services.video_service import VideoService
+from backend.services.economy_service import EconomyService
+from backend.services.media_moderation_service import media_moderation_service
+from backend.services.skill_service import SkillService
+from backend.services.video_service import VideoService
 
 
 def _setup_video_service():

@@ -1,8 +1,8 @@
 # File: backend/tests/test_mail_smoke.py
 import pytest
 from utils.db import aget_conn
-from services.mail_service import MailService
-from services.notifications_service import NotificationsService
+from backend.services.mail_service import MailService
+from backend.services.notifications_service import NotificationsService
 
 MAIL_DDL = """
 CREATE TABLE IF NOT EXISTS mail_threads (

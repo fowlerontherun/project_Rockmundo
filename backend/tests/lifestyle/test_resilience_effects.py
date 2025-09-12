@@ -6,8 +6,8 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate
-from services.avatar_service import AvatarService
-from services import lifestyle_service
+from backend.services.avatar_service import AvatarService
+from backend.services import lifestyle_service
 
 
 class DummySkillService:

@@ -2,8 +2,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from utils.db import get_conn
-from auth.routes import router as auth_router
-from auth.jwt import decode
+from backend.auth.routes import router as auth_router
+from backend.auth.jwt import decode
 from core.config import settings
 
 def make_app():

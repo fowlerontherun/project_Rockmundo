@@ -5,5 +5,9 @@ redis
 alembic
 statsmodels
 pandas
-pydantic
-
+pydantic==2.5.3
+email-validator
+pytest
+aiosqlite
+sqlalchemy
+uvicorn

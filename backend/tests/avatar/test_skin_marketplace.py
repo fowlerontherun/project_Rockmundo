@@ -1,5 +1,5 @@
-from services.avatar_service import AvatarService
-from services.skin_service import SkinService, engine
+from backend.services.avatar_service import AvatarService
+from backend.services.skin_service import SkinService, engine
 from models.avatar import Avatar
 from models.skin import Skin
 from models.avatar_skin import AvatarSkin

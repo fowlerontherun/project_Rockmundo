@@ -1,0 +1,20 @@
+from pathlib import Path
+from alembic import op
+
+# revision identifiers, used by Alembic.
+revision = '0013'
+down_revision = '0012'
+branch_labels = None
+depends_on = None
+
+SQL_FILE = Path(__file__).resolve().parent.parent / 'sql' / '046_mail_attachments_storage_key.sql'
+
+def upgrade() -> None:
+    statements = SQL_FILE.read_text().split('-- SPLIT --')
+    for statement in statements:
+        if statement.strip():
+            op.execute(statement)
+
+def downgrade() -> None:
+    op.execute("DROP INDEX IF EXISTS idx_mail_attachments_storage_key;")
+    op.execute("ALTER TABLE mail_attachments DROP COLUMN storage_key;")

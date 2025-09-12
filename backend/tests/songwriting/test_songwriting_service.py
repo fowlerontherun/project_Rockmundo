@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate
-from services.avatar_service import AvatarService
+from backend.services.avatar_service import AvatarService
 
 Path(__file__).resolve().parents[2].joinpath("database").mkdir(exist_ok=True)
 

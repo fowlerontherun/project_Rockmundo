@@ -28,7 +28,7 @@ def load_character_module(monkeypatch):
 
     monkeypatch.setattr("fastapi.APIRouter", DummyRouter)
 
-    from auth import dependencies as deps
+    from backend.auth import dependencies as deps
 
     def fake_require_permission(_roles):
         def _dep():

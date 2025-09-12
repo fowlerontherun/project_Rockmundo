@@ -65,13 +65,13 @@ utils_mod.db = utils_db_mod
 sys.modules["utils"] = utils_mod
 sys.modules["utils.db"] = utils_db_mod
 
-from backend.routes import item_routes
-from backend.services.item_service import ItemService
-from backend.services.addiction_service import AddictionService
-from backend.models.item import ItemCategory
-from backend.models.drug import Drug
-from backend.services.notifications_service import NotificationsService
-from backend.models import notification_models
+from routes import item_routes
+from services.item_service import ItemService
+from services.addiction_service import AddictionService
+from models.item import ItemCategory
+from models.drug import Drug
+from services.notifications_service import NotificationsService
+from models import notification_models
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -97,7 +97,7 @@ def create_app(tmp_path):
     notification_models.notifications = NotificationsService(str(db))
     # Patch the global services used by the route
     item_routes.item_service = item_svc
-    from backend.services import item_service as item_service_module
+    from services import item_service as item_service_module
 
     item_service_module.addiction_service = addiction_svc
     app = FastAPI()

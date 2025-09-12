@@ -33,7 +33,7 @@ def load_gig_module(monkeypatch):
     monkeypatch.setattr("fastapi.APIRouter", DummyRouter)
 
     # Stub auth dependencies to avoid auth logic during import
-    from auth import dependencies as deps
+    from backend.auth import dependencies as deps
 
     def fake_require_permission(_roles):
         def _dep():

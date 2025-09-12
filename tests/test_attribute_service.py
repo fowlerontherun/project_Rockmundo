@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.services.attribute_service import AttributeService  # noqa: E402
+from services.attribute_service import AttributeService  # noqa: E402
 
 
 def test_attribute_levels_up():

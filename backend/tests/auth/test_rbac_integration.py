@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from auth.dependencies import get_current_user_id, require_permission
-from auth import rbac
+from backend.auth.dependencies import get_current_user_id, require_permission
+from backend.auth import rbac
 
 
 async def require_admin_dep(user_id: int = Depends(get_current_user_id)):

@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from auth.dependencies import require_permission
-from auth.permissions import Permissions
+from backend.auth.dependencies import require_permission
+from backend.auth.permissions import Permissions
 
 
 def test_unknown_permission_rejected():

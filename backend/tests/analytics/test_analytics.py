@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 import utils.db as db_utils
-from auth.service import AuthService
+from backend.auth.service import AuthService
 from fastapi import HTTPException, Request
 from utils.db import get_conn
 

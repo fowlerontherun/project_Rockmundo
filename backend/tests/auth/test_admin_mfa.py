@@ -25,7 +25,7 @@ def _post(self, path: str, **_kwargs):  # type: ignore[override]
 
 fastapi.APIRouter.post = _post  # type: ignore[attr-defined]
 
-from auth.routes import mfa_setup, mfa_verify, MFASetupIn, MFAVerifyIn
+from backend.auth.routes import mfa_setup, mfa_verify, MFASetupIn, MFAVerifyIn
 from middleware.admin_mfa import AdminMFAMiddleware
 
 

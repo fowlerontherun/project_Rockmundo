@@ -1,6 +1,6 @@
 
 import types, sys, os
-from backend.services import addiction_service as global_addiction_service
+from services import addiction_service as global_addiction_service
 
 # Provide a minimal seeds.skill_seed stub required by random_event_service imports
 skill_seed = types.SimpleNamespace(SKILL_NAME_TO_ID={})
@@ -17,8 +17,8 @@ sys.modules.setdefault("services.discord_service", discord_stub)
 sys.modules.setdefault("utils", types.SimpleNamespace(db=types.SimpleNamespace(get_conn=lambda: None)))
 sys.modules.setdefault("utils.db", types.SimpleNamespace(get_conn=lambda: None))
 
-import backend.services.random_event_service as random_event_module
-from backend.services.random_event_service import random_event_service
+import services.random_event_service as random_event_module
+from services.random_event_service import random_event_service
 
 
 def _service(tmp_path, monkeypatch):

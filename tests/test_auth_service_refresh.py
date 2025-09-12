@@ -10,12 +10,12 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
-import backend.auth as backend_auth
-import backend.core as backend_core
+import auth as backend_auth
+import core as backend_core
 sys.modules.setdefault("auth", backend_auth)
 sys.modules.setdefault("core", backend_core)
 
-from backend.auth.service import AuthService
+from auth.service import AuthService
 
 
 def test_refresh_handles_timezone(tmp_path, monkeypatch):
@@ -66,7 +66,7 @@ def test_refresh_handles_timezone(tmp_path, monkeypatch):
     svc._new_refresh_token = fake_new_refresh_token
 
     monkeypatch.setattr(
-        "backend.auth.service._now", lambda: datetime(2023, 9, 30, 2, tzinfo=timezone.utc)
+        "auth.service._now", lambda: datetime(2023, 9, 30, 2, tzinfo=timezone.utc)
     )
 
     result = asyncio.run(svc.refresh(token))

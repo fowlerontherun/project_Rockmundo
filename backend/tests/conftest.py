@@ -17,12 +17,12 @@ except Exception:  # pragma: no cover
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from utils.db import get_conn
-from auth.service import AuthService
+from backend.auth.service import AuthService
 
 try:  # pragma: no cover - optional in minimal test runs
     from routes import payment_routes
-    from services.economy_service import EconomyService
-    from services.payment_service import PaymentService
+    from backend.services.economy_service import EconomyService
+    from backend.services.payment_service import PaymentService
 except Exception:  # pragma: no cover
     payment_routes = None  # type: ignore
     EconomyService = None  # type: ignore
@@ -69,7 +69,7 @@ def db_path(tmp_path_factory, monkeypatch):
             """
         )
     # patch services to use this db
-    from auth import routes as auth_routes
+    from backend.auth import routes as auth_routes
     auth_routes.svc = AuthService(str(db_file))
     if EconomyService and PaymentService and payment_routes:
         economy = EconomyService(str(db_file))
@@ -82,7 +82,7 @@ def db_path(tmp_path_factory, monkeypatch):
 def client(db_path):
     if FastAPI is None or TestClient is None:
         pytest.skip("FastAPI not installed")
-    from auth.routes import router as auth_router
+    from backend.auth.routes import router as auth_router
     from routes import event_routes, payment_routes
 
     app = FastAPI()

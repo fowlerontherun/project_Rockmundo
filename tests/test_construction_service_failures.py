@@ -6,7 +6,7 @@ import pytest
 
 # Make backend modules like `models` importable
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.extend([str(ROOT), str(ROOT / "backend")])
+sys.path.append(str(ROOT))
 
 from services.construction_service import ConstructionService
 from models.construction import BuildPhase, Blueprint, ConstructionTask

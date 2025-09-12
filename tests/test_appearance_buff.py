@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.models.activity import gym, running, yoga
-from backend.services import lifestyle_service
-from backend.models import notification_models
+from models.activity import gym, running, yoga
+from services import lifestyle_service
+from models import notification_models
 
 # Provide dummy utils modules expected by lifestyle_service
 utils_mod = types.ModuleType("utils")

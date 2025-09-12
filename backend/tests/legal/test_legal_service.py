@@ -7,9 +7,9 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from services.economy_service import EconomyService
-from services.legal_service import LegalService
-from services.karma_service import KarmaService
+from backend.services.economy_service import EconomyService
+from backend.services.legal_service import LegalService
+from backend.services.karma_service import KarmaService
 
 
 class InMemoryKarmaDB:

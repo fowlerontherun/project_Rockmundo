@@ -1,1 +1,0 @@
--- SQL migration file content here

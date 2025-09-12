@@ -6,15 +6,14 @@ import random
 
 root_dir = Path(__file__).resolve().parents[1]
 sys.path.append(str(root_dir))
-sys.path.append(str(root_dir / "backend"))
 
-from backend import database
-from backend.models.book import Book
-from backend.models.skill import Skill
-from backend.services import scheduler_service
-from backend.services.books_service import books_service
-from backend.services.skill_service import skill_service
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+import database
+from models.book import Book
+from models.skill import Skill
+from services import scheduler_service
+from services.books_service import books_service
+from services.skill_service import skill_service
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 def _setup_db(tmp_path):

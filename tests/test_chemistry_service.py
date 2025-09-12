@@ -9,11 +9,11 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.extend([str(ROOT), str(ROOT / "backend")])
+sys.path.extend([str(ROOT), str(ROOT)])
 
-from backend.services import chemistry_service
-from backend.services.chemistry_service import ChemistryService
-from backend.models.player_chemistry import Base
+from services import chemistry_service
+from services.chemistry_service import ChemistryService
+from models.player_chemistry import Base
 
 def test_init_logs_and_raises_on_metadata_creation_failure(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture

@@ -2,13 +2,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from routes import shop_routes
-from services.item_service import ItemService
-from services.city_shop_service import CityShopService
-from services.loyalty_service import LoyaltyService
-from services.membership_service import MembershipService
-from services.shop_npc_service import ShopNPCService
-from services.npc_service import NPCService
-from services.economy_service import EconomyService
+from backend.services.item_service import ItemService
+from backend.services.city_shop_service import CityShopService
+from backend.services.loyalty_service import LoyaltyService
+from backend.services.membership_service import MembershipService
+from backend.services.shop_npc_service import ShopNPCService
+from backend.services.npc_service import NPCService
+from backend.services.economy_service import EconomyService
 from models.item import ItemCategory
 from models.drug import Drug
 
@@ -31,7 +31,7 @@ def create_app(tmp_path):
     shop_routes.shop_npc_service = npc_shop
     shop_routes._economy = economy
     # ensure city shop service uses the test item service
-    from services import city_shop_service as city_module
+    from backend.services import city_shop_service as city_module
 
     city_module.item_service = item_svc
     city_module._economy = economy

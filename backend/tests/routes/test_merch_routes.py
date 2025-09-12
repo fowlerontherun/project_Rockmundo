@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from services.economy_service import EconomyService
-from services.merch_service import MerchService
-from services.payment_service import MockGateway, PaymentService
+from backend.services.economy_service import EconomyService
+from backend.services.merch_service import MerchService
+from backend.services.payment_service import MockGateway, PaymentService
 
 import backend.auth.dependencies as auth_dep
 from typing import List
