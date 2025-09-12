@@ -1,7 +1,7 @@
 [build]
   base = "frontend"
   publish = "build"
-  command = "npm ci && npm run build"
+  command = "npm cache clean --force && npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
