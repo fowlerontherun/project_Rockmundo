@@ -22,6 +22,7 @@ cp .env.example.storage .env.storage
 
 # 3) Initialize DB (migrations + seeds)
 # Migrations are SQL files in backend/migrations/sql/*.sql
+./scripts/migrate.sh                 # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 4) Run the API
