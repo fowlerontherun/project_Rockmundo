@@ -3,7 +3,7 @@ from schemas.avatar import AvatarResponse
 from services.avatar_service import AvatarService
 
 try:  # pragma: no cover - fallback when auth module absent
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
     def require_permission(roles):
         async def _noop():

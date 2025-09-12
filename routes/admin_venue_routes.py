@@ -1,7 +1,7 @@
 """Administrative CRUD routes for venues."""
 from fastapi import APIRouter, HTTPException, Request, Depends
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.venue_service import VenueService
 from services.admin_audit_service import audit_dependency
 from models.economy_config import set_config, EconomyConfig

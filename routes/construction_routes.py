@@ -3,7 +3,7 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from models.construction import Blueprint, BuildPhase
 from services.construction_service import ConstructionService
 from services.economy_service import EconomyService

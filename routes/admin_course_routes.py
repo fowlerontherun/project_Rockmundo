@@ -1,7 +1,7 @@
 """Admin routes for managing courses."""
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from backend.models.course import Course
 from services.admin_audit_service import audit_dependency
 from services.course_admin_service import course_admin_service, CourseAdminService

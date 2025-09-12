@@ -6,7 +6,7 @@ except Exception:  # pragma: no cover - fallback for stubs
     def Depends(dependency):  # type: ignore
         return dependency
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from backend.models.analytics import (
     AggregatedMetrics,
     FanSegmentSummary,

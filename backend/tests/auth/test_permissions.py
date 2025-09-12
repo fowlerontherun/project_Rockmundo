@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from backend.auth.permissions import Permissions
 
 

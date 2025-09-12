@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from backend.schemas.labels_schemas import (
     LabelCreateSchema,
     OfferRequestSchema,

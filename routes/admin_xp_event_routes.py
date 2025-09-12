@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from backend.models.xp_event import XPEvent
 from services.admin_audit_service import audit_dependency
 from services.xp_event_service import XPEventService

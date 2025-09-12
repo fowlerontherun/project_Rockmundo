@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.quest_admin_service import QuestAdminService
 from services.admin_audit_service import audit_dependency
 

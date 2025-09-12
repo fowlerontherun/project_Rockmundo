@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 try:
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
     def require_permission(_: List[str]):
         async def _noop() -> None:  # type: ignore[return-value]

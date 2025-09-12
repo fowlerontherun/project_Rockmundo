@@ -1,6 +1,6 @@
 from typing import Optional
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from fastapi import APIRouter, Depends
 from services.media_event_service import media_event_service
 from services.media_monitor_service import media_monitor_service

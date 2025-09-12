@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend.auth.dependencies import require_admin
+from auth.dependencies import require_admin
 from backend.models.item import Item, ItemCategory
 from backend.models.drug import Drug
 from services.admin_audit_service import audit_dependency

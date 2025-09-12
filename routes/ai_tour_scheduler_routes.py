@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from core.ai_tour_scheduler import run_ai_scheduler, scheduled_tours
 

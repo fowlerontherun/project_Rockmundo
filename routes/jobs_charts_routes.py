@@ -1,11 +1,11 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 # File: backend/routes/jobs_charts_routes.py
 from fastapi import APIRouter, HTTPException, Depends
 from services.jobs_charts import ChartsJobsService
 
 # Auth dep
 try:
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:
     def require_permission(roles):
         async def _noop():

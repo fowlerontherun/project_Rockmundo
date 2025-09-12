@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from backend.auth.dependencies import get_current_user_id
+from auth.dependencies import get_current_user_id
 from services.notifications_service import NotificationsService
 
 

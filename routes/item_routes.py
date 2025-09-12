@@ -1,7 +1,7 @@
 """Routes for item interactions such as consuming drugs."""
 from fastapi import APIRouter, Depends, HTTPException
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.item_service import item_service
 
 router = APIRouter(prefix="/items", tags=["Items"])

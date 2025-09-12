@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.admin_audit_service import audit_dependency
 from backend.config import lifestyle as lifestyle_config
 

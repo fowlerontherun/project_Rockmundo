@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from backend.auth.dependencies import get_current_user_id
+from auth.dependencies import get_current_user_id
 from services.notifications_service import NotificationsService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])

@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, HTTPException
 from models.media_exposure_models import *
 from schemas.media_exposure_schemas import *

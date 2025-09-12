@@ -5,7 +5,7 @@ from services.avatar_service import AvatarService
 from services.lifestyle_service import calculate_lifestyle_score, evaluate_lifestyle_risks
 
 try:  # pragma: no cover - fallback for environments without auth module
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover
     def require_permission(roles):
         async def _noop():

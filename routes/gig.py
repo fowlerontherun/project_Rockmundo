@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter, Depends, HTTPException
 from services.notifications_service import NotificationsService
 from sqlalchemy.orm import Session

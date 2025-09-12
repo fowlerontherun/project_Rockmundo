@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 
-from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
+from auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from services import song_popularity_service
 from services.song_popularity_service import (
     ALLOWED_REGION_CODES,

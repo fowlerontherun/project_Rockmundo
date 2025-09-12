@@ -6,7 +6,7 @@ from services.economy_service import EconomyService
 from services.ticketing_service import TicketingError, TicketingService
 
 try:
-    from backend.auth.dependencies import require_permission
+    from auth.dependencies import require_permission
 except Exception:  # pragma: no cover - fallback for tests
     def require_permission(roles):
         async def _noop():

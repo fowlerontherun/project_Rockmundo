@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from utils.i18n import _
 
-from backend.auth.dependencies import get_current_user_id, require_permission  # noqa: F401
+from auth.dependencies import get_current_user_id, require_permission  # noqa: F401
 from services.sponsorship_service import SponsorshipService
 from fastapi import APIRouter, Depends, HTTPException, Request  # noqa: F401
 from pydantic import BaseModel, Field

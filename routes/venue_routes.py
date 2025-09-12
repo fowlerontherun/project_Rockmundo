@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 # File: backend/routes/venue_routes.py
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field

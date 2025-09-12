@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from core.ai_transport_optimizer import optimize_transport_for_tour, get_transport_bookings
 

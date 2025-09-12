@@ -7,7 +7,7 @@ import sqlite3
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from backend.auth.dependencies import get_current_user_id
+from auth.dependencies import get_current_user_id
 from services.mailbox_service import delete_message, get_inbox, send_message
 from services.storage_service import save_attachment
 from utils.db import aget_conn

@@ -1,4 +1,4 @@
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from fastapi import APIRouter
 from schemas.endorsement_schema import EndorsementCreate, EndorsementResponse
 from datetime import date

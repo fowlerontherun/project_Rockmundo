@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from backend.auth.dependencies import require_permission
+from auth.dependencies import require_permission
 from services.events_service import (
     cancel_scheduled_event,
     create_seasonal_event,

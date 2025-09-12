@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from backend.auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import get_current_user_id, require_permission
 from services.books_service import books_service
 from services.city_shop_service import city_shop_service
 from services.economy_service import EconomyError, EconomyService
