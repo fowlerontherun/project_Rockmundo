@@ -21,8 +21,8 @@ python scripts/compile_translations.py  # requires msgfmt; missing it triggers a
 
 # 3) Configure environment
 cp .env.example .env
-# If you plan to store attachments locally (saved under ./var/storage):
-cp .env.example.storage .env.storage
+# If you plan to maintain a separate storage config:
+cp .env.example .env.storage
 mkdir -p var/storage                      # create storage dir
 # ensure the runtime user can write to it
 chmod -R 775 var/storage                  # adjust UID/GID as needed
@@ -160,7 +160,7 @@ If any step fails, consult the **Outstanding work** checklist below.
 
 - Logs are JSON-formatted with request IDs; see `backend/core/logging.py`.
 - Admin/ops endpoints surface health checks, WAL status, counts, and job triggers.
- - Storage defaults to the local filesystem. Attachments live under `var/storage/mail/attachments`, which is created on startup. To try S3 instead, copy `.env.example.storage` to `.env.storage` and set `STORAGE_BACKEND=s3` with your bucket details.
+ - Storage defaults to the local filesystem. Attachments live under `var/storage/mail/attachments`, which is created on startup. To try S3 instead, set `STORAGE_BACKEND=s3` in your env file (e.g. `.env` or `.env.storage`) and provide your bucket details.
 
 ---
 

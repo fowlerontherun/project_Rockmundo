@@ -45,7 +45,7 @@ This list is focused on getting a **clickable, end‑to‑end vertical slice** w
 
 ## C. Tech Hygiene
 
-- [ ] **.env sanity**: document all flags in `.env.example` and `.env.example.storage` with defaults.  
+- [ ] **.env sanity**: document all flags in `.env.example` with defaults.
 - [ ] **DB migrations runner**: confirm startup applies SQL migrations idempotently; add a `make db-reset` convenience target (optional).  
 - [ ] **CORS**: allow `http://localhost:*` in dev.  
 - [ ] **Storage**: default to `local` provider; verify attachments folder exists on startup.

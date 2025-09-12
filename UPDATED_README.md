@@ -19,7 +19,7 @@ pip install -r requirements.txt
 # 2) Configure environment
 cp .env.example .env
 # If you plan to store attachments locally:
-cp .env.example.storage .env.storage
+cp .env.example .env.storage
 
 # 3) Initialize DB (migrations + seeds)
 # Migrations are SQL files in backend/migrations/sql/*.sql
