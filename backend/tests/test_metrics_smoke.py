@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from backend.api import app
 from backend.realtime.gateway import hub
 from backend.services.economy_service import EconomyService
 
