@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 try:  # pragma: no cover - prefer local stub if available
-    import aiosqlite_local as aiosqlite
+    import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
 from pathlib import Path

@@ -1,6 +1,6 @@
 # File: backend/services/sponsorship_service.py
 try:  # pragma: no cover - prefer local stub if available
-    import aiosqlite_local as aiosqlite
+    import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
 from typing import Optional, Dict, Any, List
