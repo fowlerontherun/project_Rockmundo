@@ -17,4 +17,5 @@ fi
 # skips revisions that have already been applied, so startup remains fast after
 # the initial run.
 ./scripts/migrate.sh
+./venv/bin/python3.11 -m backend.scripts.seed_demo
 exec env PYTHONPATH=.:backend ./venv/bin/python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8000
