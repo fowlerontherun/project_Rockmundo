@@ -4,31 +4,35 @@ RockMundo is a modern, AI‑assisted music‑career simulation inspired by class
 
 This README gives you a **1‑file quickstart** for running a *testable* local build, a tour of the repo, and a checklist to validate the vertical slice.
 
----
 
 ## ⚡ Quick Start (Backend)
 
-**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 18+, Git. (Static frontend pages can be served directly without Node.)
+**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 18+, Git, GNU gettext (`msgfmt`). (Static frontend pages can be served directly without Node.)
 If you work on the frontend, ensure Node 18 is active, e.g. with `nvm use 18`.
 
 ```bash
 # 1) Create venv + install deps
+
 python -m venv .venv && source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 2) Configure environment
+# 2) Compile translation catalogs (generates `.mo` files for deployment)
+python scripts/compile_translations.py  # requires msgfmt; missing it triggers a runtime error (see backend/utils/i18n.py)
+
+# 3) Configure environment
 cp .env.example .env
 # If you plan to store attachments locally (saved under ./var/storage):
 cp .env.example.storage .env.storage
 mkdir -p var/storage                      # create storage dir
 # ensure the runtime user can write to it
 chmod -R 775 var/storage                  # adjust UID/GID as needed
-
+# 4) Initialize DB (migrations + seeds)
+./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 # 3) Initialize DB (migrations + seeds)
 ./scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
-# 4) Run the API
+# 5) Run the API
 uvicorn backend.api:app --reload --port 8000
 ```
 
