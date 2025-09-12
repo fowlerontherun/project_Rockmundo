@@ -1,6 +1,6 @@
 # Migration Notes
 
-Run `backend/scripts/migrate.sh` to apply migrations; it only executes new
+Run `scripts/migrate.sh` to apply migrations; it only executes new
 revisions that haven't been run yet.  To wipe the SQLite database and reapply
 all migrations from scratch use `make db-reset`.
 

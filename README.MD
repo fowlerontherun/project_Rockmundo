@@ -25,7 +25,7 @@ mkdir -p var/storage                      # create storage dir
 chmod -R 775 var/storage                  # adjust UID/GID as needed
 
 # 3) Initialize DB (migrations + seeds)
-./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
+./scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 4) Run the API
@@ -112,7 +112,7 @@ assets/ images/                   # branding & UI assets
 
 ## 🗄️ Data, Migrations & Seeds
 
-- Run migrations with `backend/scripts/migrate.sh` – it skips revisions already applied.
+- Run migrations with `scripts/migrate.sh` – it skips revisions already applied.
 - `make db-reset` removes `rockmundo.db` and re-applies migrations for a clean slate.
 - Full-text search (FTS5) and **World Pulse** (daily/weekly charts) are included.
 - `backend/scripts/seed_demo.py` seeds minimum data (skills, genres, equipment, etc.) and creates test users and bands for smoke tests.
