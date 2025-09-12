@@ -20,6 +20,9 @@ pip install -r requirements.txt
 cp .env.example .env
 # If you plan to store attachments locally (saved under ./var/storage):
 cp .env.example.storage .env.storage
+mkdir -p var/storage                      # create storage dir
+# ensure the runtime user can write to it
+chmod -R 775 var/storage                  # adjust UID/GID as needed
 
 # 3) Initialize DB (migrations + seeds)
 ./backend/scripts/migrate.sh        # apply Alembic migrations (skips ones already run)
@@ -28,6 +31,14 @@ python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres,
 # 4) Run the API
 uvicorn backend.api:app --reload --port 8000
 ```
+
+> When running via Docker, mount `var/storage` and ensure it is owned by the
+> container user so attachments can be written:
+>
+> ```bash
+> docker run -v "$(pwd)/var/storage:/app/var/storage" rockmundo
+> # inside the container: chown -R app:app /app/var/storage
+> ```
 
 Open:
 - **Swagger / OpenAPI** → http://localhost:8000/docs

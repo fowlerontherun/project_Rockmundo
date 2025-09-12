@@ -14,3 +14,9 @@ backend/database/*.db
 
 # Ignore audio samples
 backend/static/audio/*.wav
+
+# Runtime storage
+var/*
+!var/storage/
+var/storage/*
+!var/storage/.gitkeep
