@@ -1,7 +1,11 @@
 # File: backend/services/sales_service.py
 import sqlite3
-import aiosqlite
 from dataclasses import dataclass
+
+try:  # pragma: no cover - prefer local stub if available
+    import aiosqlite_local as aiosqlite
+except ModuleNotFoundError:  # pragma: no cover - fallback to package
+    import aiosqlite  # type: ignore
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional

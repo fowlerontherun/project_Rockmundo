@@ -7,7 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import jwt
+import jwt_utils as jwt
 
 
 def _base_payload():

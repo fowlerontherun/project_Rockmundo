@@ -1,7 +1,10 @@
 # File: backend/services/streaming_service.py
 from datetime import datetime, timezone
 
-import aiosqlite
+try:  # pragma: no cover - prefer local stub if available
+    import aiosqlite_local as aiosqlite
+except ModuleNotFoundError:  # pragma: no cover - fallback to package
+    import aiosqlite  # type: ignore
 from backend.database import DB_PATH
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID

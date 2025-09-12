@@ -18,7 +18,10 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Awaitable, Dict, List, Optional, Tuple
 
-import aiosqlite
+try:  # pragma: no cover - prefer local stub if available
+    import aiosqlite_local as aiosqlite
+except ModuleNotFoundError:  # pragma: no cover - fallback to package
+    import aiosqlite  # type: ignore
 
 try:  # pragma: no cover - configuration is optional in tests
     from core.config import settings

@@ -1,7 +1,11 @@
 import json
 import sqlite3
-import aiosqlite
 from datetime import datetime
+
+try:  # pragma: no cover - prefer local stub if available
+    import aiosqlite_local as aiosqlite
+except ModuleNotFoundError:  # pragma: no cover - fallback to package
+    import aiosqlite  # type: ignore
 from pathlib import Path
 from typing import Dict, List
 
