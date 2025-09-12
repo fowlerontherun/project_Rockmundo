@@ -12,9 +12,9 @@ sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
 # Stub heavy dependencies before importing routes
-auth_deps = types.ModuleType("backend.auth.dependencies")
+auth_deps = types.ModuleType("auth.dependencies")
 auth_deps.get_current_user_id = lambda req=None: 1
-sys.modules["backend.auth.dependencies"] = auth_deps
+sys.modules["auth.dependencies"] = auth_deps
 
 chart_service_stub = types.ModuleType("backend.services.chart_service")
 chart_service_stub.calculate_weekly_chart = lambda *a, **k: {}

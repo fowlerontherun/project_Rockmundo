@@ -4,7 +4,7 @@ from backend.services.economy_service import EconomyService
 from backend.services.merch_service import MerchService
 from backend.services.payment_service import MockGateway, PaymentService
 
-import backend.auth.dependencies as auth_dep
+import auth.dependencies as auth_dep
 from typing import List
 
 
