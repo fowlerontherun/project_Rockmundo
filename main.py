@@ -65,7 +65,7 @@ from routes import (
     jam_ws,
     notifications_ws,
 )
-import utils as backend_utils
+from utils import db as backend_db
 from utils.i18n import _
 
 from services.scheduler_service import schedule_daily_loop_reset
@@ -115,7 +115,7 @@ async def startup() -> None:
     exporter = os.getenv("TRACING_EXPORTER", "console")
     setup_tracing(exporter)
     init_db()
-    await backend_utils.db._init_pool_async()
+    await backend_db._init_pool_async()
     schedule_daily_loop_reset()
     storage = get_storage_backend()
     if isinstance(storage, LocalStorage):
