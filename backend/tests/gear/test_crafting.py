@@ -1,5 +1,5 @@
 from backend.services.gear_service import GearService
-from backend.models.gear import BaseItem, GearComponent, StatModifier
+from models.gear import BaseItem, GearComponent, StatModifier
 
 
 def test_crafting_success(monkeypatch):

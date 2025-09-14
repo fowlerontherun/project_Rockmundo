@@ -28,8 +28,8 @@ def setup_db(tmp_path):
         )
         conn.commit()
 
-    from backend.models import activity as activity_model
-    from backend.models import daily_schedule as schedule_model
+    from models import activity as activity_model
+    from models import daily_schedule as schedule_model
 
     activity_model.DB_PATH = db_file
     schedule_model.DB_PATH = db_file

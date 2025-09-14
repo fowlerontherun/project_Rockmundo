@@ -3,7 +3,7 @@ import sqlite3
 
 from backend.services import live_performance_service, live_performance_analysis, setlist_service
 from backend.services.city_service import city_service
-from backend.models.city import City
+from models.city import City
 
 
 def test_crowd_reaction_adjusts_and_logs(monkeypatch, tmp_path):

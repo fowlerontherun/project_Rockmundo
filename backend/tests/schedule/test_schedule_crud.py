@@ -10,8 +10,8 @@ def setup_db(tmp_path):
     database.init_db()
 
     # reload models to pick up patched DB_PATH
-    from backend.models import activity as activity_model
-    from backend.models import daily_schedule as schedule_model
+    from models import activity as activity_model
+    from models import daily_schedule as schedule_model
     activity_model.DB_PATH = db_file
     schedule_model.DB_PATH = db_file
     import backend.services.schedule_service as service_module

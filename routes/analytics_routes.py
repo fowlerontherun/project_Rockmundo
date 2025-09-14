@@ -7,7 +7,7 @@ except Exception:  # pragma: no cover - fallback for stubs
         return dependency
 
 from auth.dependencies import require_permission
-from backend.models.analytics import (
+from models.analytics import (
     AggregatedMetrics,
     FanSegmentSummary,
     FanTrends,

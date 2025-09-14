@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from backend.models.xp_event import XPEvent
+from models.xp_event import XPEvent
 from backend.services.xp_event_service import XPEventService
 
 

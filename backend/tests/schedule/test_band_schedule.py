@@ -8,9 +8,9 @@ def setup_db(tmp_path):
     database.DB_PATH = db_file
     database.init_db()
 
-    from backend.models import activity as activity_model
-    from backend.models import daily_schedule as schedule_model
-    from backend.models import band_schedule as band_model
+    from models import activity as activity_model
+    from models import daily_schedule as schedule_model
+    from models import band_schedule as band_model
 
     activity_model.DB_PATH = db_file
     schedule_model.DB_PATH = db_file

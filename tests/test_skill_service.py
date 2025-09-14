@@ -41,10 +41,10 @@ sys.modules["backend.services.avatar_service"] = types.SimpleNamespace(
     AvatarService=DummyAvatarService
 )
 
-from backend.models.item import Item
-from backend.models.learning_method import LearningMethod
-from backend.models.skill import Skill, SkillSpecialization
-from backend.models.xp_config import XPConfig, get_config, set_config
+from models.item import Item
+from models.learning_method import LearningMethod
+from models.skill import Skill, SkillSpecialization
+from models.xp_config import XPConfig, get_config, set_config
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import SkillService
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID

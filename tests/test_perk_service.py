@@ -5,8 +5,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.models.perk import Perk
-from backend.models.skill import Skill
+from models.perk import Perk
+from models.skill import Skill
 from backend.services.attribute_service import AttributeService
 from backend.services.perk_service import perk_service
 from backend.services.skill_service import SkillService

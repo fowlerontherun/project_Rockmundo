@@ -5,8 +5,8 @@ from datetime import datetime
 from backend.services.city_service import city_service
 from backend.services import event_service, live_performance_service, setlist_service
 from backend.services.quest_service import QuestService
-from backend.models.weather import Forecast
-from backend.models.city import City
+from models.weather import Forecast
+from models.city import City
 
 
 def setup_function(_):

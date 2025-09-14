@@ -2,9 +2,9 @@ import sqlite3
 
 from backend.services import live_performance_service, live_performance_analysis
 from backend.services.city_service import city_service
-from backend.models.city import City
+from models.city import City
 from backend.services.skill_service import skill_service
-from backend.models.skill import Skill
+from models.skill import Skill
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 

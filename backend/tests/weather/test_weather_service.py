@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.models.weather import ClimateZone, Forecast, WeatherEvent
+from models.weather import ClimateZone, Forecast, WeatherEvent
 from backend.services import event_service
 from backend.services.economy_service import EconomyService
 from backend.services.property_service import PropertyService

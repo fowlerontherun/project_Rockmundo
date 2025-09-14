@@ -10,10 +10,10 @@ def setup_db(tmp_path):
     database.DB_PATH = db_file
     database.init_db()
 
-    from backend.models import activity as activity_model
-    from backend.models import daily_schedule as schedule_model
-    from backend.models import next_day_schedule as next_model
-    from backend.models import user_settings as settings_model
+    from models import activity as activity_model
+    from models import daily_schedule as schedule_model
+    from models import next_day_schedule as next_model
+    from models import user_settings as settings_model
 
     activity_model.DB_PATH = db_file
     schedule_model.DB_PATH = db_file

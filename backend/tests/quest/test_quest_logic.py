@@ -1,4 +1,4 @@
-from backend.models.quest import Quest, QuestStage, QuestReward
+from models.quest import Quest, QuestStage, QuestReward
 from backend.services.quest_service import QuestService
 
 

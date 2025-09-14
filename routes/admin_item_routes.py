@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth.dependencies import get_current_user_id, require_permission
-from backend.models.item import Item
+from models.item import Item
 from services.admin_audit_service import audit_dependency
 from services.item_service import ItemService
 from pydantic import BaseModel

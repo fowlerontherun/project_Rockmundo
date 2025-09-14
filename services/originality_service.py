@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 from typing import Dict, Tuple
 
-from backend.models.lyric_hash import LyricHash
+from models.lyric_hash import LyricHash
 
 
 class OriginalityService:

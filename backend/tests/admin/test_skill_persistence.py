@@ -6,7 +6,7 @@ import types
 from fastapi import Request
 
 import backend.seeds.skill_seed as skill_seed
-from backend.models import skill_seed_store
+from models import skill_seed_store
 
 
 def test_skills_persist_across_restarts(tmp_path, monkeypatch):

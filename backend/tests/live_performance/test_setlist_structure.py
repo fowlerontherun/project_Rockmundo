@@ -4,7 +4,7 @@ import pytest
 from backend.services import live_performance_service
 from backend.services import live_performance_analysis, setlist_service
 from backend.services.city_service import city_service
-from backend.models.city import City
+from models.city import City
 
 
 def test_simulate_gig_parses_structured_setlist(monkeypatch, tmp_path):

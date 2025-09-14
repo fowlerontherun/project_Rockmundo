@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from backend.models import daily_loop
+from models import daily_loop
 
 router = APIRouter(prefix="/daily", tags=["DailyLoop"])
 

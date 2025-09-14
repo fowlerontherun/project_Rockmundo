@@ -2,12 +2,12 @@ from typing import List
 
 import backend.seeds.genre_seed as genre_seed
 import backend.seeds.skill_seed as skill_seed
-from backend.models.skill_seed_store import load_skills, save_skills
+from models.skill_seed_store import load_skills, save_skills
 import backend.seeds.stage_equipment_seed as equipment_seed
 from auth.dependencies import get_current_user_id, require_permission
-from backend.models.genre import Genre
-from backend.models.skill import Skill
-from backend.models.stage_equipment import StageEquipment
+from models.genre import Genre
+from models.skill import Skill
+from models.stage_equipment import StageEquipment
 from backend.schemas.admin_music_schema import (
     GenreSchema,
     SkillSchema,

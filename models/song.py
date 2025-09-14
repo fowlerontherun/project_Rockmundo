@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from backend.models.arrangement import ArrangementTrack
+from models.arrangement import ArrangementTrack
 
 
 class Song:

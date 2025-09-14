@@ -12,8 +12,8 @@ def setup_app(tmp_path):
     database.DB_PATH = db_file
     database.init_db()
 
-    from backend.models import activity as activity_model
-    from backend.models import weekly_schedule as weekly_model
+    from models import activity as activity_model
+    from models import weekly_schedule as weekly_model
 
     activity_model.DB_PATH = db_file
     weekly_model.DB_PATH = db_file

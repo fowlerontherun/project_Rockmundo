@@ -13,11 +13,11 @@ def setup_app(tmp_path):
     database.DB_PATH = db_file
     database.init_db()
 
-    from backend.models import activity as activity_model
-    from backend.models import daily_schedule as ds_model
-    from backend.models import default_schedule as def_model
-    from backend.models import daily_loop as dl_model
-    from backend.models import recurring_schedule as rec_model
+    from models import activity as activity_model
+    from models import daily_schedule as ds_model
+    from models import default_schedule as def_model
+    from models import daily_loop as dl_model
+    from models import recurring_schedule as rec_model
 
     activity_model.DB_PATH = db_file
     ds_model.DB_PATH = db_file

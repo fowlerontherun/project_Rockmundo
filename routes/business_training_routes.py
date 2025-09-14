@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.models.skill import Skill
+from models.skill import Skill
 from services.business_training_service import business_training_service
 
 router = APIRouter(prefix="/training/business", tags=["BusinessTraining"])

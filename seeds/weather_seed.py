@@ -1,6 +1,6 @@
 """Seed initial climate zones."""
 
-from backend.models.weather import ClimateZone
+from models.weather import ClimateZone
 
 
 def get_seed_climate_zones():

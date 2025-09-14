@@ -39,11 +39,11 @@ from backend.routes.tour_routes import router
 from backend.services.tour_service import TourService
 from backend.services.weather_service import WeatherService
 from backend.services.economy_service import EconomyService
-from backend.models.tour import TicketTier, Expense
-from backend.models.economy_config import set_config, EconomyConfig
+from models.tour import TicketTier, Expense
+from models.economy_config import set_config, EconomyConfig
 import importlib
 alt_economy = importlib.import_module("models.economy_config")
-from backend.models.weather import Forecast, WeatherEvent
+from models.weather import Forecast, WeatherEvent
 
 
 @pytest.fixture

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from services.quest_service import QuestService
-from backend.models.quest import QuestStage, QuestReward
+from models.quest import QuestStage, QuestReward
 
 
 quest_routes = APIRouter()

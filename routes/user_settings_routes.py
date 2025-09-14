@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from backend.models import user_settings
+from models import user_settings
 
 router = APIRouter(prefix="/user-settings", tags=["UserSettings"])
 

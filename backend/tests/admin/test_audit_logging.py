@@ -6,7 +6,7 @@ from backend.services.admin_audit_service import (
     audit_dependency,
 )
 from backend.routes import admin_media_moderation_routes as media_routes
-from backend.models.economy_config import set_config, save_config, EconomyConfig
+from models.economy_config import set_config, save_config, EconomyConfig
 
 
 def test_log_action_and_query(tmp_path):

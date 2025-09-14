@@ -1,4 +1,4 @@
-from backend.models.weather import Forecast
+from models.weather import Forecast
 from services.weather_service import weather_service
 from fastapi import APIRouter
 from pydantic import BaseModel

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.models.payment import SubscriptionPlan
+from models.payment import SubscriptionPlan
 from services.economy_service import EconomyService
 from services.payment_service import (
     PaymentError,

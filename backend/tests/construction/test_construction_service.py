@@ -11,7 +11,7 @@ from backend.services.construction_service import ConstructionService
 from backend.services.economy_service import EconomyService
 from backend.services.property_service import PropertyService
 from backend.services.venue_service import VenueService
-from backend.models.construction import Blueprint, BuildPhase
+from models.construction import Blueprint, BuildPhase
 
 
 @pytest.fixture

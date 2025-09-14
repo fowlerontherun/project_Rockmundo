@@ -4,7 +4,7 @@ import types
 from datetime import datetime, timedelta
 
 import pytest
-from backend.models.activity import gym, running, yoga
+from models.activity import gym, running, yoga
 
 utils_mod = types.ModuleType("utils")
 utils_db_mod = types.ModuleType("utils.db")
@@ -15,7 +15,7 @@ sys.modules["utils.db"] = utils_db_mod
 
 from backend.services import lifestyle_service
 from backend.services.notifications_service import NotificationsService
-from backend.models import notification_models
+from models import notification_models
 
 
 def test_exercise_cooldown(monkeypatch, tmp_path):

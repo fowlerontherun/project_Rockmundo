@@ -7,7 +7,7 @@ sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
 from backend.services.skill_service import skill_service
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 

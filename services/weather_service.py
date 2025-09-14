@@ -5,7 +5,7 @@ import random
 from datetime import date
 from typing import Dict, List, Optional
 
-from backend.models.weather import ClimateZone, Forecast, WeatherEvent
+from models.weather import ClimateZone, Forecast, WeatherEvent
 
 
 class WeatherService:

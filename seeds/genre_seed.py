@@ -2,7 +2,7 @@
 
 """Seed data for music genres with demographic preferences."""
 
-from backend.models.genre import Genre
+from models.genre import Genre
 
 SEED_GENRES = [
     Genre(

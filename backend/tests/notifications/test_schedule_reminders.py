@@ -4,7 +4,7 @@ from datetime import datetime
 
 from backend import database
 from backend.services import scheduler_service
-from backend.models import notification_models
+from models import notification_models
 from backend.services.notifications_service import NotificationsService
 
 

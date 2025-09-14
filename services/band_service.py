@@ -19,7 +19,7 @@ from backend.services.chemistry_service import ChemistryService
 from backend.services.band_relationship_service import BandRelationshipService
 from backend.services.avatar_service import AvatarService
 from backend.services.skill_service import SkillService
-from backend.models.skill import Skill
+from models.skill import Skill
 
 # ---------------------------------------------------------------------------
 # Database setup

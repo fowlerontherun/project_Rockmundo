@@ -1,4 +1,4 @@
-from backend.models.stage_equipment import StageEquipment
+from models.stage_equipment import StageEquipment
 
 # Parody stage equipment with genre affinities and 11-star rating system
 SEED_STAGE_EQUIPMENT = [

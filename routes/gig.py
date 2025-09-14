@@ -11,7 +11,7 @@ from utils.i18n import _
 from services.band_service import BandService
 from services.skill_service import skill_service as skill_service_instance
 from services.fame_service import FameService
-from backend.models.skill import Skill
+from models.skill import Skill
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
 band_service = BandService()

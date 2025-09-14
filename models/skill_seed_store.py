@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import List
 
-from backend.models.skill import Skill
+from models.skill import Skill
 
 # Path to the JSON file storing persisted skills
 SKILL_SEED_PATH = Path(__file__).resolve().parent.parent / "database" / "skill_seed.json"

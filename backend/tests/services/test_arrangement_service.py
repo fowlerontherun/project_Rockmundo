@@ -1,4 +1,4 @@
-from backend.models.song import Song
+from models.song import Song
 from backend.services.arrangement_service import ArrangementService
 from backend.services.recording_service import RecordingService
 from backend.services.economy_service import EconomyService

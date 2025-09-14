@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.models.playlist import Playlist
+from models.playlist import Playlist
 
 router = APIRouter()
 

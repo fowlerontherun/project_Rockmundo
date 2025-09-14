@@ -5,7 +5,7 @@ def setup_db(tmp_path):
     db_file = tmp_path / "daily_loop.db"
     database.DB_PATH = db_file
     database.init_db()
-    from backend.models import daily_loop as dl_model
+    from models import daily_loop as dl_model
     dl_model.DB_PATH = db_file
     return dl_model
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth.dependencies import get_current_user_id, require_permission
-from backend.models.festival_builder import FestivalBuilder
+from models.festival_builder import FestivalBuilder
 from services.festival_builder_service import (
     BookingConflictError,
     FestivalBuilderService,

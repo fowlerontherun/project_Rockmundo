@@ -1,6 +1,6 @@
 """Seed data for onboarding questions."""
 
-from backend.models.onboarding import Question, QuestionOption
+from models.onboarding import Question, QuestionOption
 
 # Define the first question with distinct options.
 QUESTIONS: list[Question] = [

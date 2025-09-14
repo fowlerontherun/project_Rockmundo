@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-from backend.models.attribute import Attribute
+from models.attribute import Attribute
 from backend.services.perk_service import perk_service
 
 

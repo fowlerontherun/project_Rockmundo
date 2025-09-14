@@ -1,4 +1,4 @@
-from backend.models.npc import NPC
+from models.npc import NPC
 import services.npc_ai_service as npc_ai_module
 from backend.services.npc_ai_service import npc_ai_service
 from backend.services import event_service

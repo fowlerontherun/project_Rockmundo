@@ -12,7 +12,7 @@ if str(sys_path) not in sys.path:
 from backend.services.legacy_service import LegacyService
 from backend.services.economy_service import EconomyService
 from backend.services.merch_service import MerchService
-from backend.models.merch import ProductIn, SKUIn
+from models.merch import ProductIn, SKUIn
 
 
 def setup_merch_with_legacy():

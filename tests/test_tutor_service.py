@@ -3,9 +3,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.models.learning_method import METHOD_PROFILES, LearningMethod
-from backend.models.skill import Skill
-from backend.models.tutor import Tutor
+from models.learning_method import METHOD_PROFILES, LearningMethod
+from models.skill import Skill
+from models.tutor import Tutor
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from backend.services.economy_service import EconomyService

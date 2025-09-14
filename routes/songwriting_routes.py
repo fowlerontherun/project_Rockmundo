@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from pydantic import BaseModel, validator
 
 from auth.dependencies import get_current_user_id
-from backend.models.theme import THEMES
+from models.theme import THEMES
 from services.skill_service import skill_service
 from services.songwriting_service import songwriting_service
 

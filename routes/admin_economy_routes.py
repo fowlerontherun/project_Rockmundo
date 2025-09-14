@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import get_current_user_id, require_permission
 from services.economy_admin_service import EconomyAdminService
-from backend.models.economy_config import EconomyConfig
+from models.economy_config import EconomyConfig
 from services.admin_audit_service import audit_dependency
 
 router = APIRouter(

@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 import backend.realtime.dialogue_gateway as dialogue_gateway
-from backend.models.dialogue import DialogueMessage
+from models.dialogue import DialogueMessage
 from backend.realtime.dialogue_gateway import router as dialogue_router
 from backend.services.dialogue_service import DialogueService
 from fastapi import FastAPI

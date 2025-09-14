@@ -1,6 +1,6 @@
 import pytest
-from backend.models.skill import Skill
-from backend.models.xp_item import XPItem
+from models.skill import Skill
+from models.xp_item import XPItem
 from backend.services.skill_service import SkillService
 from backend.services.xp_item_service import XPItemService
 

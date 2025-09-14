@@ -5,7 +5,7 @@ from fastapi import HTTPException, Request
 
 from backend.routes import admin_economy_routes as routes
 from backend.services.economy_service import EconomyService
-from backend.models.economy_config import set_config, EconomyConfig
+from models.economy_config import set_config, EconomyConfig
 
 
 def test_admin_economy_routes_require_admin():

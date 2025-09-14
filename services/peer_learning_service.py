@@ -5,7 +5,7 @@ import sqlite3
 from typing import Iterable, List
 
 from backend.database import DB_PATH
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.services.skill_service import skill_service
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 

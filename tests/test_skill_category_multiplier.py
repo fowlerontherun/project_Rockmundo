@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services import gig_service as gs
 from backend.services.skill_service import SkillService, skill_service

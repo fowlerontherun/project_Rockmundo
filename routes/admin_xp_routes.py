@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from auth.dependencies import get_current_user_id, require_permission
 from services.xp_admin_service import XPAdminService
-from backend.models.xp_config import XPConfig
+from models.xp_config import XPConfig
 from services.admin_audit_service import audit_dependency
 
 router = APIRouter(

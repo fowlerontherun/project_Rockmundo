@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-from backend.models.economy_config import (
+from models.economy_config import (
     EconomyConfig,
     get_config,
     set_config,

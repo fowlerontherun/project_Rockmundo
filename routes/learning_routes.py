@@ -3,8 +3,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.models.learning_method import LearningMethod
-from backend.models.skill import Skill
+from models.learning_method import LearningMethod
+from models.skill import Skill
 from services.skill_service import SkillService
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
