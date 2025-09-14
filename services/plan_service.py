@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from backend.services.skill_service import skill_service
+from services.skill_service import skill_service
 
 # Default mapping of category -> list of activity names.
 CATEGORY_MAP: Dict[str, List[str]] = {

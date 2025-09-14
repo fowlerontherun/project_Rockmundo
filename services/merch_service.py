@@ -3,10 +3,12 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+
 from models.merch import CartItem, ProductIn, SKUIn
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.payment_service import PaymentError, PaymentService
 from backend.services.legacy_service import LegacyService
+
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

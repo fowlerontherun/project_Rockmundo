@@ -9,8 +9,9 @@ from models.skill import Skill
 from models.learning_method import LearningMethod
 from backend.services.economy_service import EconomyService
 
+
 try:  # pragma: no cover - optional in minimal environments
-    from backend.services.band_service import BandService
+    from services.band_service import BandService
 except Exception:  # pragma: no cover
     class BandService:  # type: ignore
         def get_band_info(self, _band_id: int):
@@ -20,7 +21,7 @@ except Exception:  # pragma: no cover
             return None
 
 try:  # pragma: no cover - optional avatar dependency
-    from backend.services.avatar_service import AvatarService
+    from services.avatar_service import AvatarService
     from backend.schemas.avatar import AvatarUpdate
 except Exception:  # pragma: no cover
     class AvatarUpdate:  # type: ignore

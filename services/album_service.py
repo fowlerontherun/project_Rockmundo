@@ -15,7 +15,7 @@ from typing import Callable, Iterable
 
 from models.music import Base as MusicBase  # noqa: F401
 from models.music import Release, Track
-from backend.services.band_service import (  # noqa: F401
+from services.band_service import (  # noqa: F401
     BandCollaboration,
     BandService,
 )

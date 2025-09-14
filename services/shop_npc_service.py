@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List, Optional
 
+
 from models.npc_dialogue import DialogueNode, DialogueResponse, DialogueTree
 from backend.services.npc_service import NPCService
 from backend.services.city_shop_service import CityShopService, city_shop_service

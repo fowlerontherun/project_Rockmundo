@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 import random
 
 try:  # pragma: no cover - import path shim
-    from backend.services.world_pulse_service import get_current_season
+    from services.world_pulse_service import get_current_season
 except Exception:  # pragma: no cover
-    from backend.services.world_pulse_service import get_current_season
+    from services.world_pulse_service import get_current_season
 
 class NPCBandService:
     def __init__(self, db):

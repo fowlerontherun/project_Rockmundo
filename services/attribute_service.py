@@ -6,6 +6,8 @@ from typing import Dict, Tuple
 
 from models.attribute import Attribute
 from backend.services.perk_service import perk_service
+from backend.models.attribute import Attribute
+from services.perk_service import perk_service
 
 
 class AttributeService:

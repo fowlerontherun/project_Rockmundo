@@ -9,6 +9,10 @@ from models.book import Book
 from models.skill import Skill
 from models.learning_method import LearningMethod
 from backend.services.skill_service import skill_service
+from backend.models.book import Book
+from backend.models.skill import Skill
+from backend.models.learning_method import LearningMethod
+from services.skill_service import skill_service
 
 
 class BooksService:
@@ -69,7 +73,7 @@ class BooksService:
             "hours": hours,
         }
 
-        from backend.services.scheduler_service import schedule_task
+        from services.scheduler_service import schedule_task
 
         return schedule_task("complete_reading", params, run_at.isoformat())
 

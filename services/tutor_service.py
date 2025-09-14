@@ -12,6 +12,7 @@ from backend.services.economy_service import EconomyService
 from backend.services.skill_service import SkillService, skill_service
 
 
+
 class TutorService:
     """Manage tutor definitions and paid training sessions."""
 

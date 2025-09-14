@@ -3,8 +3,8 @@ import sqlite3
 from backend.database import DB_PATH
 from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.avatar_service import AvatarService
-from backend.services.skill_service import skill_service
+from services.avatar_service import AvatarService
+from services.skill_service import skill_service
 
 avatar_service = AvatarService()
 

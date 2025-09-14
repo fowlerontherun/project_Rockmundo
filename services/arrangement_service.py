@@ -5,6 +5,9 @@ from typing import Dict, List, Optional
 from models.arrangement import ArrangementTrack
 from models.song import Song
 from backend.services.recording_service import RecordingService, recording_service
+from backend.models.arrangement import ArrangementTrack
+from backend.models.song import Song
+from services.recording_service import RecordingService, recording_service
 
 
 class ArrangementService:
