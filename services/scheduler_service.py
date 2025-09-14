@@ -2,7 +2,7 @@ import json
 import sqlite3
 from datetime import date, datetime, timedelta
 
-from database import DB_PATH
+from backend.database import DB_PATH
 from models import daily_loop
 from models.notification_models import (
     alert_no_plan,

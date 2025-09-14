@@ -3,11 +3,11 @@ from __future__ import annotations
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-
 from backend.database import DB_PATH
+from models.apprenticeship import Apprenticeship
+from backend.services.karma_service import KarmaService
 from backend.models.apprenticeship import Apprenticeship
 from services.karma_service import KarmaService
-
 
 class ApprenticeshipService:
     """Manage apprenticeship lifecycle and XP rewards."""

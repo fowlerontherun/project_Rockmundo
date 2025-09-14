@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from services.skill_service import skill_service
 

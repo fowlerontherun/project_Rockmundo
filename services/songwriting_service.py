@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
 
-from backend.models.song import Song
-from backend.models.song_draft_version import SongDraftVersion
-from backend.models.songwriting import GenerationMetadata, LyricDraft
-from backend.models.theme import THEMES
-from services.ai_art_service import AIArtService, ai_art_service
-from services.band_service import BandService
-from services.chemistry_service import ChemistryService
-from services.avatar_service import AvatarService
-from services.originality_service import (
+
+from models.song import Song
+from models.song_draft_version import SongDraftVersion
+from models.songwriting import GenerationMetadata, LyricDraft
+from models.theme import THEMES
+from backend.services.ai_art_service import AIArtService, ai_art_service
+from backend.services.band_service import BandService
+from backend.services.chemistry_service import ChemistryService
+from backend.services.avatar_service import AvatarService
+from backend.services.originality_service import (
+
     OriginalityService,
     originality_service,
 )

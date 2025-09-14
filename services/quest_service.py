@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Dict
 
-from backend.models.quest import Quest, QuestReward, QuestStage
-from services.city_service import city_service
-from services.quest_admin_service import QuestAdminService
-from services.xp_event_service import XPEventService
+from models.quest import Quest, QuestReward, QuestStage
+from backend.services.city_service import city_service
+from backend.services.quest_admin_service import QuestAdminService
+from backend.services.xp_event_service import XPEventService
 
 
 class QuestService:

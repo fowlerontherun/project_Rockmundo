@@ -5,8 +5,9 @@ from datetime import datetime
 from typing import Dict, Generator, Iterable, Optional
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
-from services.skill_service import skill_service
-from backend.models.skill import Skill
+from backend.services.skill_service import skill_service
+from models.skill import Skill
+
 
 from backend.database import DB_PATH
 from services import live_performance_analysis

@@ -9,6 +9,10 @@ from sqlalchemy import JSON, Column, Integer, create_engine
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+
+from models.label_management_models import NegotiationStage
+from models.record_contract import RecordContract, RoyaltyTier
+from backend.services.economy_service import EconomyService
 from backend.models.label_management_models import NegotiationStage
 from backend.models.record_contract import RecordContract, RoyaltyTier
 from services.economy_service import EconomyService
