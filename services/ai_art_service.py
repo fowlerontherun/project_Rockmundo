@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List
 
-from backend.services.storage_service import get_storage_backend
+from services.storage_service import get_storage_backend
 
 
 class AIArtService:

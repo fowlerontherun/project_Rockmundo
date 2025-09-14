@@ -7,9 +7,9 @@ from typing import Dict, Optional
 from backend.models.tutor import Tutor
 from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod, METHOD_PROFILES
-from backend.services.avatar_service import AvatarService
-from backend.services.economy_service import EconomyService
-from backend.services.skill_service import SkillService, skill_service
+from services.avatar_service import AvatarService
+from services.economy_service import EconomyService
+from services.skill_service import SkillService, skill_service
 
 
 class TutorService:

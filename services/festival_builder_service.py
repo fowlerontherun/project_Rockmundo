@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from backend.services.economy_service import EconomyService
-from backend.services.legacy_service import LegacyService
+from services.economy_service import EconomyService
+from services.legacy_service import LegacyService
 
 from backend.models.festival import FestivalProposal
 from backend.models.festival_builder import (

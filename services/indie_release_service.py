@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from backend.models.label_management_models import ClauseTemplate
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
 
 
 @dataclass

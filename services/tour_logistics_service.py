@@ -4,7 +4,7 @@ from models.tour_route import TourRoute
 from datetime import datetime, timedelta
 import random
 
-from backend.services.transport_service import TransportService
+from services.transport_service import TransportService
 
 class TourLogisticsService:
     def __init__(self, db, transport: TransportService | None = None):

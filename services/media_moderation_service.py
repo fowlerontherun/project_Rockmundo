@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
-from backend.services.moderation_service import (
+from services.moderation_service import (
     BANNED_WORDS as TEXT_BANNED_WORDS,
     moderate_content,
 )

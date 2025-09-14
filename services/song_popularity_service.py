@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from backend.database import DB_PATH
-from backend.services.song_popularity_forecast import forecast_service
+from services.song_popularity_forecast import forecast_service
 
 # Supported region codes and platforms
 ALLOWED_REGION_CODES = {"global", "US", "EU"}
@@ -457,7 +457,7 @@ def schedule_global_aggregation() -> None:
     try:
         from datetime import timedelta
 
-        from backend.services.scheduler_service import schedule_task
+        from services.scheduler_service import schedule_task
 
         run_at = (datetime.utcnow() + timedelta(days=1)).isoformat()
         schedule_task(

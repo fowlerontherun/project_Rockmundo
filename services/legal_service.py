@@ -5,8 +5,8 @@ from typing import Dict, Optional, Protocol
 
 from datetime import datetime
 
-from backend.services.economy_service import EconomyService, EconomyError
-from backend.services.karma_service import KarmaService
+from services.economy_service import EconomyService, EconomyError
+from services.karma_service import KarmaService
 from models.legal import LegalCase, Filing, Verdict
 
 

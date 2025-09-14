@@ -1,8 +1,8 @@
 import sqlite3
 from datetime import datetime
 from backend.database import DB_PATH
-from backend.services import fan_service
-from backend.services.skill_service import skill_service
+from services import fan_service
+from services.skill_service import skill_service
 from backend.seeds.skill_seed import SEED_SKILLS
 
 FASHION_SKILL = next(s for s in SEED_SKILLS if s.name == "fashion")
