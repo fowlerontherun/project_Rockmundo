@@ -1,10 +1,10 @@
 import sqlite3
 from datetime import datetime
 
-from backend.services import scheduler_service
-from backend.services.rehearsal_service import RehearsalService
-from backend.services.peer_learning_service import peer_learning_service
-from backend.services.skill_service import skill_service
+from services import scheduler_service
+from services.rehearsal_service import RehearsalService
+from services.peer_learning_service import peer_learning_service
+from services.skill_service import skill_service
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 

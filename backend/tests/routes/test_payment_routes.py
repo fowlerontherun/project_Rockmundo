@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from routes import payment_routes
-from backend.services.economy_service import EconomyService
-from backend.services.payment_service import PaymentService
+from services.economy_service import EconomyService
+from services.payment_service import PaymentService
 
 
 def create_app(tmp_path, succeed: bool = True):

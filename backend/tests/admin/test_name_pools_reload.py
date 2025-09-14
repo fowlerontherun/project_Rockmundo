@@ -1,4 +1,4 @@
-from backend.services.admin_service import AdminService, AdminActionRepository
+from services.admin_service import AdminService, AdminActionRepository
 from backend.utils import name_generator
 
 

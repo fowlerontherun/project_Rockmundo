@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.services.festival_proposal_service import (  # noqa: E402
+from services.festival_proposal_service import (  # noqa: E402
     FestivalProposalService,
     ProposalIn,
 )

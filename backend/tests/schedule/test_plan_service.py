@@ -1,4 +1,4 @@
-from backend.services.plan_service import PlanService
+from services.plan_service import PlanService
 
 
 def test_category_mapping():

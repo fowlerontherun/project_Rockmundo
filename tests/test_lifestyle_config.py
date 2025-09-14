@@ -1,5 +1,5 @@
 from backend.config import lifestyle as cfg
-from backend.services.lifestyle_scheduler import lifestyle_xp_modifier
+from services.lifestyle_scheduler import lifestyle_xp_modifier
 
 
 def test_default_lifestyle_config_values() -> None:

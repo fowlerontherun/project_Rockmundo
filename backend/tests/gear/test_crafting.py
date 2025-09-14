@@ -1,4 +1,4 @@
-from backend.services.gear_service import GearService
+from services.gear_service import GearService
 from backend.models.gear import BaseItem, GearComponent, StatModifier
 
 

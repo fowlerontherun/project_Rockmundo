@@ -5,8 +5,8 @@ sys.path.append(str(ROOT / "backend"))
 
 import pytest
 
-from backend.services.reputation_service import ReputationService
-from backend.services import event_service
+from services.reputation_service import ReputationService
+from services import event_service
 
 
 def test_reputation_accumulation_and_elite_unlock(tmp_path):

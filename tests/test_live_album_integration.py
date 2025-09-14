@@ -8,9 +8,9 @@ sv = sys.path
 sv.append(str(BASE_DIR))
 sv.append(str(BASE_DIR / "backend"))
 
-from backend.services.sales_service import SalesService
-from backend.services.economy_service import EconomyService
-from backend.services import chart_service
+from services.sales_service import SalesService
+from services.economy_service import EconomyService
+from services import chart_service
 
 
 class DummyFameService:

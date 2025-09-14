@@ -2,9 +2,9 @@ import tempfile
 
 import pytest
 
-from backend.services.radio_service import RadioService
-from backend.services.economy_service import EconomyService
-from backend.services.analytics_service import AnalyticsService
+from services.radio_service import RadioService
+from services.economy_service import EconomyService
+from services.analytics_service import AnalyticsService
 
 
 def setup_services(tmp_path):

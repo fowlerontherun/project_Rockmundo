@@ -1,7 +1,7 @@
 # File: backend/tests/test_venue_overlap_smoke.py
 import pytest
 from utils.db import get_conn
-from backend.services.tour_service import TourService, TourError
+from services.tour_service import TourService, TourError
 
 DDL = """
 CREATE TABLE IF NOT EXISTS venues (

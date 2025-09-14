@@ -4,9 +4,9 @@ import tempfile
 from fastapi import HTTPException
 import tempfile
 from routes import video_routes
-from backend.services.economy_service import EconomyService
-from backend.services.skill_service import SkillService
-from backend.services.video_service import VideoService
+from services.economy_service import EconomyService
+from services.skill_service import SkillService
+from services.video_service import VideoService
 
 
 async def _require_permission_stub(roles, user_id):

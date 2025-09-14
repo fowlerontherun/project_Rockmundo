@@ -1,5 +1,5 @@
-from backend.services.crowdfunding_service import CrowdfundingService
-from backend.services.economy_service import EconomyService
+from services.crowdfunding_service import CrowdfundingService
+from services.economy_service import EconomyService
 
 
 def test_pledge_and_distribution(tmp_path):

@@ -7,8 +7,8 @@ root_dir = Path(__file__).resolve().parents[1]
 sys.path.append(str(root_dir))
 sys.path.append(str(root_dir / "backend"))
 
-from backend.services.university_service import UniversityService
-from backend.services.skill_service import SkillService
+from services.university_service import UniversityService
+from services.skill_service import SkillService
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
 

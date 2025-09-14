@@ -1,6 +1,6 @@
 import pytest
 
-from backend.services.recording_service import RecordingService
+from services.recording_service import RecordingService
 
 
 class DummyEconomy:

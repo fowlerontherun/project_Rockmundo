@@ -46,10 +46,10 @@ from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import SkillService
+from services.skill_service import SkillService
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.vocal_training_service import VocalTrainingService
-from backend.services.recording_service import RecordingService
+from services.vocal_training_service import VocalTrainingService
+from services.recording_service import RecordingService
 item_service = None  # set in _setup_device
 
 
@@ -230,7 +230,7 @@ def _setup_device() -> int:
         sys.modules["backend.services.notifications_service"] = types.SimpleNamespace(
             NotificationsService=object
         )
-    from backend.services.item_service import item_service as svc
+    from services.item_service import item_service as svc
 
     global item_service
     item_service = svc

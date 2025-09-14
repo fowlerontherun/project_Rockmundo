@@ -5,8 +5,8 @@ from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from backend.models.skill import Skill
 from backend.schemas.avatar import AvatarCreate
-from backend.services.avatar_service import AvatarService
-from backend.services.skill_service import SkillService
+from services.avatar_service import AvatarService
+from services.skill_service import SkillService
 
 
 def _setup_service(attr1: dict, attr2: dict) -> AvatarService:

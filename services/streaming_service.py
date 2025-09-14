@@ -8,8 +8,8 @@ except ModuleNotFoundError:  # pragma: no cover - fallback to package
 from backend.database import DB_PATH
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import skill_service
-from backend.services.song_popularity_service import add_event
+from services.skill_service import skill_service
+from services.song_popularity_service import add_event
 
 
 async def _stream_song(user_id: int, song_id: int) -> dict:

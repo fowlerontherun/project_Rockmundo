@@ -10,8 +10,8 @@ sys.path.append(str(root_dir))
 sys.path.append(str(root_dir / "backend"))
 
 import backend.services.npc_service as npc_service_module
-from backend.services.npc_service import NPCService
-from backend.services import scheduler_service
+from services.npc_service import NPCService
+from services import scheduler_service
 
 
 def _setup_scheduler(tmp_path):

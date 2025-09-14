@@ -2,11 +2,11 @@ import sqlite3
 
 import pytest
 from seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services import event_service
+from services import event_service
 
 from backend.models.event import Event, EventType
 from backend.models.skill import Skill
-from backend.services.skill_service import SkillService
+from services.skill_service import SkillService
 
 
 def test_roll_for_daily_event_trigger(monkeypatch):

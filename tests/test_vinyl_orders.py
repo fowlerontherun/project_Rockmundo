@@ -5,7 +5,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
-from backend.services.sales_service import SalesService
+from services.sales_service import SalesService
 
 
 def _create_service(tmp_path):

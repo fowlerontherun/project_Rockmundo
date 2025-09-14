@@ -1,7 +1,7 @@
 import sqlite3
 
-from backend.services.mod_marketplace_service import ModMarketplaceService
-from backend.services.economy_service import EconomyService
+from services.mod_marketplace_service import ModMarketplaceService
+from services.economy_service import EconomyService
 from backend.storage.local import LocalStorage
 
 

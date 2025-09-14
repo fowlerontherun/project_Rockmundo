@@ -7,9 +7,9 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.services.economy_service import EconomyError, EconomyService
-from backend.services.property_service import PropertyService
-from backend.services.business_service import BusinessService
+from services.economy_service import EconomyError, EconomyService
+from services.property_service import PropertyService
+from services.business_service import BusinessService
 
 
 def setup_env():

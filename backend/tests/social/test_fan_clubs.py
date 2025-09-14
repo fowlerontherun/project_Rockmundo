@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 
-from backend.services.fan_club_service import fan_club_service
+from services.fan_club_service import fan_club_service
 from backend.realtime.gateway import hub, _Subscriber, topic_for_user
 
 

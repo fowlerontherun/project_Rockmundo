@@ -24,8 +24,8 @@ core_errors.VenueConflictError = VenueConflictError
 core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
-from backend.services.economy_service import EconomyService  # noqa: E402
-from backend.services.tour_service import TourService  # noqa: E402
+from services.economy_service import EconomyService  # noqa: E402
+from services.tour_service import TourService  # noqa: E402
 
 
 class BoomEconomy(EconomyService):

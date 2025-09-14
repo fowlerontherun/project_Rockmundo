@@ -36,9 +36,9 @@ core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
 from backend.routes.tour_routes import router
-from backend.services.tour_service import TourService
-from backend.services.weather_service import WeatherService
-from backend.services.economy_service import EconomyService
+from services.tour_service import TourService
+from services.weather_service import WeatherService
+from services.economy_service import EconomyService
 from backend.models.tour import TicketTier, Expense
 from backend.models.economy_config import set_config, EconomyConfig
 import importlib

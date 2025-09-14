@@ -3,8 +3,8 @@ from fastapi.testclient import TestClient
 
 from backend.models.skill import Skill
 from backend.routes import schedule_routes
-from backend.services.plan_service import PlanService
-from backend.services.skill_service import skill_service
+from services.plan_service import PlanService
+from services.skill_service import skill_service
 
 
 def setup_function(_):

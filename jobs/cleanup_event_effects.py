@@ -1,6 +1,6 @@
 """Clear expired event effects from the database."""
 
-from backend.services.event_service import clear_expired_events
+from services.event_service import clear_expired_events
 
 
 def run() -> tuple[int, str]:

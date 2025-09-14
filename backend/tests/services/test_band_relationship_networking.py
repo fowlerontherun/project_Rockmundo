@@ -1,5 +1,5 @@
 import pytest
-from backend.services.band_relationship_service import BandRelationshipService
+from services.band_relationship_service import BandRelationshipService
 
 
 def test_high_profile_collab_requires_networking():

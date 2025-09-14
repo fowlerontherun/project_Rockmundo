@@ -7,14 +7,14 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate
-from backend.services.avatar_service import AvatarService
+from services.avatar_service import AvatarService
 
 Path(__file__).resolve().parents[2].joinpath("database").mkdir(exist_ok=True)
 
-from backend.services.band_service import BandService, Base  # noqa: E402
-from backend.services.originality_service import OriginalityService  # noqa: E402
-from backend.services.skill_service import SONGWRITING_SKILL, SkillService  # noqa: E402
-from backend.services.songwriting_service import SongwritingService  # noqa: E402
+from services.band_service import BandService, Base  # noqa: E402
+from services.originality_service import OriginalityService  # noqa: E402
+from services.skill_service import SONGWRITING_SKILL, SkillService  # noqa: E402
+from services.songwriting_service import SongwritingService  # noqa: E402
 
 
 class FakeLLM:

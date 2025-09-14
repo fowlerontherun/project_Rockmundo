@@ -37,9 +37,9 @@ utils_pkg.db = db_module
 sys.modules["utils"] = utils_pkg
 sys.modules["utils.db"] = db_module
 
-from backend.services.economy_service import EconomyService
-from backend.services.tour_service import TourService
-from backend.services.weather_service import WeatherService
+from services.economy_service import EconomyService
+from services.tour_service import TourService
+from services.weather_service import WeatherService
 from backend.economy.models import Account, LedgerEntry
 
 

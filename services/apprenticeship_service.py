@@ -6,7 +6,7 @@ from pathlib import Path
 
 from backend.database import DB_PATH
 from backend.models.apprenticeship import Apprenticeship
-from backend.services.karma_service import KarmaService
+from services.karma_service import KarmaService
 
 
 class ApprenticeshipService:

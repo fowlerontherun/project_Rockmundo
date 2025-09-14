@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from core.config import settings
 
 from backend.auth.jwt import encode
-from backend.services.auth_service import get_user_by_username, verify_password
+from services.auth_service import get_user_by_username, verify_password
 
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.auth.access_token_ttl_min
 

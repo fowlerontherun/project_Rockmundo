@@ -1,7 +1,7 @@
 import asyncio
 from fastapi import Request
 
-from backend.services.admin_audit_service import (
+from services.admin_audit_service import (
     get_admin_audit_service,
     audit_dependency,
 )

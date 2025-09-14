@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from backend.economy.models import Account, LedgerEntry
-from backend.services.economy_service import EconomyError, EconomyService
+from services.economy_service import EconomyError, EconomyService
 
 
 def setup_service():

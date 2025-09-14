@@ -1,4 +1,4 @@
-from backend.services import event_service
+from services import event_service
 
 
 def test_registration_event_transaction_flow(client, db_path, monkeypatch):
@@ -20,6 +20,6 @@ def test_registration_event_transaction_flow(client, db_path, monkeypatch):
     assert r.status_code == 200
     assert r.json()["status"] == "completed"
 
-    from backend.services.economy_service import EconomyService
+    from services.economy_service import EconomyService
     econ = EconomyService(db_path)
     assert econ.get_balance(uid) > 0

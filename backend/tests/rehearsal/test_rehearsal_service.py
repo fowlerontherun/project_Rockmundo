@@ -1,6 +1,6 @@
 import sqlite3
-from backend.services.rehearsal_service import RehearsalService
-from backend.services import event_service
+from services.rehearsal_service import RehearsalService
+from services import event_service
 
 
 def _setup(tmp_path):

@@ -8,10 +8,10 @@ from backend.models.skill import Skill
 from backend.models.tutor import Tutor
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
-from backend.services.economy_service import EconomyService
-from backend.services.skill_service import SkillService
-from backend.services.tutor_service import TutorService
-from backend.services.avatar_service import AvatarService
+from services.economy_service import EconomyService
+from services.skill_service import SkillService
+from services.tutor_service import TutorService
+from services.avatar_service import AvatarService
 from backend.schemas.avatar import AvatarCreate, AvatarUpdate
 
 

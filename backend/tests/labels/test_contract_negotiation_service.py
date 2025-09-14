@@ -6,8 +6,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from backend.models.label_management_models import NegotiationStage
-from backend.services.contract_negotiation_service import ContractNegotiationService
-from backend.services.economy_service import EconomyService
+from services.contract_negotiation_service import ContractNegotiationService
+from services.economy_service import EconomyService
 
 
 def setup_services():

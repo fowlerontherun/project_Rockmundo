@@ -1,6 +1,6 @@
 import random
 
-from backend.services.random_event_service import RandomEventService
+from services.random_event_service import RandomEventService
 
 
 def run_trials(service, luck: int, iterations: int = 1000) -> int:

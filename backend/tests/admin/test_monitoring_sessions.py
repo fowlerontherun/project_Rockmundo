@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import backend.routes.admin_monitoring_routes as monitoring_routes
-from backend.services.session_service import SessionService, get_session_service
+from services.session_service import SessionService, get_session_service
 
 
 def create_app(svc: SessionService) -> TestClient:

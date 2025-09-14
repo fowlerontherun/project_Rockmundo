@@ -1,4 +1,4 @@
-from backend.services.music_production_service import MusicProductionService
+from services.music_production_service import MusicProductionService
 
 
 class DummyAvatar:

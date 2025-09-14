@@ -10,8 +10,8 @@ if str(sys_path) not in sys.path:
     sys.path.append(str(sys_path))
 
 from backend.models.merch import ProductIn, SKUIn
-from backend.services.economy_service import EconomyService
-from backend.services.merch_service import MerchError, MerchService
+from services.economy_service import EconomyService
+from services.merch_service import MerchError, MerchService
 
 
 def setup_service():

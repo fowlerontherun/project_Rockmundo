@@ -22,7 +22,7 @@ chart_service_stub.get_chart = lambda *a, **k: []
 sys.modules["backend.services.chart_service"] = chart_service_stub
 
 from backend import database
-from backend.services.jobs_charts import ChartsJobsService
+from services.jobs_charts import ChartsJobsService
 from backend.routes import chart_routes
 
 def _setup_db(tmp_path):

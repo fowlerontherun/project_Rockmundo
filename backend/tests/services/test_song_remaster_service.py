@@ -1,6 +1,6 @@
 import sqlite3
 
-from backend.services.song_remaster_service import SongRemasterService
+from services.song_remaster_service import SongRemasterService
 import backend.services.song_popularity_service as sp_module
 
 

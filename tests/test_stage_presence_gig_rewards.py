@@ -1,6 +1,6 @@
 import sqlite3
 
-from backend.services import gig_service as gs
+from services import gig_service as gs
 
 
 def _setup_gig_db(db_path):

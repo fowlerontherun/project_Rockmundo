@@ -1,10 +1,10 @@
 import sqlite3
 
-from backend.services import fan_service
-from backend.services.business_service import BusinessService
-from backend.services.business_training_service import BusinessTrainingService
-from backend.services.skill_service import skill_service
-from backend.services.social_media_training_service import SocialMediaTrainingService
+from services import fan_service
+from services.business_service import BusinessService
+from services.business_training_service import BusinessTrainingService
+from services.skill_service import skill_service
+from services.social_media_training_service import SocialMediaTrainingService
 
 
 def test_business_training_awards_xp(tmp_path):

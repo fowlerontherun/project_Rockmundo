@@ -8,8 +8,8 @@ except Exception:  # pragma: no cover
     FastAPI = None  # type: ignore
 
 from backend.database import DB_PATH
-from backend.services import song_popularity_service
-from backend.services.song_popularity_service import (
+from services import song_popularity_service
+from services.song_popularity_service import (
     HALF_LIFE_DAYS,
     add_event,
     apply_decay,
@@ -73,7 +73,7 @@ def test_forecast_generation():
     _reset_db()
     add_event(4, 10, "stream")
     add_event(4, 5, "sale")
-    from backend.services.song_popularity_forecast import forecast_service
+    from services.song_popularity_forecast import forecast_service
 
     forecasts = forecast_service.forecast_song(4, days=3)
     assert len(forecasts) == 3

@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import Dict, Optional
 
 from backend.database import DB_PATH
-from backend.services.song_service import SongService
-from backend.services.song_popularity_service import song_popularity_service
+from services.song_service import SongService
+from services.song_popularity_service import song_popularity_service
 
 
 class SongRemasterService:

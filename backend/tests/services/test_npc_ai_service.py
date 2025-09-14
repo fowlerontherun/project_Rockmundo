@@ -1,8 +1,8 @@
 from backend.models.npc import NPC
 import services.npc_ai_service as npc_ai_module
-from backend.services.npc_ai_service import npc_ai_service
-from backend.services import event_service
-from backend.services.npc_service import NPCService
+from services.npc_ai_service import npc_ai_service
+from services import event_service
+from services.npc_service import NPCService
 
 
 def test_generate_daily_behavior(monkeypatch):

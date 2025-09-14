@@ -3,8 +3,8 @@ import sqlite3
 
 import pytest
 
-from backend.services import audio_mixing_service
-from backend.services.live_album_service import LiveAlbumService
+from services import audio_mixing_service
+from services.live_album_service import LiveAlbumService
 
 
 def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):

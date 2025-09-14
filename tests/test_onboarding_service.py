@@ -1,4 +1,4 @@
-from backend.services.onboarding_question_service import OnboardingQuestionService
+from services.onboarding_question_service import OnboardingQuestionService
 
 
 def test_get_questions_returns_three_unique_questions() -> None:

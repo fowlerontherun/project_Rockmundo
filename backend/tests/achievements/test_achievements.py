@@ -7,9 +7,9 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 import pydantic
 
-from backend.services.achievement_service import AchievementService
-from backend.services.economy_service import EconomyService
-from backend.services.property_service import PropertyService
+from services.achievement_service import AchievementService
+from services.economy_service import EconomyService
+from services.property_service import PropertyService
 
 if not hasattr(pydantic, "Field"):
     def Field(default=None, **kwargs):
@@ -33,8 +33,8 @@ core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
 from backend.routes import achievement_routes  # noqa: E402
-from backend.services.chart_service import calculate_weekly_chart  # noqa: E402
-from backend.services.tour_service import TourService  # noqa: E402
+from services.chart_service import calculate_weekly_chart  # noqa: E402
+from services.tour_service import TourService  # noqa: E402
 
 
 def setup_db(tmp_path):
@@ -72,7 +72,7 @@ def test_chart_topper_unlock(tmp_path):
     db = setup_db(tmp_path)
     ach = AchievementService(db)
     # patch chart_service globals
-    from backend.services import chart_service
+    from services import chart_service
     chart_service.DB_PATH = db
     chart_service.achievement_service = ach
 

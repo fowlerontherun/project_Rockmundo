@@ -1,8 +1,8 @@
 import pytest
 from backend.models.skill import Skill
 from backend.models.xp_item import XPItem
-from backend.services.skill_service import SkillService
-from backend.services.xp_item_service import XPItemService
+from services.skill_service import SkillService
+from services.xp_item_service import XPItemService
 
 
 class DummyXPEvents:

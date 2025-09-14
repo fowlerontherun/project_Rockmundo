@@ -7,8 +7,8 @@ from fastapi import FastAPI
 Path(__file__).resolve().parents[1].joinpath("database").mkdir(exist_ok=True)
 
 from backend.routes import songwriting_routes  # noqa: E402
-from backend.services.originality_service import OriginalityService  # noqa: E402
-from backend.services.songwriting_service import SongwritingService  # noqa: E402
+from services.originality_service import OriginalityService  # noqa: E402
+from services.songwriting_service import SongwritingService  # noqa: E402
 
 
 class FakeLLM:

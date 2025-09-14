@@ -7,7 +7,7 @@ from fastapi import HTTPException, Request
 from utils.db import get_conn
 
 from auth.dependencies import get_current_user_id, require_permission
-from backend.services.analytics_service import SERVICE_LATENCY_MS, AnalyticsService
+from services.analytics_service import SERVICE_LATENCY_MS, AnalyticsService
 from backend.utils.metrics import generate_latest
 
 DDL = """

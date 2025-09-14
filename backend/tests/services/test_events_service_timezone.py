@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from backend.services import events_service
+from services import events_service
 
 
 def test_schedule_event_stores_timezone(monkeypatch):

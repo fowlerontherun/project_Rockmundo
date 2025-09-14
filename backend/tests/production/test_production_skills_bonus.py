@@ -1,5 +1,5 @@
-from backend.services.music_production_service import MusicProductionService
-from backend.services.skill_service import skill_service
+from services.music_production_service import MusicProductionService
+from services.skill_service import skill_service
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 

@@ -11,10 +11,10 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from schemas.avatar import AvatarCreate
-from backend.services.avatar_service import AvatarService
-from backend.services.band_service import Base, BandMember, BandService
-from backend.services.band_relationship_service import BandRelationshipService
-from backend.services.skill_service import SkillService, SONGWRITING_SKILL
+from services.avatar_service import AvatarService
+from services.band_service import Base, BandMember, BandService
+from services.band_relationship_service import BandRelationshipService
+from services.skill_service import SkillService, SONGWRITING_SKILL
 
 
 def get_service():

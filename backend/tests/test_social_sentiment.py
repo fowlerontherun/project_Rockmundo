@@ -1,8 +1,8 @@
 import sqlite3
 
 from backend.database import DB_PATH
-from backend.services.social_sentiment_service import SocialSentimentService
-from backend.services.song_popularity_service import get_current_popularity
+from services.social_sentiment_service import SocialSentimentService
+from services.song_popularity_service import get_current_popularity
 
 
 def _reset_db():

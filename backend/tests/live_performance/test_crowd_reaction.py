@@ -1,8 +1,8 @@
 import json
 import sqlite3
 
-from backend.services import live_performance_service, live_performance_analysis, setlist_service
-from backend.services.city_service import city_service
+from services import live_performance_service, live_performance_analysis, setlist_service
+from services.city_service import city_service
 from backend.models.city import City
 
 

@@ -1,9 +1,9 @@
 import sqlite3
 import pytest
 
-from backend.services import live_performance_service
-from backend.services import live_performance_analysis, setlist_service
-from backend.services.city_service import city_service
+from services import live_performance_service
+from services import live_performance_analysis, setlist_service
+from services.city_service import city_service
 from backend.models.city import City
 
 

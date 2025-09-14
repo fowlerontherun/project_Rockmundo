@@ -7,7 +7,7 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.services.festival_builder_service import (
+from services.festival_builder_service import (
     BookingConflictError,
     FestivalBuilderService,
     FestivalError,

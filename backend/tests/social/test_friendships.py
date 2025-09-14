@@ -1,7 +1,7 @@
 import asyncio
 import sqlite3
 
-from backend.services.social_service import social_service
+from services.social_service import social_service
 from backend.realtime import social_gateway
 
 

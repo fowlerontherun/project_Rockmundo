@@ -5,7 +5,7 @@ import pytest
 from fastapi import FastAPI
 
 from backend.routes import live_album_routes
-from backend.services import audio_mixing_service
+from services import audio_mixing_service
 
 
 def _insert_performance(cur, band_id, setlist, skill_gain, perf_score, city="", venue=""):

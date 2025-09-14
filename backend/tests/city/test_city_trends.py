@@ -2,9 +2,9 @@ import sqlite3
 import sqlite3
 from datetime import datetime
 
-from backend.services.city_service import city_service
-from backend.services import event_service, live_performance_service, setlist_service
-from backend.services.quest_service import QuestService
+from services.city_service import city_service
+from services import event_service, live_performance_service, setlist_service
+from services.quest_service import QuestService
 from backend.models.weather import Forecast
 from backend.models.city import City
 

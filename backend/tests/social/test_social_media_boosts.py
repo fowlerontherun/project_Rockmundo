@@ -1,7 +1,7 @@
 import sqlite3
 
-from backend.services.stream_service import StreamService
-from backend.services import fan_service
+from services.stream_service import StreamService
+from services import fan_service
 
 
 class DummyDB:

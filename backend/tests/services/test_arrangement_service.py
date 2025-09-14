@@ -1,7 +1,7 @@
 from backend.models.song import Song
-from backend.services.arrangement_service import ArrangementService
-from backend.services.recording_service import RecordingService
-from backend.services.economy_service import EconomyService
+from services.arrangement_service import ArrangementService
+from services.recording_service import RecordingService
+from services.economy_service import EconomyService
 
 
 def test_arrangement_tracks_feed_recording(tmp_path):

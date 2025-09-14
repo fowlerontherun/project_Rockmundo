@@ -2,7 +2,7 @@
 
 import pytest
 from core.config import settings
-from backend.services import discord_service
+from services import discord_service
 
 
 def test_send_message_posts_content(monkeypatch):

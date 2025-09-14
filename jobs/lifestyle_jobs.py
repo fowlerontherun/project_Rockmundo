@@ -1,6 +1,6 @@
 """Scheduler job for daily lifestyle decay and XP rewards."""
 
-from backend.services.lifestyle_scheduler import apply_lifestyle_decay_and_xp_effects
+from services.lifestyle_scheduler import apply_lifestyle_decay_and_xp_effects
 
 
 def run() -> tuple[int, str]:

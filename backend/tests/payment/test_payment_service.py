@@ -8,8 +8,8 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.services.economy_service import EconomyService
-from backend.services.payment_service import (
+from services.economy_service import EconomyService
+from services.payment_service import (
     PaymentError,
     PaymentService,
     PayPalGateway,

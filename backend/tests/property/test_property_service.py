@@ -7,8 +7,8 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from backend.services.property_service import PropertyService
-from backend.services.economy_service import EconomyService
+from services.property_service import PropertyService
+from services.economy_service import EconomyService
 
 
 class DummyFameService:

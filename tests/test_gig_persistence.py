@@ -46,14 +46,14 @@ def _setup_db(db_path: Path) -> None:
 
 
 def test_gig_completion_persists_services(monkeypatch, tmp_path):
-    from backend.services import gig_service as gs
-    from backend.services import fan_service
-    from backend.services.skill_service import SkillService
-    from backend.services.band_service import BandService as BandSvc, Base as BandBase
-    from backend.services.avatar_service import (
+    from services import gig_service as gs
+    from services import fan_service
+    from services.skill_service import SkillService
+    from services.band_service import BandService as BandSvc, Base as BandBase
+    from services.avatar_service import (
         AvatarService as AvatarSvc,
     )
-    from backend.services.economy_service import EconomyService as EconSvc
+    from services.economy_service import EconomyService as EconSvc
     from backend.schemas.avatar import AvatarCreate
     from models.avatar import Base as AvatarBase
     from models import avatar_skin  # noqa: F401

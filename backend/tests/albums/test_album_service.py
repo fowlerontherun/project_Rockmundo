@@ -3,8 +3,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from models.music import Base as MusicBase, Release
-from backend.services.album_service import AlbumService
-from backend.services.band_service import Base as BandBase, BandService, Band, BandCollaboration
+from services.album_service import AlbumService
+from services.band_service import Base as BandBase, BandService, Band, BandCollaboration
 
 
 def get_services():

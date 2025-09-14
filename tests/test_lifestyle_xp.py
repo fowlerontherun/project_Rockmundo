@@ -1,4 +1,4 @@
-from backend.services import lifestyle_service
+from services import lifestyle_service
 
 
 def _collect(monkeypatch):

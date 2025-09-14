@@ -8,7 +8,7 @@ sys.path.append(str(root_dir))
 sys.path.append(str(root_dir / "backend"))
 
 from backend.models.xp_config import XPConfig, set_config  # noqa: E402
-from backend.services import scheduler_service, xp_reward_service  # noqa: E402
+from services import scheduler_service, xp_reward_service  # noqa: E402
 
 
 def _setup_db(tmp_path):

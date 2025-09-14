@@ -1,5 +1,5 @@
 import pytest
-from backend.services.support_service import SupportService, SupportServiceError
+from services.support_service import SupportService, SupportServiceError
 from utils.db import get_conn
 
 

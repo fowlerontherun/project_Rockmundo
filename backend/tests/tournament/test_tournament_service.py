@@ -10,7 +10,7 @@ import sys
 if str(sys_path) not in sys.path:
     sys.path.append(str(sys_path))
 
-from backend.services.tournament_service import TournamentService
+from services.tournament_service import TournamentService
 
 
 class DummyPerformance:

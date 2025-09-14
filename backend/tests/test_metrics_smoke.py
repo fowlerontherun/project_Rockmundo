@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from backend.api import app
 from backend.realtime.gateway import hub
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
 
 
 def test_metrics_endpoint_exposes_counters(tmp_path):

@@ -1,7 +1,7 @@
 import asyncio
 
-from backend.services.sales_service import SalesService, SalesError
-from backend.services.economy_service import EconomyService
+from services.sales_service import SalesService, SalesError
+from services.economy_service import EconomyService
 
 
 def test_concurrent_vinyl_purchase(tmp_path):

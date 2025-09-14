@@ -1,4 +1,4 @@
-from backend.services.random_event_service import RandomEventService
+from services.random_event_service import RandomEventService
 
 
 class DummyDB:

@@ -22,7 +22,7 @@ sys.modules["seeds.skill_seed"] = fake_seed
 
 import backend.services.event_service as event_service_module  # noqa: E402
 from backend import database  # noqa: E402
-from backend.services.event_service import (  # noqa: E402
+from services.event_service import (  # noqa: E402
     end_shop_event,
     schedule_shop_event,
     start_shop_event,

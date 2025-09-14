@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.services.skill_service import skill_service
+from services.skill_service import skill_service
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 
@@ -38,7 +38,7 @@ def _setup_gig_db(db_path: Path) -> None:
 
 
 def test_gig_performance_grants_skill(monkeypatch, tmp_path):
-    from backend.services import gig_service as gs
+    from services import gig_service as gs
 
     db = tmp_path / "gig.db"
     _setup_gig_db(db)
@@ -78,7 +78,7 @@ class DummyEconomy:
 
 
 def test_recording_session_grants_skill():
-    from backend.services.recording_service import RecordingService
+    from services.recording_service import RecordingService
 
     economy = DummyEconomy()
     svc = RecordingService(economy=economy)
@@ -97,7 +97,7 @@ def test_recording_session_grants_skill():
 
 
 def test_gig_voice_influence(monkeypatch, tmp_path):
-    from backend.services import gig_service as gs
+    from services import gig_service as gs
 
     db = tmp_path / "gig.db"
     _setup_gig_db(db)

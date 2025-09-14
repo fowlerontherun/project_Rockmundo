@@ -1,8 +1,8 @@
 import sqlite3
 
-from backend.services import fan_service
-from backend.services.image_training_service import ImageTrainingService
-from backend.services.skill_service import skill_service
+from services import fan_service
+from services.image_training_service import ImageTrainingService
+from services.skill_service import skill_service
 
 
 def test_image_training_awards_xp(tmp_path):

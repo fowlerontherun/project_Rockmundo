@@ -21,8 +21,8 @@ from backend.auth.service import AuthService
 
 try:  # pragma: no cover - optional in minimal test runs
     from routes import payment_routes
-    from backend.services.economy_service import EconomyService
-    from backend.services.payment_service import PaymentService
+    from services.economy_service import EconomyService
+    from services.payment_service import PaymentService
 except Exception:  # pragma: no cover
     payment_routes = None  # type: ignore
     EconomyService = None  # type: ignore

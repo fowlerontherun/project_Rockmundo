@@ -13,8 +13,8 @@ utils_mod.db = utils_db_mod
 sys.modules["utils"] = utils_mod
 sys.modules["utils.db"] = utils_db_mod
 
-from backend.services import lifestyle_service
-from backend.services.notifications_service import NotificationsService
+from services import lifestyle_service
+from services.notifications_service import NotificationsService
 from backend.models import notification_models
 
 

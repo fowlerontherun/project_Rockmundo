@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from backend.services import schedule_service
+from services import schedule_service
 
 
 def _init_db(path):

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from backend.models.xp_event import XPEvent
-from backend.services.xp_event_service import XPEventService
+from services.xp_event_service import XPEventService
 
 
 def test_additive_stacking(tmp_path):

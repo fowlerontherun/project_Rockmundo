@@ -3,7 +3,7 @@ import random
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from backend.services.chemistry_service import ChemistryService, Base
+from services.chemistry_service import ChemistryService, Base
 
 
 def _service():

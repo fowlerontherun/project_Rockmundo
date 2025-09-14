@@ -5,9 +5,9 @@ import pytest
 
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services import audio_mixing_service
-from backend.services.live_album_service import LiveAlbumService
-from backend.services.skill_service import skill_service
+from services import audio_mixing_service
+from services.live_album_service import LiveAlbumService
+from services.skill_service import skill_service
 
 
 def _insert_performance(cur, band_id, setlist, skill_gain, city="", venue=""):

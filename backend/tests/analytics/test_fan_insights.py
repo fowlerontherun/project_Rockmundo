@@ -1,7 +1,7 @@
 import utils.db as db_utils
 from utils.db import get_conn
 
-from backend.services.fan_insight_service import FanInsightService
+from services.fan_insight_service import FanInsightService
 
 DDL = """
 CREATE TABLE users(id INTEGER PRIMARY KEY, age INTEGER, region TEXT);

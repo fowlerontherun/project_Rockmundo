@@ -39,7 +39,7 @@ import backend.models as backend_models
 sys.modules.setdefault("models", backend_models)
 
 import backend.services.tour_service as tour_service_module
-from backend.services.tour_service import TourService
+from services.tour_service import TourService
 
 
 class DummyEconomy:

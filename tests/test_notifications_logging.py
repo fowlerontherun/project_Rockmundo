@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-from backend.services import notifications_service as ns
+from services import notifications_service as ns
 
 
 @pytest.fixture

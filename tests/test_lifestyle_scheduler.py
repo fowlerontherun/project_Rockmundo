@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-from backend.services import lifestyle_scheduler, xp_reward_service
+from services import lifestyle_scheduler, xp_reward_service
 
 
 def test_scheduler_applies_xp_without_lock(monkeypatch, tmp_path):

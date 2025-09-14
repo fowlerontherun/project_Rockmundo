@@ -1,7 +1,7 @@
 # routes/event_routes.py
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.event_service import apply_event_effect, roll_for_daily_event
+from services.event_service import apply_event_effect, roll_for_daily_event
 
 from fastapi import APIRouter
 

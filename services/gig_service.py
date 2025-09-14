@@ -3,14 +3,14 @@ import random
 from datetime import datetime, timedelta
 
 from backend.database import DB_PATH
-from backend.services import fan_service
-from backend.services.skill_service import skill_service
+from services import fan_service
+from services.skill_service import skill_service
 from backend.models.skill import Skill
 from backend.models.learning_method import LearningMethod
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
 
 try:  # pragma: no cover - optional in minimal environments
-    from backend.services.band_service import BandService
+    from services.band_service import BandService
 except Exception:  # pragma: no cover
     class BandService:  # type: ignore
         def get_band_info(self, _band_id: int):
@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover
             return None
 
 try:  # pragma: no cover - optional avatar dependency
-    from backend.services.avatar_service import AvatarService
+    from services.avatar_service import AvatarService
     from backend.schemas.avatar import AvatarUpdate
 except Exception:  # pragma: no cover
     class AvatarUpdate:  # type: ignore

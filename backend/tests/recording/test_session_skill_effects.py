@@ -1,7 +1,7 @@
 from backend.models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.recording_service import RecordingService
-from backend.services.skill_service import skill_service
+from services.recording_service import RecordingService
+from services.skill_service import skill_service
 
 
 def _set_skills(band_id: int, level: int) -> None:

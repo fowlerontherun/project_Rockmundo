@@ -9,14 +9,14 @@ sys.path.append(str(ROOT / "backend"))
 
 from backend.seeds.skill_seed import SEED_SKILLS
 from backend.models.learning_method import METHOD_PROFILES, LearningMethod
-from backend.services import fan_interaction_service, fan_service
-from backend.services.image_training_service import (
+from services import fan_interaction_service, fan_service
+from services.image_training_service import (
     Stylist,
     StylistService,
     study_image_tutorial,
 )
-from backend.services.skill_service import SkillService
-from backend.services.economy_service import EconomyService
+from services.skill_service import SkillService
+from services.economy_service import EconomyService
 
 
 FASHION_SKILL = next(s for s in SEED_SKILLS if s.name == "fashion")

@@ -1,4 +1,4 @@
-from backend.services.production_service import ProductionService
+from services.production_service import ProductionService
 
 
 class FakeEconomy:

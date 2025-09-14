@@ -1,8 +1,8 @@
 import sqlite3
 from pathlib import Path
 
-from backend.services import gig_service as gs
-from backend.services.skill_service import skill_service
+from services import gig_service as gs
+from services.skill_service import skill_service
 from backend.models.skill import Skill
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
