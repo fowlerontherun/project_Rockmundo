@@ -13,7 +13,7 @@ from services.events_service import (
     schedule_event,
 )
 
-from backend.schemas.events_schemas import (
+from schemas.events_schemas import (
     ActiveEventResponse,
     CreateEventSchema,
     EndEventSchema,
