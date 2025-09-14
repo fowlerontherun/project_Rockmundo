@@ -11,7 +11,7 @@ import logging
 
 from fastapi import FastAPI
 
-from backend.core.scheduler import register_jobs, run_job
+from core.scheduler import register_jobs, run_job
 
 logger = logging.getLogger(__name__)
 

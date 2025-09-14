@@ -24,7 +24,7 @@ import os
 
 # Prefer project's get_conn
 try:
-    from backend.core.db import get_conn  # type: ignore
+    from core.db import get_conn  # type: ignore
 except Exception:
     def get_conn() -> sqlite3.Connection:
         db_path = os.getenv("DB_PATH", "app.db")
