@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from backend.models.arrangement import ArrangementTrack
-from backend.models.song import Song
+from models.arrangement import ArrangementTrack
+from models.song import Song
 from backend.services.recording_service import RecordingService, recording_service
 
 

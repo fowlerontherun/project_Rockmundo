@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from backend.database import DB_PATH
 from backend.services import fan_service
 from backend.services.skill_service import skill_service
-from backend.models.skill import Skill
-from backend.models.learning_method import LearningMethod
+from models.skill import Skill
+from models.learning_method import LearningMethod
 from backend.services.economy_service import EconomyService
 
 try:  # pragma: no cover - optional in minimal environments

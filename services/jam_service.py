@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, Optional, Set
 
-from backend.models.jam_session import AudioStream, JamSession
+from models.jam_session import AudioStream, JamSession
 from backend.services.economy_service import EconomyService
 
 STUDIO_RENTAL_CENTS = 100

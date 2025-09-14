@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from backend.models.learning_method import LearningMethod
-from backend.models.recording_session import RecordingSession
-from backend.models.skill import Skill
+from models.learning_method import LearningMethod
+from models.recording_session import RecordingSession
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.chemistry_service import ChemistryService
 from backend.services.economy_service import EconomyError, EconomyService

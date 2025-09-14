@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional
 from uuid import uuid4
 
-from backend.models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
+from models.payment import PremiumCurrency, PurchaseRecord, SubscriptionPlan
 from backend.services.economy_service import EconomyService
 
 

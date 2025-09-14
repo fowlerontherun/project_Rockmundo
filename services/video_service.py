@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import Dict, List
 
-from backend.models.video import Video
+from models.video import Video
 from backend.services.economy_service import EconomyService
 from backend.services.media_moderation_service import media_moderation_service
 from backend.services.skill_service import SkillService
