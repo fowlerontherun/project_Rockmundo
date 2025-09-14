@@ -1,9 +1,7 @@
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
-from backend.jobs import cleanup_tokens
+from jobs import cleanup_tokens
 
 
 def _iso(dt: datetime) -> str:
