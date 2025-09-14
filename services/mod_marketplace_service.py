@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from backend.services.economy_service import EconomyService
 from backend.services.storage_service import get_storage_backend
-from backend.storage.base import StorageBackend
+from storage.base import StorageBackend
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

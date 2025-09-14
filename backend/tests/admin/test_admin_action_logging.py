@@ -7,7 +7,7 @@ from fastapi import Request
 
 from backend.routes import admin_media_moderation_routes as media_routes
 from backend.services.admin_service import AdminService, AdminActionRepository
-from backend.storage.local import LocalStorage
+from storage.local import LocalStorage
 from backend.services import storage_service
 from backend.utils.db import get_conn
 
