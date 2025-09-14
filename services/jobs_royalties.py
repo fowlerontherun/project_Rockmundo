@@ -20,13 +20,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from backend.config.revenue import (
+from backend.utils.metrics import Counter
+from config.revenue import (
     DAILY_STREAM_CAP_PER_USER_PER_SONG,
     SPONSOR_IMPRESSION_RATE_CENTS,
     SPONSOR_PAYOUT_SPLIT,
     STREAM_RATE_MICROCENTS,
 )
-from backend.utils.metrics import Counter
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

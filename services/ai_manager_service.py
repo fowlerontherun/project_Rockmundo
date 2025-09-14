@@ -1,4 +1,4 @@
-from backend.config import ENABLE_PR_AI_MANAGER, ENABLE_TOUR_AI_MANAGER
+from config import ENABLE_PR_AI_MANAGER, ENABLE_TOUR_AI_MANAGER
 
 
 # Simulated planner engine
