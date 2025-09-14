@@ -34,7 +34,7 @@ def run_python_seeds(conn: sqlite3.Connection) -> None:
     for path in SEEDS_DIR.glob("*.py"):
         if path.name.startswith("__"):
             continue
-        module = import_module(f"backend.seeds.{path.stem}")
+        module = import_module(f"seeds.{path.stem}")
         seed_fn = getattr(module, "seed", None)
         if callable(seed_fn):
             print(f"Running seed from {path.name}")

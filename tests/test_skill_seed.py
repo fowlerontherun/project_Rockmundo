@@ -5,7 +5,7 @@ BASE = Path(__file__).resolve().parents[1]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
+from seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
 
 
 def test_skill_name_to_id_unique_values():
