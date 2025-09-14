@@ -17,7 +17,7 @@ from backend.routes.admin_apprenticeship_routes import (  # type: ignore  # noqa
     update_apprenticeship,
     svc,
 )
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
+from seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
 
 
 def test_apprenticeship_routes_require_admin():

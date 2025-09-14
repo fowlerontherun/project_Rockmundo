@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SEED_SKILLS
+from seeds.skill_seed import SEED_SKILLS
 from backend.services.skill_service import SkillService
 from backend.services.skill_service import skill_service as default_skill_service
 
