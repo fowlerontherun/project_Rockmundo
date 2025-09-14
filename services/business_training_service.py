@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Dict
 
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import SkillService
-from backend.services.skill_service import skill_service as default_skill_service
+from services.skill_service import SkillService
+from services.skill_service import skill_service as default_skill_service
 
 
 class BusinessTrainingService:

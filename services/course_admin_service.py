@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from backend.database import DB_PATH
-from backend.models.course import Course
+from models.course import Course
 
 
 class CourseAdminService:

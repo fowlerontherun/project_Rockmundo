@@ -95,7 +95,7 @@ app.add_middleware(AdminMFAMiddleware)
 
 # Serve the frontend HTML pages from ``frontend/pages`` for local development.
 frontend_pages = (
-    Path(__file__).resolve().parent.parent / "frontend" / "pages"
+    Path(__file__).resolve().parent / "frontend" / "pages"
 )
 if frontend_pages.exists():
     app.mount("/frontend", StaticFiles(directory=str(frontend_pages), html=True), name="frontend")

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import List
 
-from backend.models.skill import Skill
+from models.skill import Skill
 from backend.seeds.skill_seed import SKILL_NAME_TO_ID
-from backend.services.skill_service import skill_service
+from services.skill_service import skill_service
 
 
 def mix_tracks(performance_ids: List[int], user_id: int | None = None) -> List[int]:

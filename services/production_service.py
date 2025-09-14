@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from backend.models.production import (
+from models.production import (
     MixingSession,
     ReleaseMetadata,
     StudioSession,

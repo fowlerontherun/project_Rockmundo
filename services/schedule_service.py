@@ -72,15 +72,15 @@ __all__ = ["save_daily_plan"]
 
 from typing import List, Dict, Iterable
 
-from backend.models import activity as activity_model
-from backend.models import band_schedule as band_schedule_model
-from backend.models import daily_schedule as schedule_model
-from backend.models import next_day_schedule as next_day_model
-from backend.models import default_schedule as default_model
-from backend.models import weekly_schedule as weekly_model
-from backend.models import recurring_schedule as recurring_model
-from backend.models import default_schedule_templates as template_model
-from backend.models import user_settings
+from models import activity as activity_model
+from models import band_schedule as band_schedule_model
+from models import daily_schedule as schedule_model
+from models import next_day_schedule as next_day_model
+from models import default_schedule as default_model
+from models import weekly_schedule as weekly_model
+from models import recurring_schedule as recurring_model
+from models import default_schedule_templates as template_model
+from models import user_settings
 
 
 def _log_schedule_change(user_id: int, date: str, slot: int, before, after) -> None:

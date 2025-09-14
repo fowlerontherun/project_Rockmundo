@@ -3,7 +3,7 @@
 import random
 from typing import Dict, List
 
-from backend.models.onboarding import Question
+from models.onboarding import Question
 from backend.seeds.question_seed import QUESTIONS
 
 

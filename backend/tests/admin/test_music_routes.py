@@ -18,7 +18,7 @@ def test_add_and_delete_skill(monkeypatch):
         sys.modules, "backend.seeds.stage_equipment_seed", dummy_equipment_seed
     )
 
-    admin_music_routes = importlib.import_module("backend.routes.admin_music_routes")
+    admin_music_routes = importlib.import_module("routes.admin_music_routes")
 
     async def fake_current_user(req):
         return 1

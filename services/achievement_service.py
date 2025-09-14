@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from backend.models.achievement import Achievement, PlayerAchievement
+from models.achievement import Achievement, PlayerAchievement
 from core.config import settings
 from utils.db import get_conn
 

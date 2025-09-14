@@ -8,8 +8,8 @@ Usage:
 
 What it does, per *.py in --root:
 - Ensures imports:
-    from backend.core.responses import std_error_responses
-    from backend.core.openapi import add_auth_example
+    from core.responses import std_error_responses
+    from core.openapi import add_auth_example
 - Injects `responses=std_error_responses(),` into every @router.get/post/put/patch/delete decorator if not present.
 - Ensures a tiny helper that iterates router.routes and calls add_auth_example(...) so OpenAPI shows an Authorization header example.
 - Idempotent: safe to re-run; it won't duplicate inserts.
@@ -24,17 +24,17 @@ METHODS = ("get","post","put","patch","delete")
 
 def ensure_imports(text: str) -> str:
     lines = text.splitlines()
-    have_resp = any("from backend.core.responses import std_error_responses" in l for l in lines)
-    have_auth = any("from backend.core.openapi import add_auth_example" in l for l in lines)
+    have_resp = any("from core.responses import std_error_responses" in l for l in lines)
+    have_auth = any("from core.openapi import add_auth_example" in l for l in lines)
     insert_at = 0
     for i,l in enumerate(lines):
         if l.startswith("from ") or l.startswith("import "):
             insert_at = i+1
     to_add = []
     if not have_resp:
-        to_add.append("from backend.core.responses import std_error_responses")
+        to_add.append("from core.responses import std_error_responses")
     if not have_auth:
-        to_add.append("from backend.core.openapi import add_auth_example")
+        to_add.append("from core.openapi import add_auth_example")
     if to_add:
         lines[insert_at:insert_at] = to_add
     return "\n".join(lines)

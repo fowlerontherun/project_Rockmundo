@@ -19,7 +19,7 @@ def setup_app(tmp_path):
     import backend.services.activity_processor as ap_module
     importlib.reload(ap_module)
 
-    import backend.routes.schedule_routes as routes_module
+    import routes.schedule_routes as routes_module
     importlib.reload(routes_module)
 
     app = FastAPI()

@@ -12,7 +12,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_workshop_routes import (  # type: ignore  # noqa: E402
+from routes.admin_workshop_routes import (  # type: ignore  # noqa: E402
     WorkshopIn,
     create_workshop,
     delete_workshop,
@@ -48,11 +48,11 @@ def test_workshop_routes_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_workshop_routes.get_current_user_id",
+        "routes.admin_workshop_routes.get_current_user_id",
         fake_current_user,
     )
     monkeypatch.setattr(
-        "backend.routes.admin_workshop_routes.require_permission",
+        "routes.admin_workshop_routes.require_permission",
         fake_require_permission,
     )
 

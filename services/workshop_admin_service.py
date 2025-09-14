@@ -4,7 +4,7 @@ import sqlite3
 from typing import List, Optional
 
 from backend.database import DB_PATH
-from backend.models.workshop import Workshop
+from models.workshop import Workshop
 
 
 class WorkshopAdminService:
