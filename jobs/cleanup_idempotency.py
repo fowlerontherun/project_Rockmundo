@@ -15,7 +15,7 @@ from typing import Tuple
 
 # Prefer project's shared DB util if present
 try:
-    from backend.core.db import get_conn  # type: ignore
+    from core.db import get_conn  # type: ignore
 except Exception:
     def get_conn() -> sqlite3.Connection:
         db_path = os.getenv("DB_PATH", "app.db")
