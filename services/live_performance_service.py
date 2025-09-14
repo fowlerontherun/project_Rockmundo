@@ -25,7 +25,7 @@ from backend.services.gear_service import gear_service
 from backend.services.setlist_service import get_approved_setlist
 
 try:
-    from backend.realtime.polling import poll_hub
+    from realtime.polling import poll_hub
 except Exception:  # pragma: no cover - optional realtime module
     poll_hub = None  # type: ignore
 
