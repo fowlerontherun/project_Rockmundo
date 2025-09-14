@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import random
 import sqlite3
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models import notification_models
 
 from .skill_service import skill_service

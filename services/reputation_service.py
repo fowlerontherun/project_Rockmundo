@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.reputation import ReputationEvent
 
 

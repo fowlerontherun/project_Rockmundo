@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from utils.db import aget_conn
 
 

@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime, timezone
-from backend.database import DB_PATH
+from database import DB_PATH
 
 def create_label(name: str, founder_user_id: int, sign_up_fee: int = 0) -> dict:
     conn = sqlite3.connect(DB_PATH)

@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.apprenticeship import Apprenticeship
 from backend.services.karma_service import KarmaService
 

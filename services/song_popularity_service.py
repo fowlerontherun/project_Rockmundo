@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services.song_popularity_forecast import forecast_service
 
 # Supported region codes and platforms

@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def _update_quantity(table: str, shop_id: int, item_id: int, quantity: int) -> None:

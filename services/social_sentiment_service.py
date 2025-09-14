@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services.song_popularity_service import add_event
 
 

@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.event import Event
 from backend.models.event_effect import EventEffect
 from backend.models.npc import NPC

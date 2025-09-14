@@ -7,7 +7,7 @@ try:  # pragma: no cover - FastAPI optional in some test suites
 except Exception:  # pragma: no cover
     FastAPI = None  # type: ignore
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services import song_popularity_service
 from backend.services.song_popularity_service import (
     HALF_LIFE_DAYS,

@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import List, Dict, Any
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.karma_event import KarmaEvent
 
 

@@ -1,7 +1,7 @@
 import sqlite3
 from typing import List, Dict, Iterable, Tuple
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def add_entry(user_id: int, week_start: str, day: str, slot: int, activity_id: int) -> None:

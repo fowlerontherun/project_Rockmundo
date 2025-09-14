@@ -8,7 +8,7 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
 from backend.models.skill import Skill
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services import live_performance_analysis
 try:
     from backend.services.chemistry_service import ChemistryService

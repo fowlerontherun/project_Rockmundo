@@ -5,7 +5,7 @@ import sqlite3
 
 from backend.models.tournament import Bracket, Match, Score
 from backend.services import live_performance_service
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 class TournamentService:

@@ -11,7 +11,7 @@ from typing import Dict, List
 
 from models.album import Album
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services import audio_mixing_service, chart_service
 from backend.services.ai_art_service import ai_art_service
 from backend.services.sales_service import SalesService
