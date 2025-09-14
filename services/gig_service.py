@@ -21,8 +21,10 @@ except Exception:  # pragma: no cover
             return None
 
 try:  # pragma: no cover - optional avatar dependency
-    from services.avatar_service import AvatarService
-    from backend.schemas.avatar import AvatarUpdate
+
+    from backend.services.avatar_service import AvatarService
+    from schemas.avatar import AvatarUpdate
+
 except Exception:  # pragma: no cover
     class AvatarUpdate:  # type: ignore
         def __init__(self, **kwargs):

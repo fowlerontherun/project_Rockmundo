@@ -12,7 +12,7 @@ from backend.services.economy_service import EconomyService
 from backend.services.skill_service import SkillService
 from backend.services.tutor_service import TutorService
 from backend.services.avatar_service import AvatarService
-from backend.schemas.avatar import AvatarCreate, AvatarUpdate
+from schemas.avatar import AvatarCreate, AvatarUpdate
 
 
 def _setup_services(tmp_path):

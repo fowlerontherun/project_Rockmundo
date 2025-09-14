@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends
 
 from auth.dependencies import require_permission
-from backend.schemas.events_schemas import (
+from schemas.events_schemas import (
     EndEventSchema,
     EventResponse,
     ScheduleEventSchema,
