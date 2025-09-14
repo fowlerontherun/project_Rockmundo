@@ -8,7 +8,7 @@ from auth.dependencies import get_current_user_id, require_permission
 from backend.models.genre import Genre
 from backend.models.skill import Skill
 from backend.models.stage_equipment import StageEquipment
-from backend.schemas.admin_music_schema import (
+from schemas.admin_music_schema import (
     GenreSchema,
     SkillSchema,
     SkillPrerequisitesSchema,
