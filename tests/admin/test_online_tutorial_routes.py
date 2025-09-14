@@ -10,7 +10,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_online_tutorial_routes import (  # type: ignore
+from routes.admin_online_tutorial_routes import (  # type: ignore
     OnlineTutorialIn,
     create_tutorial,
     delete_tutorial,
@@ -47,11 +47,11 @@ def test_online_tutorial_routes_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_online_tutorial_routes.get_current_user_id",
+        "routes.admin_online_tutorial_routes.get_current_user_id",
         fake_current_user,
     )
     monkeypatch.setattr(
-        "backend.routes.admin_online_tutorial_routes.require_permission", fake_require_permission
+        "routes.admin_online_tutorial_routes.require_permission", fake_require_permission
     )
 
     svc.db_path = str(tmp_path / "tutorials.db")

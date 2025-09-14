@@ -5,8 +5,8 @@ import asyncio
 import pytest
 from fastapi import HTTPException, Request
 
-from backend.routes.admin_npc_routes import create_npc
-from backend.routes.admin_npc_dialogue_routes import edit_dialogue, preview_dialogue, svc
+from routes.admin_npc_routes import create_npc
+from routes.admin_npc_dialogue_routes import edit_dialogue, preview_dialogue, svc
 
 
 def _allow_admin(monkeypatch):
@@ -17,16 +17,16 @@ def _allow_admin(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_npc_routes.get_current_user_id", fake_current_user
+        "routes.admin_npc_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_npc_routes.require_permission", fake_require_permission
+        "routes.admin_npc_routes.require_permission", fake_require_permission
     )
     monkeypatch.setattr(
-        "backend.routes.admin_npc_dialogue_routes.get_current_user_id", fake_current_user
+        "routes.admin_npc_dialogue_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_npc_dialogue_routes.require_permission", fake_require_permission
+        "routes.admin_npc_dialogue_routes.require_permission", fake_require_permission
     )
 
 

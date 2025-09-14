@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-import backend.routes.admin_monitoring_routes as monitoring_routes
+import routes.admin_monitoring_routes as monitoring_routes
 from backend.services.session_service import SessionService, get_session_service
 
 
