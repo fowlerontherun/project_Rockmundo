@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-from backend.jobs.world_pulse_jobs import run_daily, run_weekly
+from jobs.world_pulse_jobs import run_daily, run_weekly
 
 DDL = """
 PRAGMA foreign_keys = ON;
