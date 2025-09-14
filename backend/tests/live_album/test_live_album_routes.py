@@ -4,7 +4,7 @@ import sqlite3
 import pytest
 from fastapi import FastAPI
 
-from backend.routes import live_album_routes
+from routes import live_album_routes
 from backend.services import audio_mixing_service
 
 

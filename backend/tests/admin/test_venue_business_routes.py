@@ -3,14 +3,14 @@ import asyncio
 import pytest
 from fastapi import HTTPException, Request
 
-from backend.routes.admin_venue_routes import (
+from routes.admin_venue_routes import (
     create_venue,
     delete_venue,
     edit_venue,
     list_venues,
     svc as venue_svc,
 )
-from backend.routes.admin_business_routes import (
+from routes.admin_business_routes import (
     create_business,
     delete_business,
     edit_business,
@@ -52,16 +52,16 @@ def test_admin_venue_business_flow(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_venue_routes.get_current_user_id", fake_current_user
+        "routes.admin_venue_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_venue_routes.require_permission", fake_require_permission
+        "routes.admin_venue_routes.require_permission", fake_require_permission
     )
     monkeypatch.setattr(
-        "backend.routes.admin_business_routes.get_current_user_id", fake_current_user
+        "routes.admin_business_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_business_routes.require_permission", fake_require_permission
+        "routes.admin_business_routes.require_permission", fake_require_permission
     )
 
     req = Request({})

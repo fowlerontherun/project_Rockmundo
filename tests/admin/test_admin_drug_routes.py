@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_drug_routes import (
+from routes.admin_drug_routes import (
     DrugCategoryIn,
     DrugIn,
     create_drug_category,
@@ -27,10 +27,10 @@ def test_admin_drug_routes_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_drug_routes.get_current_user_id", fake_current_user
+        "routes.admin_drug_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_drug_routes.require_permission", fake_require_permission
+        "routes.admin_drug_routes.require_permission", fake_require_permission
     )
 
     svc.db_path = str(tmp_path / "drugs.db")
