@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from backend.services.xp_reward_service import xp_reward_service
+from services.xp_reward_service import xp_reward_service
 
 from backend.models.banking import Loan
 from backend.models.economy_config import get_config

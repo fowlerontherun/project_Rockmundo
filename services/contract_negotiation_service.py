@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from backend.models.label_management_models import NegotiationStage
 from backend.models.record_contract import RecordContract, RoyaltyTier
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
 
 Base = declarative_base()
 

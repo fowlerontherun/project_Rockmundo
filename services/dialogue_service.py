@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import List, Optional, Protocol
 
 from backend.models.dialogue import DialogueMessage
-from backend.services.moderation_service import moderate_content
+from services.moderation_service import moderate_content
 
 
 class LLMProvider(Protocol):

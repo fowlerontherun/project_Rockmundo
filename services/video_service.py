@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import Dict, List
 
 from backend.models.video import Video
-from backend.services.economy_service import EconomyService
-from backend.services.media_moderation_service import media_moderation_service
-from backend.services.skill_service import SkillService
+from services.economy_service import EconomyService
+from services.media_moderation_service import media_moderation_service
+from services.skill_service import SkillService
 from backend.seeds.skill_seed import SEED_SKILLS
 from backend.utils.metrics import _REGISTRY, Histogram
 

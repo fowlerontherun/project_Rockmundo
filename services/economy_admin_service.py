@@ -11,7 +11,7 @@ from backend.models.economy_config import (
     set_config,
     save_config,
 )
-from backend.services.economy_service import EconomyService, TransactionRecord
+from services.economy_service import EconomyService, TransactionRecord
 
 
 class EconomyAdminService:

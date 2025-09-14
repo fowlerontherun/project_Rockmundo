@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, List
 
-from backend.services.item_service import item_service
+from services.item_service import item_service
 
 
 @dataclass

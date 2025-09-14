@@ -2,8 +2,8 @@
 from datetime import datetime
 
 from models.karma_event import KarmaEvent
-from backend.services.karma_db import KarmaDB
-from backend.services.xp_reward_service import xp_reward_service
+from services.karma_db import KarmaDB
+from services.xp_reward_service import xp_reward_service
 
 
 class KarmaService:

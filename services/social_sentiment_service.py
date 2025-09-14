@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
 from backend.database import DB_PATH
-from backend.services.song_popularity_service import add_event
+from services.song_popularity_service import add_event
 
 
 def _ensure_schema(cur: sqlite3.Cursor) -> None:

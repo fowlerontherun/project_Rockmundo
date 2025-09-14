@@ -4,9 +4,9 @@ from datetime import date
 from typing import Dict, List, Optional
 
 from backend.models.npc_dialogue import DialogueNode, DialogueResponse, DialogueTree
-from backend.services.npc_service import NPCService
-from backend.services.city_shop_service import CityShopService, city_shop_service
-from backend.services.item_service import item_service as default_item_service, ItemService
+from services.npc_service import NPCService
+from services.city_shop_service import CityShopService, city_shop_service
+from services.item_service import item_service as default_item_service, ItemService
 
 
 class ShopNPCService:
