@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 
-from backend.realtime.gateway import (
+from realtime.gateway import (
     _Subscriber,
     get_current_user_id_dep,
     hub,
