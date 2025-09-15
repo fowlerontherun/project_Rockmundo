@@ -38,7 +38,7 @@ def make_storage(monkeypatch):
         types.SimpleNamespace(ClientError=DummyClientError),
     )
 
-    s3_module = importlib.import_module("backend.storage.s3")
+    s3_module = importlib.import_module("storage.s3")
     importlib.reload(s3_module)
     storage = s3_module.S3Storage("bucket", "region")
     return storage, dummy_client, DummyClientError

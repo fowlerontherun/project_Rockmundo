@@ -2,7 +2,7 @@ import sqlite3
 
 from backend.services.mod_marketplace_service import ModMarketplaceService
 from backend.services.economy_service import EconomyService
-from backend.storage.local import LocalStorage
+from storage.local import LocalStorage
 
 
 def test_marketplace_workflow(tmp_path):
