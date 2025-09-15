@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-from backend.seeds.skill_seed import SEED_SKILLS
+from seeds.skill_seed import SEED_SKILLS
 from backend.models.learning_method import METHOD_PROFILES, LearningMethod
 from backend.services import fan_interaction_service, fan_service
 from backend.services.image_training_service import (

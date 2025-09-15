@@ -10,7 +10,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-import backend.seeds.skill_seed as skill_seed
+import seeds.skill_seed as skill_seed
 from backend.models import skill_seed_store
 
 
@@ -28,9 +28,9 @@ def test_prerequisites_persist_across_restarts(tmp_path, monkeypatch):
     dummy_equipment_seed = types.SimpleNamespace(
         SEED_STAGE_EQUIPMENT=[], STAGE_EQUIPMENT_NAME_TO_ID={}
     )
-    monkeypatch.setitem(sys.modules, "backend.seeds.genre_seed", dummy_genre_seed)
+    monkeypatch.setitem(sys.modules, "seeds.genre_seed", dummy_genre_seed)
     monkeypatch.setitem(
-        sys.modules, "backend.seeds.stage_equipment_seed", dummy_equipment_seed
+        sys.modules, "seeds.stage_equipment_seed", dummy_equipment_seed
     )
 
     admin_music_routes = importlib.import_module("routes.admin_music_routes")

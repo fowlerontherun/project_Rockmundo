@@ -1,5 +1,5 @@
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.recording_service import RecordingService
 from backend.services.skill_service import skill_service
 

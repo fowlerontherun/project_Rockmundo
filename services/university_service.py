@@ -11,7 +11,7 @@ from backend.database import DB_PATH
 from models.course import Course
 from models.skill import Skill
 from backend.services.skill_service import SkillService
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 class UniversityService:

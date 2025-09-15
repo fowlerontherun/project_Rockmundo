@@ -5,7 +5,7 @@ from backend.services import scheduler_service
 from backend.services.rehearsal_service import RehearsalService
 from backend.services.peer_learning_service import peer_learning_service
 from backend.services.skill_service import skill_service
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 def _setup(tmp_path):
