@@ -5,7 +5,7 @@ redis
 alembic
 statsmodels
 pandas
-pydantic==2.5.3
+pydantic==2.9.2
 email-validator
 pytest
 aiosqlite
