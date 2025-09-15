@@ -1,5 +1,5 @@
 """Scheduler job to trigger random events."""
-from backend.services.random_event_service import random_event_service
+from services.random_event_service import random_event_service
 
 
 def run() -> tuple[int, str]:

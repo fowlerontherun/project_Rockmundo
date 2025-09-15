@@ -10,7 +10,7 @@ import os
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from backend.services.season_service import SeasonScheduler
+from services.season_service import SeasonScheduler
 
 try:
     # Preferred: shared project connection helper

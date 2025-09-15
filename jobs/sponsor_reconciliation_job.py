@@ -6,9 +6,9 @@ import asyncio
 import sqlite3
 from typing import Any, Dict
 
-from backend.services.jobs_royalties import RoyaltyJobsService
-from backend.services.sponsorship_service import SponsorshipService
-from backend.utils.metrics import Counter
+from services.jobs_royalties import RoyaltyJobsService
+from services.sponsorship_service import SponsorshipService
+from utils.metrics import Counter
 
 RECONCILIATION_JOB_FAILURES = Counter(
     "sponsor_reconciliation_failures_total",

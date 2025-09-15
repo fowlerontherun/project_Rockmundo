@@ -1,13 +1,13 @@
 # cleanup_tokens.py
 """
-Remove expired or revoked token entries from backend.auth tables.
+Remove expired or revoked token entries from auth tables.
 
 Targets tables:
-- access_tokens(jti TEXT PRIMARY KEY, user_id INTEGER NOT NULL,
-  expires_at TEXT NOT NULL, revoked_at TEXT)
-- refresh_tokens(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER,
-  token_hash TEXT, issued_at TEXT, expires_at TEXT, revoked_at TEXT,
-  user_agent TEXT, ip TEXT)
+    - access_tokens(jti TEXT PRIMARY KEY, user_id INTEGER NOT NULL,
+      expires_at TEXT NOT NULL, revoked_at TEXT)
+    - refresh_tokens(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER,
+      token_hash TEXT, issued_at TEXT, expires_at TEXT, revoked_at TEXT,
+      user_agent TEXT, ip TEXT)
 
 This job removes rows whose `expires_at` has passed or whose
 `revoked_at` timestamp is in the past.
