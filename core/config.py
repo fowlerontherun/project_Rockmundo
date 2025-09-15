@@ -41,7 +41,10 @@ class CORSSettings(BaseModel):
     """Cross-origin resource sharing settings."""
 
     allowed_origins: list[str] = Field(
-        default_factory=lambda: ["*"], env="ROCKMUNDO_CORS_ALLOWED_ORIGINS"
+        default_factory=lambda: [
+            "https://my-rockmundo.netlify.app",
+        ],
+        env="ROCKMUNDO_CORS_ALLOWED_ORIGINS",
     )
 
 
