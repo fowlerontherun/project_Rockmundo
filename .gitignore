@@ -20,3 +20,6 @@ var/*
 !var/storage/
 var/storage/*
 !var/storage/.gitkeep
+
+.venv/
+rockmundo.db
