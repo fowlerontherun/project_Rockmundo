@@ -8,6 +8,12 @@
   REACT_APP_API_BASE = "https://backend.example.com"
 
 [[redirects]]
+  from = "/api/*"
+  to   = "https://backend.example.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
