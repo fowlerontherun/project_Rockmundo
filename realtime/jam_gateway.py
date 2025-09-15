@@ -11,7 +11,7 @@ try:  # pragma: no cover - explicit failure if FastAPI missing
 except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
     raise ImportError("FastAPI must be installed to use backend.realtime.jam_gateway") from exc
 
-from backend.services.jam_service import JamService
+from services.jam_service import JamService
 from .gateway import get_current_user_id_dep
 from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 
