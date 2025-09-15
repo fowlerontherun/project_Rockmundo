@@ -4,9 +4,8 @@ from datetime import datetime, timedelta
 import random
 import sqlite3
 
-from backend.database import DB_PATH
-from models import notification_models
-
+from database import DB_PATH
+from backend.models import notification_models
 from .skill_service import skill_service
 from .xp_reward_service import xp_reward_service
 

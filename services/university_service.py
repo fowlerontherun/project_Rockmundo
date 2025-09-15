@@ -6,10 +6,9 @@ import json
 import sqlite3
 from pathlib import Path
 from typing import List
-
-from backend.database import DB_PATH
-from models.course import Course
-from models.skill import Skill
+from database import DB_PATH
+from backend.models.course import Course
+from backend.models.skill import Skill
 from backend.services.skill_service import SkillService
 from seeds.skill_seed import SKILL_NAME_TO_ID
 

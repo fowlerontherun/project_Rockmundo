@@ -12,7 +12,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Iterable, Tuple
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def _fetch_outstanding(cur: sqlite3.Cursor) -> Iterable[Tuple[int, int, int, int]]:

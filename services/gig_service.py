@@ -2,7 +2,7 @@ import sqlite3
 import random
 from datetime import datetime, timedelta
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services import fan_service
 from backend.services.skill_service import skill_service
 from models.skill import Skill

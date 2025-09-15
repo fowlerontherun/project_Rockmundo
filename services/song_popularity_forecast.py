@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 try:
     from statsmodels.tsa.arima.model import ARIMA  # type: ignore

@@ -1,11 +1,8 @@
 from __future__ import annotations
-
 import sqlite3
 from typing import List, Optional
-
-from backend.database import DB_PATH
-from models.tutor import Tutor
-
+from database import DB_PATH
+from backend.models.tutor import Tutor
 
 class TutorAdminService:
     """CRUD helpers for tutor records."""

@@ -9,8 +9,8 @@ from backend.services.skill_service import skill_service
 from models.skill import Skill
 
 
-from backend.database import DB_PATH
-from services import live_performance_analysis
+from database import DB_PATH
+from backend.services import live_performance_analysis
 try:
     from services.chemistry_service import ChemistryService
 except Exception:  # pragma: no cover - fallback if DB unavailable

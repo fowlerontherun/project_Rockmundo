@@ -2,7 +2,7 @@ import sqlite3
 from datetime import date
 from typing import Dict, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def schedule_drop(user_id: int, drop_date: str, reward: str) -> None:

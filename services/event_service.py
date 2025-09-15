@@ -7,12 +7,11 @@ from typing import Any, Dict, List
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
-from backend.database import DB_PATH
-from models.event import Event
-from models.event_effect import EventEffect
-from models.npc import NPC
-from models.skill import Skill
-
+from database import DB_PATH
+from backend.models.event import Event
+from backend.models.event_effect import EventEffect
+from backend.models.npc import NPC
+from backend.models.skill import Skill
 from .city_service import city_service
 from .npc_ai_service import npc_ai_service
 from .skill_service import skill_service

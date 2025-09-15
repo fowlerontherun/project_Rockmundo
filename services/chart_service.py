@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from services.achievement_service import AchievementService
 from services.legacy_service import LegacyService
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 achievement_service = AchievementService(DB_PATH)
 legacy_service = LegacyService(DB_PATH)

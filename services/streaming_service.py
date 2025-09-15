@@ -5,7 +5,7 @@ try:  # pragma: no cover - prefer local stub if available
     import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.skill import Skill
 from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
