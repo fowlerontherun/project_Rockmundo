@@ -1,8 +1,8 @@
 import logging
 import pytest
 
-from backend.services.jam_service import JamService
-from backend.services.economy_service import EconomyService
+from services.jam_service import JamService
+from services.economy_service import EconomyService
 
 
 class FailingEconomy(EconomyService):
