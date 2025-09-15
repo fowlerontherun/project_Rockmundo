@@ -14,7 +14,7 @@ from backend.utils.logging import get_logger
 from sqlalchemy import create_engine, select, or_
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.economy.models import (
+from economy.models import (
     Base,
     Account,
     Transaction as TransactionModel,
