@@ -12,13 +12,12 @@ import sys
 from pathlib import Path
 
 
-# Ensure project root and ``backend`` package are on the import path so that
-# modules like ``auth`` can be imported when this script is executed directly.
+# Ensure project root is on the import path so that modules like ``auth`` can be
+# imported when this script is executed directly.
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "backend"))
 
-from backend.api import app  # noqa: E402  (import after path manipulation)
+from api import app  # noqa: E402  (import after path manipulation)
 
 
 def main() -> None:

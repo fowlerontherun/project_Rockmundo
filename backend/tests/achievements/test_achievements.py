@@ -32,7 +32,7 @@ core_errors.VenueConflictError = VenueConflictError
 core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
-from backend.routes import achievement_routes  # noqa: E402
+from routes import achievement_routes  # noqa: E402
 from backend.services.chart_service import calculate_weekly_chart  # noqa: E402
 from backend.services.tour_service import TourService  # noqa: E402
 

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from backend.database import DB_PATH
-from backend.models.reputation import ReputationEvent
+from models.reputation import ReputationEvent
 
 
 class ReputationService:

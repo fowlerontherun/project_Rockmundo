@@ -27,7 +27,7 @@ cp .env.example .env.storage
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 4) Run the API
-uvicorn backend.api:app --reload --port 8000
+uvicorn api:app --reload --port 8000
 ```
 
 Open:

@@ -1,7 +1,7 @@
 from backend.services import streaming_service as ss
 from backend.services.skill_service import skill_service
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 
 
 def test_live_stream_skill_improves_quality():

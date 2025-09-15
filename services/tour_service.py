@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import logging
 from typing import Any, Dict, List, Optional
 from utils.db import get_conn
-from backend.services.venue_availability import VenueAvailabilityService
+from services.venue_availability import VenueAvailabilityService
 from core.errors import AppError, TourMinStopsError, VenueConflictError
 import sqlite3
 from typing import Any, Dict, List, Optional
@@ -13,11 +13,11 @@ from core.errors import AppError, TourMinStopsError, VenueConflictError
 from models.economy_config import get_config
 from models.tour import Expense, TicketTier, TourLeg
 from models.tour import Tour as TourModel
-from backend.services.achievement_service import AchievementService
-from backend.services.economy_service import EconomyService
-from backend.services.fame_service import FameService
-from backend.services.venue_availability import VenueAvailabilityService
-from backend.services.weather_service import WeatherService
+from services.achievement_service import AchievementService
+from services.economy_service import EconomyService
+from services.fame_service import FameService
+from services.venue_availability import VenueAvailabilityService
+from services.weather_service import WeatherService
 from sqlalchemy.exc import SQLAlchemyError
 
 from backend.utils.logging import get_logger

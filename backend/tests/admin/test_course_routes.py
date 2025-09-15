@@ -2,7 +2,7 @@ import asyncio
 import pytest
 from fastapi import HTTPException, Request
 
-from backend.routes.admin_course_routes import (
+from routes.admin_course_routes import (
     CourseIn,
     create_course,
     delete_course,
@@ -34,10 +34,10 @@ def test_course_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_course_routes.get_current_user_id", fake_current_user
+        "routes.admin_course_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_course_routes.require_permission", fake_require_permission
+        "routes.admin_course_routes.require_permission", fake_require_permission
     )
 
     svc.db_path = str(tmp_path / "courses.db")
