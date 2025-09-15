@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.realtime import admin_gateway
-from backend.realtime.admin_gateway import router as admin_router, publish_economy_alert
+from realtime import admin_gateway
+from realtime.admin_gateway import router as admin_router, publish_economy_alert
 
 
 @pytest.fixture(autouse=True)

@@ -9,7 +9,7 @@ from typing import Any, Dict
 try:  # pragma: no cover - explicit failure if FastAPI missing
     from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
-    raise ImportError("FastAPI must be installed to use backend.realtime.jam_gateway") from exc
+    raise ImportError("FastAPI must be installed to use realtime.jam_gateway") from exc
 
 from backend.services.jam_service import JamService
 from .gateway import get_current_user_id_dep

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from backend.realtime.publish import (
+from realtime.publish import (
     publish_fan_club_event_invite,
     publish_fan_club_post,
 )
