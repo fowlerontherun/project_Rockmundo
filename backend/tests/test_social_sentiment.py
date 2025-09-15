@@ -1,6 +1,6 @@
 import sqlite3
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services.social_sentiment_service import SocialSentimentService
 from backend.services.song_popularity_service import get_current_popularity
 

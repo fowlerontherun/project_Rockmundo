@@ -6,12 +6,13 @@ from typing import Dict, Generator, Iterable, Optional
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
-from backend.models.skill import Skill
+from models.skill import Skill
 
-from backend.database import DB_PATH
+
+from database import DB_PATH
 from backend.services import live_performance_analysis
 try:
-    from backend.services.chemistry_service import ChemistryService
+    from services.chemistry_service import ChemistryService
 except Exception:  # pragma: no cover - fallback if DB unavailable
     class ChemistryService:  # type: ignore
         def initialize_pair(self, a, b):
@@ -19,10 +20,10 @@ except Exception:  # pragma: no cover - fallback if DB unavailable
 
         def adjust_pair(self, a, b, delta):  # noqa: D401 - simple stub
             return type("P", (), {"score": 50})()
-from backend.services.city_service import city_service
-from backend.services.event_service import is_skill_blocked
-from backend.services.gear_service import gear_service
-from backend.services.setlist_service import get_approved_setlist
+from services.city_service import city_service
+from services.event_service import is_skill_blocked
+from services.gear_service import gear_service
+from services.setlist_service import get_approved_setlist
 
 try:
     from realtime.polling import poll_hub

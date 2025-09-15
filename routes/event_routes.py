@@ -11,7 +11,7 @@ from services.event_service import (
     roll_for_daily_event,
 )
 
-from backend.schemas.events_schemas import EventRollRequest, EventRollResponse
+from schemas.events_schemas import EventRollRequest, EventRollResponse
 
 router = APIRouter()
 

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 """Music production utilities influenced by avatar tech savvy."""
 
+
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.avatar_service import AvatarService
+from models.skill import Skill
+from services.avatar_service import AvatarService
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
 
 

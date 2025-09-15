@@ -1,7 +1,7 @@
 """Service for handling song covers by other artists."""
 
-from backend.services.song_popularity_service import add_event
-from backend.services.song_service import SongService
+from services.song_popularity_service import add_event
+from services.song_service import SongService
 
 song_service = SongService()
 

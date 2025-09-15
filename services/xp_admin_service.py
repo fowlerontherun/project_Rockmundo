@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from backend.models.xp_config import (
+from models.xp_config import (
     XPConfig,
     get_config,
     set_config,

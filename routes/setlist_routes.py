@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Any, List
 
-from backend.core.setlist_optimizer import optimizer
+from core.setlist_optimizer import optimizer
 
 from services import setlist_service
 

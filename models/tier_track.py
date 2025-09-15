@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def set_reward(tier: int, reward: str) -> None:

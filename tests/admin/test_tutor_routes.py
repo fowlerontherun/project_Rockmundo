@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_tutor_routes import (  # type: ignore  # noqa: E402,I001
+from routes.admin_tutor_routes import (  # type: ignore  # noqa: E402,I001
     TutorIn,
     create_tutor,
     delete_tutor,
@@ -45,10 +45,10 @@ def test_tutor_routes_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_tutor_routes.get_current_user_id", fake_current_user
+        "routes.admin_tutor_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_tutor_routes.require_permission", fake_require_permission
+        "routes.admin_tutor_routes.require_permission", fake_require_permission
     )
 
     svc.db_path = str(tmp_path / "tutors.db")

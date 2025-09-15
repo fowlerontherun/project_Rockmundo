@@ -4,7 +4,8 @@ import random
 from typing import Dict, List
 
 from backend.models.onboarding import Question
-from backend.seeds.question_seed import QUESTIONS
+from seeds.question_seed import QUESTIONS
+
 
 
 class OnboardingQuestionService:

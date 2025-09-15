@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from utils.db import cached_query
 
-from backend.models.analytics import (
+from models.analytics import (
     AgeBucket,
     FanSegmentSummary,
     FanTrends,

@@ -45,9 +45,9 @@ from backend.models.item import Item
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill, SkillSpecialization
 from backend.models.xp_config import XPConfig, get_config, set_config
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import SkillService
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.vocal_training_service import VocalTrainingService
 from backend.services.recording_service import RecordingService
 item_service = None  # set in _setup_device

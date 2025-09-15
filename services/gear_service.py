@@ -6,7 +6,7 @@ from dataclasses import asdict
 from itertools import chain
 from typing import Dict, List
 
-from backend.models.gear import BaseItem, GearComponent, GearItem, StatModifier
+from models.gear import BaseItem, GearComponent, GearItem, StatModifier
 
 
 class GearService:

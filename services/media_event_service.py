@@ -1,6 +1,6 @@
 from typing import Optional
 
-from backend.services.song_popularity_service import SongPopularityService, song_popularity_service
+from services.song_popularity_service import SongPopularityService, song_popularity_service
 
 
 class MediaEventService:

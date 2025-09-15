@@ -7,9 +7,10 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Dict, List
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models import activity_log as activity_log_model
 from backend.models import user_settings
+
 
 
 def _ensure_tables(cur: sqlite3.Cursor) -> None:

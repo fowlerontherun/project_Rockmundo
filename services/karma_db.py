@@ -4,9 +4,9 @@ import sqlite3
 from pathlib import Path
 from typing import List, Dict, Any
 
-from backend.database import DB_PATH
-from backend.models.karma_event import KarmaEvent
 
+from database import DB_PATH
+from backend.models.karma_event import KarmaEvent
 
 class KarmaDB:
     """SQLite-backed persistence for karma events and user totals."""

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from backend.routes import admin_drug_routes
+from routes import admin_drug_routes
 
 
 def test_admin_drug_routes_require_admin(monkeypatch):

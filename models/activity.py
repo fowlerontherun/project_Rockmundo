@@ -2,7 +2,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import List, Optional, Dict
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 @dataclass(frozen=True)

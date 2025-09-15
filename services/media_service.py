@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from models.influencer_models import Collaboration, CollaborationStatus
 
-from backend.services.song_popularity_service import add_event
+from services.song_popularity_service import add_event
 
 
 def record_media_placement(song_id: int, placement_type: str) -> None:

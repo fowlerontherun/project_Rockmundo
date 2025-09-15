@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "backend"))
 
-from backend.core.config import settings  # noqa: E402
-from backend.core.security import hash_password  # noqa: E402
+from core.config import settings  # noqa: E402
+from core.security import hash_password  # noqa: E402
 
 DEMO_EMAIL = "demo@rockmundo.test"
 DEMO_PASSWORD = "demo123"
@@ -34,7 +34,7 @@ def run_python_seeds(conn: sqlite3.Connection) -> None:
     for path in SEEDS_DIR.glob("*.py"):
         if path.name.startswith("__"):
             continue
-        module = import_module(f"backend.seeds.{path.stem}")
+        module = import_module(f"seeds.{path.stem}")
         seed_fn = getattr(module, "seed", None)
         if callable(seed_fn):
             print(f"Running seed from {path.name}")
