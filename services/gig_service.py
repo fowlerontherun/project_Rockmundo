@@ -3,11 +3,19 @@ import random
 from datetime import datetime, timedelta
 
 from database import DB_PATH
-from backend.services import fan_service
-from backend.services.skill_service import skill_service
+try:
+    from services import fan_service
+except Exception:  # pragma: no cover - optional dependency
+    fan_service = None  # type: ignore
+
+try:
+    from services.skill_service import skill_service
+except Exception:  # pragma: no cover - optional dependency
+    skill_service = None  # type: ignore
+
 from models.skill import Skill
 from models.learning_method import LearningMethod
-from backend.services.economy_service import EconomyService
+from services.economy_service import EconomyService
 
 
 try:  # pragma: no cover - optional in minimal environments
@@ -22,7 +30,7 @@ except Exception:  # pragma: no cover
 
 try:  # pragma: no cover - optional avatar dependency
 
-    from backend.services.avatar_service import AvatarService
+    from services.avatar_service import AvatarService
     from schemas.avatar import AvatarUpdate
 except Exception:  # pragma: no cover
     class AvatarUpdate:  # type: ignore
