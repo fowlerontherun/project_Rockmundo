@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "backend"))
 
-from backend.core.config import settings  # noqa: E402
-from backend.core.security import hash_password  # noqa: E402
+from core.config import settings  # noqa: E402
+from core.security import hash_password  # noqa: E402
 
 DEMO_EMAIL = "demo@rockmundo.test"
 DEMO_PASSWORD = "demo123"

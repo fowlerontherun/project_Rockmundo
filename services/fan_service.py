@@ -6,6 +6,7 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.avatar_service import AvatarService
 from backend.services.skill_service import skill_service
 
+
 avatar_service = AvatarService()
 
 

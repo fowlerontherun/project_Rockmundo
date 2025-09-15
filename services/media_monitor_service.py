@@ -1,7 +1,7 @@
 import re
 from typing import Callable, Dict, List
 
-from backend.services.song_popularity_service import song_popularity_service
+from services.song_popularity_service import song_popularity_service
 
 
 class MediaMonitorService:

@@ -33,7 +33,7 @@ def test_prerequisites_persist_across_restarts(tmp_path, monkeypatch):
         sys.modules, "seeds.stage_equipment_seed", dummy_equipment_seed
     )
 
-    admin_music_routes = importlib.import_module("backend.routes.admin_music_routes")
+    admin_music_routes = importlib.import_module("routes.admin_music_routes")
 
     async def fake_current_user(req):
         return 1
@@ -55,8 +55,8 @@ def test_prerequisites_persist_across_restarts(tmp_path, monkeypatch):
 
     # Simulate restart
     importlib.reload(skill_seed)
-    del sys.modules["backend.routes.admin_music_routes"]
-    admin_music_routes = importlib.import_module("backend.routes.admin_music_routes")
+    del sys.modules["routes.admin_music_routes"]
+    admin_music_routes = importlib.import_module("routes.admin_music_routes")
 
     reloaded_skill = next(s for s in skill_seed.SEED_SKILLS if s.id == skill_id)
     assert reloaded_skill.prerequisites.get(2) == 3

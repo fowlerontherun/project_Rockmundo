@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from uuid import uuid4
 
-from backend.services.economy_service import EconomyService
-from backend.services.storage_service import get_storage_backend
+from services.economy_service import EconomyService
+from services.storage_service import get_storage_backend
 from backend.storage.base import StorageBackend
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"

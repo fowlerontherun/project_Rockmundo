@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.models.player_chemistry import Base, PlayerChemistry
+from models.player_chemistry import Base, PlayerChemistry
 
 DB_PATH = Path(__file__).resolve().parents[1] / "database" / "rockmundo.db"
 DATABASE_URL = f"sqlite:///{DB_PATH}"

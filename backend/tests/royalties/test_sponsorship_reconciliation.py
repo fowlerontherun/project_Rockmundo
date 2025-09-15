@@ -1,10 +1,9 @@
 import asyncio
 import sqlite3
-from pathlib import Path
 
 from backend.config import revenue
-from backend.jobs import sponsor_reconciliation_job
 from backend.services.sponsorship_service import SponsorshipService
+from jobs import sponsor_reconciliation_job
 
 
 def _setup_db(db_path: str) -> None:

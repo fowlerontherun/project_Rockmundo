@@ -29,7 +29,7 @@ def setup_app(tmp_path):
     importlib.reload(schedule_service_module)
     import backend.services.scheduler_service as scheduler_service_module
     importlib.reload(scheduler_service_module)
-    import backend.routes.schedule_routes as routes_module
+    import routes.schedule_routes as routes_module
     importlib.reload(routes_module)
 
     app = FastAPI()

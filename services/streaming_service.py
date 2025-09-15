@@ -12,6 +12,7 @@ from backend.services.skill_service import skill_service
 from backend.services.song_popularity_service import add_event
 
 
+
 async def _stream_song(user_id: int, song_id: int) -> dict:
     conn = await aiosqlite.connect(DB_PATH)
     try:

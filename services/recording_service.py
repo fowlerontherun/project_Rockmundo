@@ -11,6 +11,7 @@ from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.skill_service import skill_service
 
 
+
 class RecordingService:
     """In-memory management of studio recording sessions."""
 

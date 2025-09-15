@@ -10,7 +10,7 @@ from backend.config.revenue import (
     SPONSOR_IMPRESSION_RATE_CENTS,
     SPONSOR_PAYOUT_SPLIT,
 )
-from backend.models.venue_sponsorship import (
+from models.venue_sponsorship import (
     NegotiationStage,
     SponsorshipNegotiation,
 )

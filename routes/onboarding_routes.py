@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from backend.schemas.onboarding import (
+from schemas.onboarding import (
     AnswersSchema,
     EvaluationResponse,
     QuestionSchema,

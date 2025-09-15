@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 sys.path.append(str(ROOT / "backend"))
 
-import backend.core.config as config_module
+import core.config as config_module
 import backend.services.storage_service as storage_service
 
 import os

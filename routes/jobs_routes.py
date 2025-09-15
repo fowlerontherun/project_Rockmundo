@@ -12,7 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from typing import Any
 
-from backend.core.scheduler import register_jobs, list_jobs, run_job
+from core.scheduler import register_jobs, list_jobs, run_job
 
 router = APIRouter()
 

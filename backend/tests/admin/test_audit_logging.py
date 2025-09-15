@@ -5,7 +5,7 @@ from backend.services.admin_audit_service import (
     get_admin_audit_service,
     audit_dependency,
 )
-from backend.routes import admin_media_moderation_routes as media_routes
+from routes import admin_media_moderation_routes as media_routes
 from backend.models.economy_config import set_config, save_config, EconomyConfig
 
 
