@@ -5,14 +5,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
-from backend.config.revenue import (
-    SPONSOR_IMPRESSION_RATE_CENTS,
-    SPONSOR_PAYOUT_SPLIT,
-)
-from models.venue_sponsorship import (
+from backend.models.venue_sponsorship import (
     NegotiationStage,
     SponsorshipNegotiation,
+)
+from config.revenue import (
+    SPONSOR_IMPRESSION_RATE_CENTS,
+    SPONSOR_PAYOUT_SPLIT,
 )
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"

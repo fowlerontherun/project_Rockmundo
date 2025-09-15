@@ -1,8 +1,8 @@
 import sqlite3
 
-from backend.config import revenue
 from backend.services.jobs_royalties import RoyaltyJobsService
 from backend.services.venue_sponsorships_service import SponsorshipIn, VenueSponsorshipsService
+from config import revenue
 
 
 def test_venue_sponsorship_payout(tmp_path):

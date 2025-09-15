@@ -3,13 +3,14 @@ try:  # pragma: no cover - prefer local stub if available
     import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
-from typing import Optional, Dict, Any, List
 from datetime import date
+from typing import Any, Dict, List, Optional
 
-from backend.config.revenue import (
+from config.revenue import (
     SPONSOR_IMPRESSION_RATE_CENTS,
     SPONSOR_PAYOUT_SPLIT,
 )
+
 
 def _display_name(venue_name: str, sponsor_name: Optional[str], fmt: str) -> str:
     if not sponsor_name:
