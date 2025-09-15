@@ -22,4 +22,4 @@ python -m live3d --gig-id 1 --db path/to/gig.db
 ```
 
 The command fetches the gig's completion data using
-`backend.services.gig_service` and displays the attendance as a 3D bar.
+`services.gig_service` and displays the attendance as a 3D bar.
