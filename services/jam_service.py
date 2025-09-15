@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import Dict, Optional, Set
 
 from models.jam_session import AudioStream, JamSession
-from backend.services.economy_service import EconomyService
-from backend.models.jam_session import AudioStream, JamSession
 from services.economy_service import EconomyService
 
 STUDIO_RENTAL_CENTS = 100
