@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from backend.models.dialogue import DialogueMessage
 from realtime.gateway import get_current_user_id_dep
 from backend.monitoring.websocket import track_connect, track_disconnect, track_message
-from backend.services.dialogue_service import DialogueService
+from services.dialogue_service import DialogueService
 
 router = APIRouter(prefix="/dialogue", tags=["dialogue"])
 
