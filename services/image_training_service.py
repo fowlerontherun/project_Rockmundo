@@ -10,6 +10,7 @@ from backend.services.skill_service import SkillService
 from backend.services.skill_service import skill_service as default_skill_service
 
 
+
 class ImageTrainingService:
     """Offer workshops and courses for image skills."""
 

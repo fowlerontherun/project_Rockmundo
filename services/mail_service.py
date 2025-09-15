@@ -6,8 +6,8 @@ import time
 import uuid
 from typing import Dict, List, Optional
 
-from backend.services.notifications_service import NotificationsService
-from backend.services.storage_service import get_storage_backend
+from services.notifications_service import NotificationsService
+from services.storage_service import get_storage_backend
 from utils.db import get_conn
 
 

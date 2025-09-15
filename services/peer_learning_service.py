@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from typing import Iterable, List
-
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.skill import Skill
 from backend.services.skill_service import skill_service
 from seeds.skill_seed import SKILL_NAME_TO_ID
@@ -51,7 +50,7 @@ class PeerLearningService:
     # ------------------------------------------------------------------
     def schedule_session(self, band_id: int, members: Iterable[int], run_at: str) -> dict:
         """Schedule a peer learning session via the scheduler service."""
-        from backend.services.scheduler_service import schedule_task
+        from services.scheduler_service import schedule_task
 
         member_list = list(members)
         try:

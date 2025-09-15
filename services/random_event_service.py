@@ -2,12 +2,14 @@ import random
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
-from backend.models.random_event import RandomEvent
-from backend.models.random_events import ADDICTION_EVENTS
-from backend.models.skill import Skill
+
+from models.random_event import RandomEvent
+from models.random_events import ADDICTION_EVENTS
+from models.skill import Skill
 from backend.services.addiction_service import addiction_service
 from backend.services.notifications_service import NotificationsService
 from backend.services.skill_service import skill_service
+
 
 
 class RandomEventService:

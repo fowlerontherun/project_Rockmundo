@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth.dependencies import require_permission
-from backend.database import get_conn
+from database import get_conn
 from services.season_service import activate_season, deactivate_season
 
 router = APIRouter(

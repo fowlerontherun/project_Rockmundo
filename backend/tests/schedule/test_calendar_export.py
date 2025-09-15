@@ -22,7 +22,7 @@ def setup_app(tmp_path):
     importlib.reload(service_module)
     import backend.services.calendar_export as export_module
     importlib.reload(export_module)
-    import backend.routes.schedule_routes as routes_module
+    import routes.schedule_routes as routes_module
     importlib.reload(routes_module)
 
     app = FastAPI()

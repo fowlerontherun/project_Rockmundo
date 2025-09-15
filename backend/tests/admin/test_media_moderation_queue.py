@@ -2,7 +2,7 @@ import asyncio
 
 from fastapi import Request
 
-from backend.routes import admin_media_moderation_routes as routes
+from routes import admin_media_moderation_routes as routes
 
 
 def _setup(monkeypatch):

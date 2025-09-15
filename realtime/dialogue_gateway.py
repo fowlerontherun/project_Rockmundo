@@ -6,7 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend.models.dialogue import DialogueMessage
-from backend.realtime.gateway import get_current_user_id_dep
+from realtime.gateway import get_current_user_id_dep
 from backend.monitoring.websocket import track_connect, track_disconnect, track_message
 from backend.services.dialogue_service import DialogueService
 

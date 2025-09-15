@@ -1,7 +1,7 @@
 import sqlite3
 import random
 from datetime import datetime
-from backend.database import DB_PATH
+from database import DB_PATH
 
 def unlock_ai_manager(band_id: int) -> dict:
     conn = sqlite3.connect(DB_PATH)

@@ -26,7 +26,7 @@ def _snapshot() -> Dict[str, int]:
 
 async def _broadcast() -> None:
     try:
-        from backend.realtime.gateway import hub
+        from realtime.gateway import hub
     except Exception:  # pragma: no cover - hub not available
         return
     await hub.publish(TOPIC, _snapshot())

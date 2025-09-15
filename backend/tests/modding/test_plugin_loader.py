@@ -1,9 +1,9 @@
-from backend.modding.loader import PluginLoader
+from modding.loader import PluginLoader
 
 
 def _create_plugin(tmp_path, monkeypatch, extra_code: str = ""):
     plugin_code = (
-        "from backend.modding.interfaces import PluginMeta\n"
+        "from modding.interfaces import PluginMeta\n"
         "class Sample:\n"
         "    meta = PluginMeta(name='sample', version='1.0', author='tester')\n"
         "    activated = False\n"

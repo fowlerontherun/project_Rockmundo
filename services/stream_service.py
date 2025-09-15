@@ -1,6 +1,6 @@
 
 from models.stream import Stream
-from backend.services.avatar_service import AvatarService
+from services.avatar_service import AvatarService
 
 PLATFORM_PAYOUTS = {
     "Spotify": 0.003,

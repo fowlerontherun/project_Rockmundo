@@ -5,7 +5,7 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 router = APIRouter(prefix="/tour-collab", tags=["TourCollab"])
 

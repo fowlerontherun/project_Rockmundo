@@ -2,7 +2,7 @@ import sqlite3
 import sqlite3
 from typing import Iterable, List, Dict, Tuple
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def create_template(user_id: int, name: str, entries: Iterable[Tuple[int, int]]) -> int:

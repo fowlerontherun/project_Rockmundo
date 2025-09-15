@@ -1,5 +1,5 @@
 import os, tempfile
-from backend.storage.local import LocalStorage
+from storage.local import LocalStorage
 
 def test_local_roundtrip(tmp_path):
     root = tmp_path / "store"

@@ -23,7 +23,7 @@ sys.modules["backend.services.chart_service"] = chart_service_stub
 
 from backend import database
 from backend.services.jobs_charts import ChartsJobsService
-from backend.routes import chart_routes
+from routes import chart_routes
 
 def _setup_db(tmp_path):
     db = tmp_path / "charts.sqlite"
