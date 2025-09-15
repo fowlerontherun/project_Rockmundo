@@ -2,7 +2,7 @@
 //
 // Usage:
 //   import { connect } from './utils/ws.js';
-//   const conn = connect('ws://localhost:8000/notifications/ws', {
+//   const conn = connect('/notifications/ws', {
 //     onMessage: (msg) => console.log(msg),
 //     pollUrl: '/api/notifications', // fallback endpoint returning JSON list
 //   });
@@ -13,6 +13,10 @@
 import { authFetch } from './auth.js';
 
 export function connect(url, { onMessage, onError, onOpen, pollUrl, pollInterval = 5000 } = {}) {
+  if (!/^wss?:/i.test(url)) {
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    url = `${proto}://${window.location.host}${url}`;
+  }
   // If WebSocket is supported and available, prefer it.
   if ('WebSocket' in window) {
     try {
