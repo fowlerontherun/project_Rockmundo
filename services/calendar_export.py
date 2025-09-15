@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from backend.services.schedule_service import schedule_service
+from services.schedule_service import schedule_service
 
 
 def daily_schedule_to_ics(user_id: int, date: str) -> str:

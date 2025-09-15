@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from backend.services.economy_service import EconomyError, EconomyService
+from services.economy_service import EconomyError, EconomyService
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

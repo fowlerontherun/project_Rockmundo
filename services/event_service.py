@@ -12,7 +12,6 @@ from backend.models.event import Event
 from backend.models.event_effect import EventEffect
 from backend.models.npc import NPC
 from backend.models.skill import Skill
-
 from .city_service import city_service
 from .npc_ai_service import npc_ai_service
 from .skill_service import skill_service

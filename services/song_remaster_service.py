@@ -1,11 +1,9 @@
 import sqlite3
 from datetime import datetime
 from typing import Dict, Optional
-
 from database import DB_PATH
 from backend.services.song_service import SongService
 from backend.services.song_popularity_service import song_popularity_service
-
 
 class SongRemasterService:
     """Create remastered versions of songs and seed their popularity."""

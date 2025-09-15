@@ -132,7 +132,7 @@ forecast_service = SongPopularityForecastService()
 def _schedule_forecast_recompute() -> None:
     """Schedule nightly recomputation of all song forecasts."""
     try:  # best effort; scheduler may not be set up in all environments
-        from backend.services.scheduler_service import schedule_task
+        from services.scheduler_service import schedule_task
 
         run_at = (datetime.utcnow() + timedelta(days=1)).isoformat()
         schedule_task(

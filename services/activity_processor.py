@@ -12,6 +12,7 @@ from backend.models import activity_log as activity_log_model
 from backend.models import user_settings
 
 
+
 def _ensure_tables(cur: sqlite3.Cursor) -> None:
     cur.execute(
         """

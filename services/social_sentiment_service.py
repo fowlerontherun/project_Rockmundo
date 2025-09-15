@@ -1,10 +1,8 @@
 import sqlite3
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
-
 from database import DB_PATH
 from backend.services.song_popularity_service import add_event
-
 
 def _ensure_schema(cur: sqlite3.Cursor) -> None:
     """Ensure sentiment history table exists."""

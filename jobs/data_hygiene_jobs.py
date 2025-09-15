@@ -34,7 +34,7 @@ def _detect_db_path() -> str:
     """
     # Preferred: dedicated settings
     for mod_name, attr in (
-        ("backend.core.settings", "DB_PATH"),
+        ("core.settings", "DB_PATH"),
         ("backend.settings", "DB_PATH"),
         ("settings", "DB_PATH"),
     ):
@@ -48,7 +48,7 @@ def _detect_db_path() -> str:
 
     # Next: try to import a get_conn that knows the path
     try:
-        from backend.core.database import DB_PATH as CORE_DB_PATH  # type: ignore
+        from core.database import DB_PATH as CORE_DB_PATH  # type: ignore
         if CORE_DB_PATH:
             return CORE_DB_PATH
     except Exception:

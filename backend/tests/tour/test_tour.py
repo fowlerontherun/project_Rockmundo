@@ -35,7 +35,7 @@ core_errors.VenueConflictError = VenueConflictError
 core_errors.TourMinStopsError = TourMinStopsError
 sys.modules["core.errors"] = core_errors
 
-from backend.routes.tour_routes import router
+from routes.tour_routes import router
 from backend.services.tour_service import TourService
 from backend.services.weather_service import WeatherService
 from backend.services.economy_service import EconomyService
@@ -109,7 +109,7 @@ def test_profit_calculation(svc):
 def test_routes(tmp_path):
     """Basic smoke test invoking the route handlers directly."""
     set_payout(100)
-    from backend.routes import tour_routes as tr
+    from routes import tour_routes as tr
 
     info = tr.create_tour(tr.CreateTourIn(band_id=1, title="RouteTour", start_date="2024", end_date="2024"))
     tid = info["id"]

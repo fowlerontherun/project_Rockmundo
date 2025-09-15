@@ -8,9 +8,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
 from pathlib import Path
 from typing import Dict, List
-
 from models.album import Album
-
 from database import DB_PATH
 from backend.services import audio_mixing_service, chart_service
 from backend.services.ai_art_service import ai_art_service

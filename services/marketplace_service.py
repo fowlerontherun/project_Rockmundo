@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from backend.services.economy_service import EconomyService, EconomyError
+from services.economy_service import EconomyService, EconomyError
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

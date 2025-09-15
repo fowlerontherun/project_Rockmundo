@@ -4,10 +4,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
-
 from database import DB_PATH
 from backend.models.reputation import ReputationEvent
-
 
 class ReputationService:
     """Persist and mutate reputation scores and events."""

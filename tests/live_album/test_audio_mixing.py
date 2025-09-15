@@ -4,7 +4,7 @@ import sqlite3
 import pytest
 
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services import audio_mixing_service
 from backend.services.live_album_service import LiveAlbumService
 from backend.services.skill_service import skill_service

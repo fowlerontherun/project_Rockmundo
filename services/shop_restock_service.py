@@ -34,7 +34,7 @@ def schedule_restock(
     shop_id: int, kind: str, item_id: int, interval: int, quantity: int
 ) -> Dict[str, int]:
     """Schedule recurring restocking for a shop item or book."""
-    from backend.services.scheduler_service import schedule_task
+    from services.scheduler_service import schedule_task
 
     run_at = (datetime.utcnow() + timedelta(days=interval)).isoformat()
     return schedule_task(

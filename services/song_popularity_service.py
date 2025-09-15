@@ -2,7 +2,6 @@ import math
 import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
-
 from database import DB_PATH
 from backend.services.song_popularity_forecast import forecast_service
 
@@ -457,7 +456,7 @@ def schedule_global_aggregation() -> None:
     try:
         from datetime import timedelta
 
-        from backend.services.scheduler_service import schedule_task
+        from services.scheduler_service import schedule_task
 
         run_at = (datetime.utcnow() + timedelta(days=1)).isoformat()
         schedule_task(
