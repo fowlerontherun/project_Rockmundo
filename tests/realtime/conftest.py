@@ -16,8 +16,8 @@ from tests.realtime.fake_jam_service import FakeJamService
 def jam_app():
     fake_module = types.ModuleType("jam_service")
     fake_module.JamService = FakeJamService
-    original_mod = sys.modules.get("backend.services.jam_service")
-    sys.modules["backend.services.jam_service"] = fake_module
+    original_mod = sys.modules.get("services.jam_service")
+    sys.modules["services.jam_service"] = fake_module
 
     jam_gateway = importlib.reload(importlib.import_module("realtime.jam_gateway"))
 
@@ -34,7 +34,7 @@ def jam_app():
         yield app, service
     finally:
         if original_mod is not None:
-            sys.modules["backend.services.jam_service"] = original_mod
+            sys.modules["services.jam_service"] = original_mod
         else:
-            sys.modules.pop("backend.services.jam_service", None)
+            sys.modules.pop("services.jam_service", None)
         importlib.reload(jam_gateway)
