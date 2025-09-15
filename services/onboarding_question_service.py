@@ -7,7 +7,6 @@ from backend.models.onboarding import Question
 from seeds.question_seed import QUESTIONS
 
 
-
 class OnboardingQuestionService:
     """Provide question sets and evaluate selected answers."""
 

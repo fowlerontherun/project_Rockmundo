@@ -8,7 +8,6 @@ from backend.models.skill import Skill
 from backend.services.skill_service import skill_service
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
-
 PERFORMANCE_SKILL = Skill(
     id=SKILL_NAME_TO_ID["performance"],
     name="performance",

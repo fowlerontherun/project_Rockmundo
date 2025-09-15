@@ -5,7 +5,6 @@ from backend.services import fan_service
 from backend.services.skill_service import skill_service
 from seeds.skill_seed import SEED_SKILLS
 
-
 FASHION_SKILL = next(s for s in SEED_SKILLS if s.name == "fashion")
 IMAGE_MANAGEMENT_SKILL = next(
     s for s in SEED_SKILLS if s.name == "image_management"
