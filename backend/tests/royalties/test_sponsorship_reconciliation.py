@@ -1,10 +1,8 @@
 import asyncio
 import sqlite3
-
 from backend.jobs import sponsor_reconciliation_job
 from backend.services.sponsorship_service import SponsorshipService
 from config import revenue
-
 
 def _setup_db(db_path: str) -> None:
     conn = sqlite3.connect(db_path)

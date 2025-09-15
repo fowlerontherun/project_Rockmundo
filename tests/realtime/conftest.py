@@ -19,7 +19,7 @@ def jam_app():
     original_mod = sys.modules.get("backend.services.jam_service")
     sys.modules["backend.services.jam_service"] = fake_module
 
-    jam_gateway = importlib.reload(importlib.import_module("backend.realtime.jam_gateway"))
+    jam_gateway = importlib.reload(importlib.import_module("realtime.jam_gateway"))
 
     app = FastAPI()
     service = FakeJamService()

@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from backend.realtime.social_gateway import publish_forum_reply, publish_friend_request
+from realtime.social_gateway import publish_forum_reply, publish_friend_request
 
 
 @dataclass

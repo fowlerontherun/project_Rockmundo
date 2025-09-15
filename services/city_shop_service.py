@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-from backend.services.item_service import item_service
-from backend.services.books_service import books_service
-from backend.services.economy_service import EconomyService
+from services.item_service import item_service
+from services.books_service import books_service
+from services.economy_service import EconomyService
 
 from .economy_service import EconomyService, EconomyError
 from .item_service import item_service

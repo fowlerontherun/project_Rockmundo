@@ -5,11 +5,12 @@ try:  # pragma: no cover - prefer local stub if available
     import utils.aiosqlite_local as aiosqlite
 except ModuleNotFoundError:  # pragma: no cover - fallback to package
     import aiosqlite  # type: ignore
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.skill import Skill
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID
+from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.skill_service import skill_service
 from backend.services.song_popularity_service import add_event
+
 
 
 async def _stream_song(user_id: int, song_id: int) -> dict:

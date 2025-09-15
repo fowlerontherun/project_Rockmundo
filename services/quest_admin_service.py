@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from backend.models.quest import (
+from models.quest import (
     QuestDB,
     QuestStageDB,
     QuestBranchDB,

@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def _update_quantity(table: str, shop_id: int, item_id: int, quantity: int) -> None:
@@ -34,7 +34,7 @@ def schedule_restock(
     shop_id: int, kind: str, item_id: int, interval: int, quantity: int
 ) -> Dict[str, int]:
     """Schedule recurring restocking for a shop item or book."""
-    from backend.services.scheduler_service import schedule_task
+    from services.scheduler_service import schedule_task
 
     run_at = (datetime.utcnow() + timedelta(days=interval)).isoformat()
     return schedule_task(

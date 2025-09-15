@@ -3,18 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from backend.services.economy_service import EconomyService
-from backend.services.legacy_service import LegacyService
+from services.economy_service import EconomyService
+from services.legacy_service import LegacyService
 
-from backend.models.festival import FestivalProposal
-from backend.models.festival_builder import (
+from models.festival import FestivalProposal
+from models.festival_builder import (
     FestivalBuilder,
     Slot,
     Sponsor,
     Stage,
     TicketTier,
 )
-from backend.models.ticketing_models import Ticket
+from models.ticketing_models import Ticket
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

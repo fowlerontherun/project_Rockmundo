@@ -7,7 +7,7 @@ import pytest
 from moto import mock_aws
 from botocore.exceptions import ClientError
 
-from backend.storage.s3 import S3Storage
+from storage.s3 import S3Storage
 
 @mock_aws
 def test_s3_roundtrip(monkeypatch, tmp_path):

@@ -62,7 +62,7 @@ def test_purchase_flow_invokes_payment_and_updates_economy(tmp_path):
 
     assert gateway.counter == 1
 
-    from backend.economy.models import Account, Transaction as Tx
+    from economy.models import Account, Transaction as Tx
     from sqlalchemy import select
 
     with economy.SessionLocal() as session:

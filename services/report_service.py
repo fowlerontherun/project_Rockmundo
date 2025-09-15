@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Dict
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 class ReportService:

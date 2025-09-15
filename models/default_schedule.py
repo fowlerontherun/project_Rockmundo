@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Iterable, List, Dict, Tuple
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def set_plan(user_id: int, day_of_week: str, entries: Iterable[Tuple[int, int]]) -> None:

@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 class SongService:

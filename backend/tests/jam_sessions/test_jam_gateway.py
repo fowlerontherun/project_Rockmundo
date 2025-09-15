@@ -4,7 +4,7 @@ from contextlib import suppress
 
 import pytest
 
-from backend.realtime.jam_gateway import jam_ws, jam_service
+from realtime.jam_gateway import jam_ws, jam_service
 from backend.services.economy_service import EconomyService
 
 

@@ -8,7 +8,7 @@ from typing import Dict
 try:  # pragma: no cover - explicit failure if FastAPI missing
     from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 except ModuleNotFoundError as exc:  # pragma: no cover - FastAPI required
-    raise ImportError("FastAPI must be installed to use backend.realtime.polling") from exc
+    raise ImportError("FastAPI must be installed to use realtime.polling") from exc
 
 from .gateway import get_current_user_id_dep
 from backend.monitoring.websocket import track_connect, track_disconnect, track_message

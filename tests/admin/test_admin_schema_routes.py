@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_schema_routes import (  # type: ignore
+from routes.admin_schema_routes import (  # type: ignore
     apprenticeship_schema,
     book_schema,
     course_schema,
@@ -44,10 +44,10 @@ def test_admin_schema_available(monkeypatch, func):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_schema_routes.get_current_user_id", fake_current_user
+        "routes.admin_schema_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_schema_routes.require_permission", fake_require_permission
+        "routes.admin_schema_routes.require_permission", fake_require_permission
     )
 
     req = Request({"type": "http", "headers": []})

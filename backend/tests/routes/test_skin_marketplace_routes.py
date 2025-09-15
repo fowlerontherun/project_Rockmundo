@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import base64
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.storage.local import LocalStorage
+from storage.local import LocalStorage
 from backend.services.skin_service import SkinService, engine
 from models.skin import Skin
 from models.avatar import Base as AvatarBase

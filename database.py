@@ -3,7 +3,7 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "rockmundo.db"
+DB_PATH = Path(__file__).resolve().parent / "rockmundo.db"
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:

@@ -31,7 +31,7 @@ chmod -R 775 var/storage                  # adjust UID/GID as needed
 python -m backend.scripts.seed_demo  # creates demo data: users, skills, genres, etc.
 
 # 5) Run the API
-uvicorn backend.api:app --reload --port 8000
+uvicorn api:app --reload --port 8000
 ```
 
 > When running via Docker, mount `var/storage` and ensure it is owned by the
