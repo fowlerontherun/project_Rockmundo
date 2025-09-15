@@ -9,7 +9,7 @@ BASE = Path(__file__).resolve().parents[2]
 sys.path.append(str(BASE))
 sys.path.append(str(BASE / "backend"))
 
-from backend.routes.admin_apprenticeship_routes import (  # type: ignore  # noqa: E402,I001
+from routes.admin_apprenticeship_routes import (  # type: ignore  # noqa: E402,I001
     ApprenticeshipIn,
     create_apprenticeship,
     delete_apprenticeship,
@@ -17,7 +17,7 @@ from backend.routes.admin_apprenticeship_routes import (  # type: ignore  # noqa
     update_apprenticeship,
     svc,
 )
-from backend.seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
+from seeds.skill_seed import SKILL_NAME_TO_ID  # noqa: E402
 
 
 def test_apprenticeship_routes_require_admin():
@@ -48,10 +48,10 @@ def test_apprenticeship_routes_crud(monkeypatch, tmp_path):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_apprenticeship_routes.get_current_user_id", fake_current_user
+        "routes.admin_apprenticeship_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_apprenticeship_routes.require_permission", fake_require_permission
+        "routes.admin_apprenticeship_routes.require_permission", fake_require_permission
     )
 
     svc.db_path = str(tmp_path / "apprenticeships.db")

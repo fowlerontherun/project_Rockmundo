@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-from backend.models.xp_config import get_config
+from models.xp_config import get_config
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

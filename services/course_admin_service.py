@@ -4,10 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 from typing import List, Optional
-
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.course import Course
-
 
 class CourseAdminService:
     """CRUD operations for courses stored in SQLite."""

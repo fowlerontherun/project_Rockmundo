@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def create_revision(setlist_id: int, setlist, author: str) -> int:

@@ -2,7 +2,7 @@ import asyncio
 import sqlite3
 
 from backend.services.social_service import social_service
-from backend.realtime import social_gateway
+from realtime import social_gateway
 
 
 def test_friend_request_flow(tmp_path, monkeypatch):

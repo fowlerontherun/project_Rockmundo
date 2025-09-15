@@ -40,7 +40,7 @@ sys.modules["utils.db"] = db_module
 from backend.services.economy_service import EconomyService
 from backend.services.tour_service import TourService
 from backend.services.weather_service import WeatherService
-from backend.economy.models import Account, LedgerEntry
+from economy.models import Account, LedgerEntry
 
 
 class DummyFameService:

@@ -54,7 +54,7 @@ def test_gig_completion_persists_services(monkeypatch, tmp_path):
         AvatarService as AvatarSvc,
     )
     from backend.services.economy_service import EconomyService as EconSvc
-    from backend.schemas.avatar import AvatarCreate
+    from schemas.avatar import AvatarCreate
     from models.avatar import Base as AvatarBase
     from models import avatar_skin  # noqa: F401
 

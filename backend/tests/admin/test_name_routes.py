@@ -18,7 +18,7 @@ def test_append_names_and_generate(tmp_path, monkeypatch):
             return decorator
     monkeypatch.setattr(fastapi, "APIRouter", DummyRouter)
 
-    admin_name_routes = importlib.import_module("backend.routes.admin_name_routes")
+    admin_name_routes = importlib.import_module("routes.admin_name_routes")
 
     monkeypatch.setattr(name_dataset_service, "_DATA_DIR", tmp_path)
     monkeypatch.setattr(name_generator, "DATA_DIR", tmp_path)

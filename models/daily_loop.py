@@ -3,7 +3,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Dict, Optional
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services.xp_reward_service import xp_reward_service
 from backend.models import weekly_drop, tier_track
 

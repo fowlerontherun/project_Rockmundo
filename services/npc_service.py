@@ -3,8 +3,8 @@ from __future__ import annotations
 import random
 from typing import Dict, List, Optional
 
-from backend.models.npc import NPC
-from backend.models.npc_dialogue import DialogueTree
+from models.npc import NPC
+from models.npc_dialogue import DialogueTree
 
 
 # Simple seasonal event definitions used by ``generate_seasonal_event``.

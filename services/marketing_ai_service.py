@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from typing import Dict, List
 
-from backend.models.promotion import Promotion
+from models.promotion import Promotion
 
 # In-memory storage for accepted promotions
 _promotions_db: List[Promotion] = []

@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from fastapi import HTTPException, Request
 
-from backend.routes.admin_npc_routes import (
+from routes.admin_npc_routes import (
     create_npc,
     delete_npc,
     edit_npc,
@@ -32,10 +32,10 @@ def test_admin_npc_routes_flow(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "backend.routes.admin_npc_routes.get_current_user_id", fake_current_user
+        "routes.admin_npc_routes.get_current_user_id", fake_current_user
     )
     monkeypatch.setattr(
-        "backend.routes.admin_npc_routes.require_permission", fake_require_permission
+        "routes.admin_npc_routes.require_permission", fake_require_permission
     )
 
     req = Request({})

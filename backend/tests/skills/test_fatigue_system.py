@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
-from backend.schemas.avatar import AvatarCreate, AvatarUpdate
+from schemas.avatar import AvatarCreate, AvatarUpdate
 from backend.services.avatar_service import AvatarService
 from backend.services.skill_service import SkillService
 

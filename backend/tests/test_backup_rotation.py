@@ -3,7 +3,8 @@ import os
 import sqlite3
 import time
 
-from backend.jobs import backup_db
+from jobs import backup_db
+
 
 def test_backup_rotation(tmp_path):
     db = tmp_path / "app.db"

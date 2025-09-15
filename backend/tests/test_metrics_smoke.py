@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from backend.api import app
-from backend.realtime.gateway import hub
+from realtime.gateway import hub
 from backend.services.economy_service import EconomyService
 
 

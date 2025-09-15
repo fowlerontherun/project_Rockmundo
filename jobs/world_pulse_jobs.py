@@ -14,7 +14,7 @@ from backend.services.season_service import SeasonScheduler
 
 try:
     # Preferred: shared project connection helper
-    from backend.database import get_conn  # type: ignore
+    from database import get_conn  # type: ignore
 except Exception:
     # Fallback: local minimal connector for tests or standalone runs
     import sqlite3
@@ -383,7 +383,7 @@ def run_yearly(today: Optional[str] = None, conn_override=None):
 
 
 if __name__ == "__main__":
-    # Handy CLI: python -m backend.jobs.world_pulse_jobs daily 2025-08-25
+    # Handy CLI: python -m jobs.world_pulse_jobs daily 2025-08-25
     import sys
     cmd = sys.argv[1] if len(sys.argv) >= 2 else "daily"
     arg = sys.argv[2] if len(sys.argv) >= 3 else None

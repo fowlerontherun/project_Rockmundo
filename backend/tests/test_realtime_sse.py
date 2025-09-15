@@ -3,8 +3,8 @@ import json
 import pytest
 from fastapi import FastAPI
 
-from backend.realtime.gateway import router as realtime_router
-from backend.realtime.publish import publish_mail_unread, publish_pulse_update
+from realtime.gateway import router as realtime_router
+from realtime.publish import publish_mail_unread, publish_pulse_update
 
 @pytest.fixture
 def app_fixture():

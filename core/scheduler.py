@@ -15,12 +15,12 @@ Expose:
 """
 
 from __future__ import annotations
+
 import asyncio
+import os
+import sqlite3
 from datetime import datetime, timezone
 from typing import Callable, Dict, Optional
-
-import sqlite3
-import os
 
 # Prefer project's get_conn
 try:
@@ -35,16 +35,15 @@ except Exception:
         return conn
 
 # Import job modules
-from backend.jobs import (
+from jobs import (
+    backup_db,
+    cleanup_event_effects,
     cleanup_idempotency,
     cleanup_rate_limits,
     cleanup_tokens,
-    backup_db,
-    cleanup_event_effects,
-    random_events,
     lifestyle_jobs,
+    random_events,
 )  # type: ignore
-
 
 JobFunc = Callable[[], tuple[int, str]]
 

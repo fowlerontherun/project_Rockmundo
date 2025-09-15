@@ -4,9 +4,9 @@ from copy import deepcopy
 import pytest
 from fastapi import Request
 
-from backend.routes.admin_npc_routes import preview_npc, svc as npc_svc
-from backend.routes.admin_quest_routes import preview_quest, svc as quest_svc
-from backend.routes.admin_economy_routes import (
+from routes.admin_npc_routes import preview_npc, svc as npc_svc
+from routes.admin_quest_routes import preview_quest, svc as quest_svc
+from routes.admin_economy_routes import (
     preview_config,
     svc as econ_svc,
     ConfigUpdateIn,
@@ -23,17 +23,17 @@ async def _role(roles, user_id):
 
 def test_preview_endpoints_do_not_persist(monkeypatch):
     monkeypatch.setattr(
-        "backend.routes.admin_npc_routes.get_current_user_id", _allow
+        "routes.admin_npc_routes.get_current_user_id", _allow
     )
-    monkeypatch.setattr("backend.routes.admin_npc_routes.require_permission", _role)
+    monkeypatch.setattr("routes.admin_npc_routes.require_permission", _role)
     monkeypatch.setattr(
-        "backend.routes.admin_quest_routes.get_current_user_id", _allow
+        "routes.admin_quest_routes.get_current_user_id", _allow
     )
-    monkeypatch.setattr("backend.routes.admin_quest_routes.require_permission", _role)
+    monkeypatch.setattr("routes.admin_quest_routes.require_permission", _role)
     monkeypatch.setattr(
-        "backend.routes.admin_economy_routes.get_current_user_id", _allow
+        "routes.admin_economy_routes.get_current_user_id", _allow
     )
-    monkeypatch.setattr("backend.routes.admin_economy_routes.require_permission", _role)
+    monkeypatch.setattr("routes.admin_economy_routes.require_permission", _role)
 
     req = Request({})
 

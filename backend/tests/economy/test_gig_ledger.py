@@ -4,7 +4,7 @@ import types
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from backend.economy.models import Account, LedgerEntry, Transaction as TransactionModel
+from economy.models import Account, LedgerEntry, Transaction as TransactionModel
 from backend.services.economy_service import EconomyService
 import backend.services.gig_service as gig_service
 

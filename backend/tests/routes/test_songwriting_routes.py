@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 Path(__file__).resolve().parents[2].joinpath("database").mkdir(exist_ok=True)
 
-from backend.routes import songwriting_routes  # noqa: E402
+from routes import songwriting_routes  # noqa: E402
 from backend.services.originality_service import OriginalityService  # noqa: E402
 from backend.services.songwriting_service import SongwritingService  # noqa: E402
 

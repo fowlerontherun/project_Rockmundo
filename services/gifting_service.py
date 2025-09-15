@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from backend.services.xp_reward_service import xp_reward_service
+from services.xp_reward_service import xp_reward_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

@@ -2,7 +2,7 @@ import asyncio
 import json
 from fastapi import WebSocketDisconnect
 
-from backend.realtime.gateway import websocket_gateway
+from realtime.gateway import websocket_gateway
 from backend.monitoring.websocket import (
     CONNECTIONS_ACTIVE,
     CONNECTIONS_TOTAL,
