@@ -35,7 +35,6 @@ def _detect_db_path() -> str:
     # Preferred: dedicated settings
     for mod_name, attr in (
         ("core.settings", "DB_PATH"),
-        ("backend.settings", "DB_PATH"),
         ("settings", "DB_PATH"),
     ):
         try:
@@ -79,7 +78,6 @@ def get_conn(db_path: Optional[str] = None) -> sqlite3.Connection:
     # Try project-level helpers first
     for mod_name in (
         "core.database",
-        "backend.database",
         "database",
     ):
         try:
