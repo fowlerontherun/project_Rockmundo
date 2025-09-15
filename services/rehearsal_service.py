@@ -14,9 +14,9 @@ from typing import Iterable, List, Optional
 
 from seeds.skill_seed import SKILL_NAME_TO_ID
 
-from backend.services.event_service import is_skill_blocked
-from backend.services.gear_service import gear_service
-from backend.services.peer_learning_service import peer_learning_service
+from services.event_service import is_skill_blocked
+from services.gear_service import gear_service
+from services.peer_learning_service import peer_learning_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 

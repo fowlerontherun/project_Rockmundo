@@ -1,6 +1,6 @@
 import sqlite3
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services.media_monitor_service import MediaMonitorService
 import backend.services.song_popularity_service as sp_module
 from backend.services.song_popularity_service import song_popularity_service

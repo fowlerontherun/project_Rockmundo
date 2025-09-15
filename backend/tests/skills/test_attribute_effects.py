@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from models.avatar import Base as AvatarBase
 from models.character import Base as CharacterBase, Character
 from backend.models.skill import Skill
-from backend.schemas.avatar import AvatarCreate
+from schemas.avatar import AvatarCreate
 from backend.services.avatar_service import AvatarService
 from backend.services.skill_service import SkillService
 

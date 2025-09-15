@@ -2,8 +2,8 @@ import sqlite3
 
 import pytest
 
-from backend.jobs.world_pulse_jobs import run_daily
 from backend.services.season_service import activate_season
+from jobs.world_pulse_jobs import run_daily
 
 DDL = """
 PRAGMA foreign_keys = ON;

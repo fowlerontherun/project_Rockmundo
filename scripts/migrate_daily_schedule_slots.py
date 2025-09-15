@@ -7,7 +7,7 @@ the new schema.
 """
 
 import sqlite3
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def migrate() -> None:

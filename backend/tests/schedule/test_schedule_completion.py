@@ -28,7 +28,7 @@ def setup_app(tmp_path):
     processor_module.DB_PATH = db_file
     importlib.reload(processor_module)
 
-    import backend.routes.schedule_routes as routes_module
+    import routes.schedule_routes as routes_module
     importlib.reload(routes_module)
 
     app = FastAPI()

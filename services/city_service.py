@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 from typing import Dict, List
 
-from backend.models.city import City
+from models.city import City
 
 
 class CityService:

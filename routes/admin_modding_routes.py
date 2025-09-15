@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from backend.modding.loader import PluginLoader
+from modding.loader import PluginLoader
 
 router = APIRouter(prefix="/modding", tags=["AdminModding"])
 

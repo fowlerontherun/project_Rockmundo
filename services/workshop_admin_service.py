@@ -1,10 +1,9 @@
 from __future__ import annotations
-
 import sqlite3
 from typing import List, Optional
-
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.models.workshop import Workshop
+
 
 
 class WorkshopAdminService:

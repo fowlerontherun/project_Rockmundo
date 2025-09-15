@@ -11,10 +11,10 @@ sys.path.append(str(ROOT))
 import backend.services as backend_services
 sys.modules.setdefault("services", backend_services)
 
-import backend.core as backend_core
+import core as backend_core
 sys.modules.setdefault("core", backend_core)
 
-import backend.core.errors as core_errors
+import core.errors as core_errors
 sys.modules.setdefault("core.errors", core_errors)
 
 

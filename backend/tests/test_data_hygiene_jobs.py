@@ -2,15 +2,13 @@
 # Tests for data hygiene cleanup behavior
 from __future__ import annotations
 
-import os
 import sqlite3
-import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
-from backend.jobs.data_hygiene_jobs import cleanup_expired_records, backup_sqlite_with_rotation
+from jobs.data_hygiene_jobs import backup_sqlite_with_rotation, cleanup_expired_records
 
 
 def _mk_db(tmp_path: Path) -> str:

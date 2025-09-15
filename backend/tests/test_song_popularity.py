@@ -7,7 +7,7 @@ try:  # pragma: no cover - FastAPI optional in some test suites
 except Exception:  # pragma: no cover
     FastAPI = None  # type: ignore
 
-from backend.database import DB_PATH
+from database import DB_PATH
 from backend.services import song_popularity_service
 from backend.services.song_popularity_service import (
     HALF_LIFE_DAYS,
@@ -85,7 +85,7 @@ def test_forecast_endpoint(client_factory):
         pytest.skip("FastAPI not installed")
     _reset_db()
     app = FastAPI()
-    from backend.routes.song_forecast_routes import router as forecast_router
+    from routes.song_forecast_routes import router as forecast_router
 
     app.include_router(forecast_router)
     add_event(6, 5, "stream")
@@ -112,7 +112,7 @@ def test_get_song_popularity_validation(client_factory):
         pytest.skip("FastAPI not installed")
     _reset_db()
     app = FastAPI()
-    from backend.routes import music_metrics_routes
+    from routes import music_metrics_routes
 
     app.include_router(music_metrics_routes.router)
     client = client_factory(app)

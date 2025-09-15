@@ -3,7 +3,7 @@ import sqlite3
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth.dependencies import get_current_user_id
-from backend.database import DB_PATH
+from database import DB_PATH
 from services.chart_service import calculate_weekly_chart, get_chart
 
 router = APIRouter(prefix="/charts", tags=["Charts"])

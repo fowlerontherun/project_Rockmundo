@@ -2,7 +2,7 @@ import json
 import sqlite3
 from datetime import datetime
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 
 def store_setlist_summary(summary: dict) -> None:

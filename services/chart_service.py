@@ -1,10 +1,10 @@
 import sqlite3
 from datetime import datetime, timedelta
 
-from backend.services.achievement_service import AchievementService
-from backend.services.legacy_service import LegacyService
+from services.achievement_service import AchievementService
+from services.legacy_service import LegacyService
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 achievement_service = AchievementService(DB_PATH)
 legacy_service = LegacyService(DB_PATH)

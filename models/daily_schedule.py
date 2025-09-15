@@ -1,7 +1,7 @@
 import sqlite3
 from typing import Dict, List
 
-from backend.database import DB_PATH
+from database import DB_PATH
 
 # Maximum number of exercise activities permitted in a single day.
 # Additional exercise sessions beyond this limit are rejected when

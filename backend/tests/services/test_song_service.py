@@ -1,8 +1,8 @@
 import pytest
 
 from backend.services.song_service import SongService
-from backend.jobs.royalty_clearing_job import run as royalty_run
 from backend.utils.db import aget_conn
+from jobs.royalty_clearing_job import run as royalty_run
 
 
 async def setup_db(path):
