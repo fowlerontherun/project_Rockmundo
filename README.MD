@@ -7,7 +7,7 @@ This README gives you a **1‑file quickstart** for running a *testable* local b
 
 ## ⚡ Quick Start (Backend)
 
-**Prereqs**: Python 3.11+, SQLite 3.39+, Node.js 20.11.1 (see `.nvmrc`), Git, GNU gettext (`msgfmt`). (Static frontend pages can be served directly without Node.)
+**Prereqs**: Python 3.11+ (Netlify builds run on 3.11), SQLite 3.39+, Node.js 20.11.1 (see `.nvmrc`), Rust/Cargo, Git, GNU gettext (`msgfmt`). (Static frontend pages can be served directly without Node.)
 If you work on the frontend, ensure Node 20.11.1 is active; `nvm use` will read the repo's `.nvmrc`.
 
 ```bash
@@ -47,6 +47,27 @@ Open:
 - **Front-end static pages (served by FastAPI)** → http://localhost:8000/frontend/login.html
 
 > The API mounts `frontend/pages` at `/frontend` for convenient local testing.
+
+## 🏗️ Netlify/CI build setup
+
+Netlify installs a Rust toolchain and expects Python 3.11. To mirror this environment locally:
+
+```bash
+# Install Rust (provides cargo)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+export PATH="$HOME/.cargo/bin:$PATH"  # make cargo/rustc available
+
+# Use Python 3.11 as Netlify does
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Match Netlify's frontend build steps
+nvm use                      # Node 20.11.1 from .nvmrc
+npm ci --prefix frontend
+npm run build --prefix frontend
+```
+
+These steps reproduce the `build.command` in `netlify.toml` so local builds behave like Netlify's CI pipeline.
 
 ## Demo Credentials
 
