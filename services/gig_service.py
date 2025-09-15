@@ -24,7 +24,6 @@ try:  # pragma: no cover - optional avatar dependency
 
     from backend.services.avatar_service import AvatarService
     from schemas.avatar import AvatarUpdate
-
 except Exception:  # pragma: no cover
     class AvatarUpdate:  # type: ignore
         def __init__(self, **kwargs):
