@@ -78,7 +78,8 @@ def get_conn(db_path: Optional[str] = None) -> sqlite3.Connection:
     """
     # Try project-level helpers first
     for mod_name in (
-        "backend.core.database",
+        "core.database",
+        "backend.database",
         "database",
     ):
         try:
