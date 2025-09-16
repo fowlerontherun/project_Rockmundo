@@ -165,6 +165,64 @@ assets/ images/                   # branding & UI assets
   - *Player-Facing Routes* — `routes/venue_routes.py` defines capacities/perks, `routes/weather_routes.py` injects climate modifiers, `routes/city_routes.py` surfaces regional demand sliders, and `routes/event_routes.py` plus `routes/festival_builder_routes.py`, `routes/random_event_routes.py`, and `routes/transport_routes.py` orchestrate festivals, surprise challenges, and travel costs.
   - *Service Backbone* — `services/venue_service.py`, `services/venue_availability.py`, `services/venue_sponsorships_service.py`, `services/weather_service.py`, `services/city_service.py`, `services/event_service.py`, and `services/random_event_service.py` apply localized multipliers, rotate inventories, and schedule background happenings. Logistics hooks in `services/transport_service.py` mirror those changes for touring systems.
   - *Admin & World-Building Ops* — City and venue tuning flows through `routes/admin_city_shop_routes.py`, `routes/admin_venue_routes.py`, and `routes/admin_events_routes.py`, backed by `services/city_shop_service.py`, `services/venue_service.py`, and `services/admin_notifications_service.py`; narrative teams also rely on `jobs/random_events.py` to preview and QA surprise world states before they go live.
+  - **Lineup Onboarding** — `routes/onboarding_routes.py` and `routes/character.py` establish the roster, surface starter contracts, and seed the stats that influence every downstream system.
+  - **Training & Rehearsal** — `routes/rehearsal_routes.py`, `routes/learning_routes.py`, and `routes/management_routes.py` track daily drills, mentor boosts, and staff directives that raise skill caps before major projects.
+  - **Writing & Pre-Production** — `routes/songwriting_routes.py`, `routes/song_routes.py`, and `routes/chemistry_routes.py` coordinate co-writing chemistry, draft revisions, and hook ideation that feed production quality.
+  - **Recording & Release Prep** — `routes/production_routes.py`, `routes/recording_routes.py`, and `routes/indie_release_routes.py` handle studio sessions, quality control, and release timelines before distribution.
+  - **Distribution & Hype** — `routes/distribution.py`, `routes/stream_routes.py`, and `routes/playlist_routes.py` push singles to services, automate upload workflows, and monitor playlist pitching results while `routes/promotion_routes.py` schedules teaser drops.
+  - **Live Cycle** — `routes/gig.py`, `routes/tour_routes.py`, `routes/live_performance.py`, and `routes/live_album_routes.py` run the touring leg, capture performance stats, and branch into live album monetization loops.
+  - **Monetization & Reinvestment** — `routes/economy_routes.py`, `routes/merch_routes.py`, `routes/gear_routes.py`, and `routes/education_routes.py` reconcile cashflow, merch restock, gear upgrades, and long-term training spend.
+  - **Meta Progression** — `routes/world_pulse_routes.py`, `routes/achievement_routes.py`, `routes/tournament_routes.py`, and `routes/legacy_routes.py` advance seasonal standings, award prestige, and unlock narrative branches that restart the loop at a higher tier.
+- **Characters & Bands** — Manage roster creation, relationships, and shared resources through core routers like `routes/character.py`, `routes/band_routes.py`, and `routes/band_relationship_routes.py`.
+  - `routes/character.py` exposes lifecycle CRUD, talent drafting, and lifestyle toggles; attribute spreads and personality tags here drive rehearsal efficiency, studio fatigue, and social conflicts across the sim.
+  - `routes/band_routes.py` wires roster management, shared inventories, practice scheduling, and budget allocations; downstream systems (e.g., `routes/gig.py`, `routes/economy_routes.py`) read this data to determine payouts and skill checks.
+  - `routes/band_relationship_routes.py` governs rivalries, alliances, and guest-spots; these modifiers flow into fan conversion rates and unlock collaborative songwriting hooks in `routes/songwriting_routes.py`.
+  - `routes/rehearsal_routes.py` and `routes/learning_routes.py` extend the roster loop with practice cadences, lesson plans, and XP payouts that set the tempo for each in-game day.
+- **Music Production** — Write, record, and release tracks via pipelines exposed in `routes/songwriting_routes.py`, `routes/production_routes.py`, and `routes/recording_routes.py`.
+  - `routes/songwriting_routes.py` handles creative briefs, inspiration boosts, and co-write contracts; lyrical/melodic quality scores here influence subsequent recording difficulty and chart potential.
+  - `routes/production_routes.py` coordinates studio bookings, mixing/mastering passes, and producer perks; production quality affects release hype, licensing offers, and expense ledgers managed by `routes/economy_routes.py`.
+  - `routes/recording_routes.py` simulates session stamina, take tracking, and post-production edits; clean takes reduce fatigue penalties before tours and feed audio assets to `routes/media_routes.py` for previews.
+  - `routes/album_routes.py`, `routes/indie_release_routes.py`, and `routes/distribution.py` finalize release payloads, schedule drops, and sync metadata with downstream marketing and playlist pushes.
+- **Performance & Touring** — Book gigs, plan routes, and optimize setlists with `routes/gig.py`, `routes/tour_routes.py`, `routes/tour_planner_routes.py`, and `routes/setlist_routes.py`.
+  - `routes/gig.py` negotiates venue contracts, deposits, and technical riders; success/failure updates cashflow streams, reputation, and fan momentum metrics.
+  - `routes/tour_routes.py` and `routes/tour_planner_routes.py` simulate travel logistics, routing fatigue, lodging costs, and routing RNG events; these values feed into burnout systems and economic overhead.
+  - `routes/setlist_routes.py` tunes song order, encore odds, and stage prop usage; setlist cohesion modifies performance XP, merch sales multipliers, and live recording unlocks back in production flows.
+  - `routes/tour_logistics_routes.py`, `routes/transport_routes.py`, and `routes/ticketing_routes.py` close the loop by managing freight, travel, and sales pacing so the daily scheduler can roll into the next city without breaking immersion.
+- **Economy & Commerce** — Handle cashflow, merchandising, and trading using `routes/economy_routes.py`, `routes/banking_routes.py`, `routes/merch_routes.py`, and `routes/marketplace_routes.py`.
+  - `routes/economy_routes.py` centralizes budget snapshots, royalty claims, and expense auditing; financial health gates investment options and risk checks for expansion features.
+  - `routes/banking_routes.py` provides loans, savings yields, and escrow for contracts; interest schedules affect weekly balance sheets and unlock credit-locked gear in `routes/marketplace_routes.py`.
+  - `routes/merch_routes.py` manages SKU creation, inventory flow, and per-gig pop-up shops; merch performance loops back into fan affinity tiers and influences `routes/fan_club_routes.py` perks.
+  - `routes/marketplace_routes.py` surfaces gear auctions, staff hiring, and licensing deals; acquisitions here add modifiers to production quality and touring resilience stats.
+  - `routes/payment_routes.py`, `routes/shipping_routes.py`, and `routes/trade_routes.py` finalize checkout flows, manage fulfillment delays, and handle peer-to-peer swaps so revenue makes it back into the upgrade loop.
+- **Fan Engagement & Media** — Grow audiences and publicity through `routes/fan_club_routes.py`, `routes/fan_interaction_routes.py`, `routes/media_routes.py`, and `routes/promotion_routes.py`.
+  - `routes/fan_club_routes.py` spins up membership tiers, loyalty rewards, and retention challenges; success unlocks steady revenue streams and protects against popularity decay.
+  - `routes/fan_interaction_routes.py` covers meet-and-greets, AMA sessions, and reactive responses to events; engagement responses alter sentiment which in turn boosts chart multipliers and touring attendance.
+  - `routes/media_routes.py` coordinates press kits, interviews, and broadcast slots; coverage affects hype curves before releases and the sponsorship tiers exposed by `routes/economy_routes.py`.
+  - `routes/promotion_routes.py` orchestrates marketing campaigns, social boosts, and influencer partnerships; campaign ROI metrics decide whether virality events trigger and unlock collaborative quests.
+  - `routes/media_exposure_routes.py`, `routes/radio_routes.py`, and `routes/stream_routes.py` expand post-release reach across terrestrial radio, livestream showcases, and algorithmic discovery playlists.
+- **Progression & Competition** — Track achievements, leaderboards, and seasonal play using `routes/achievement_routes.py`, `routes/world_pulse_routes.py`, `routes/chart_routes.py`, and `routes/tournament_routes.py`.
+  - `routes/achievement_routes.py` awards milestone XP, trait badges, and unlock tokens; these rewards open advanced contracts and narrative arcs in other systems.
+  - `routes/world_pulse_routes.py` simulates global chart ticks, weekly resets, and territory bonuses; standings provide buffs/debuffs to touring demand and media interest.
+  - `routes/chart_routes.py` publishes genre charts, breakout lists, and predictive analytics; chart placements boost royalty calculations and determine NPC rival behavior.
+  - `routes/tournament_routes.py` runs bracketed events, streaming showcases, and prize payouts; competitive ranking grants exclusive merch recipes and tour venues.
+  - `routes/quest_routes.py`, `routes/replay_routes.py`, and `routes/legacy_routes.py` spin up narrative arcs, prestige resets, and alternate history runs that keep the loop replayable.
+- **Administrative & Modding** — Configure live ops tooling and extensions through `routes/admin_routes.py`, `routes/admin_monitoring_routes.py`, `routes/admin_modding_routes.py`, and `routes/modding_routes.py`.
+  - `routes/admin_routes.py` controls feature flags, player sanctions, and live event scheduling; these toggles maintain server balance and shape seasonal metas.
+  - `routes/admin_monitoring_routes.py` surfaces KPIs, job queues, and anomaly alerts; telemetry guides balance patches that ripple across economy, progression, and touring payouts.
+  - `routes/admin_modding_routes.py` plus `routes/modding_routes.py` enable content injection, scripting hooks, and asset validation; curated mods add new venues, instruments, or stories without breaking persistence.
+  - `routes/admin_season_routes.py`, `routes/admin_economy_routes.py`, and `routes/admin_events_routes.py` let live-ops staff rebalance payouts, spin seasonal ladders, and schedule time-limited happenings that reshape the loop in real time.
+- **Realtime Communication** — Coordinate live jams, chat, and alerts via `routes/jam_ws.py`, `routes/chat_routes.py`, and `routes/notifications_ws.py`.
+  - `routes/jam_ws.py` powers low-latency rehearsal lobbies with tempo sync, allowing collaborative skill gains and unlocking improv challenges.
+  - `routes/chat_routes.py` bridges asynchronous inbox, DM, and group channels; social cohesion scores influence member retention and unlock co-op quests.
+  - `routes/notifications_ws.py` streams alerts for tour incidents, chart updates, and mod actions; timely feedback loops keep players reactive to shifting conditions.
+  - `routes/notification_routes.py`, `routes/notifications_routes.py`, and `routes/support_slot_routes.py` tie WS/SSE pushes back into the daily scheduler so crises, fan mail, and support tickets surface in the gameplay loop.
+- **World & Environment** — Simulate locations, weather, and special events using `routes/venue_routes.py`, `routes/weather_routes.py`, `routes/city_routes.py`, and `routes/event_routes.py`.
+  - `routes/venue_routes.py` catalogs capacities, acoustics, and resident perks; venue traits modify gig success probabilities and staging costs.
+  - `routes/weather_routes.py` models forecasts, severe events, and travel delays; weather penalties cascade into touring fatigue and emergency expense spikes.
+  - `routes/city_routes.py` manages population tastes, economy tiers, and cultural trends; city profiles steer fan acquisition rates and sponsor availability.
+  - `routes/event_routes.py` schedules festivals, storyline beats, and holidays; global events create limited-time buffs, exclusive merch windows, and cross-system narrative triggers.
+  - `routes/festival_builder_routes.py`, `routes/random_event_routes.py`, and `routes/transport_routes.py` diversify world states with bespoke events, surprise challenges, and travel modifiers that ripple through the broader career cycle.
+
 
 ---
 
