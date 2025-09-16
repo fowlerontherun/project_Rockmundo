@@ -513,3 +513,92 @@ class EconomyService:
             )
             session.commit()
             return units
+
+
+# ---------------------------------------------------------------------------
+# Module level convenience wrappers
+# ---------------------------------------------------------------------------
+
+_default_service: EconomyService | None = None
+
+
+def _get_service(service: EconomyService | None = None) -> EconomyService:
+    """Return the provided service or lazily initialised shared instance."""
+
+    global _default_service
+    if service is not None:
+        return service
+    if _default_service is None:
+        _default_service = EconomyService()
+        try:
+            _default_service.ensure_schema()
+        except Exception:  # pragma: no cover - surfaced to caller
+            logger.exception("Failed to initialise default economy service")
+            raise
+    return _default_service
+
+
+def deposit(
+    user_id: int,
+    amount_cents: int,
+    currency: str = "USD",
+    *,
+    service: EconomyService | None = None,
+) -> int:
+    """Deposit funds using a shared :class:`EconomyService` instance."""
+
+    return _get_service(service).deposit(user_id, amount_cents, currency)
+
+
+def withdraw(
+    user_id: int,
+    amount_cents: int,
+    currency: str = "USD",
+    *,
+    service: EconomyService | None = None,
+) -> int:
+    """Withdraw funds via the shared :class:`EconomyService`."""
+
+    return _get_service(service).withdraw(user_id, amount_cents, currency)
+
+
+def transfer(
+    from_user_id: int,
+    to_user_id: int,
+    amount_cents: int,
+    currency: str = "USD",
+    *,
+    service: EconomyService | None = None,
+) -> None:
+    """Transfer funds between two accounts using the shared service."""
+
+    _get_service(service).transfer(from_user_id, to_user_id, amount_cents, currency)
+
+
+def charge_recording_fee(
+    user_id: int,
+    currency: str = "USD",
+    *,
+    service: EconomyService | None = None,
+) -> int:
+    """Deduct the standard recording fee from an account."""
+
+    return _get_service(service).charge_recording_fee(user_id, currency)
+
+
+def get_recording_cost(*, service: EconomyService | None = None) -> int:
+    """Return the standard recording cost in cents."""
+
+    return _get_service(service).recording_cost
+
+
+__all__ = [
+    "EconomyService",
+    "EconomyError",
+    "TransactionRecord",
+    "deposit",
+    "withdraw",
+    "transfer",
+    "charge_recording_fee",
+    "get_recording_cost",
+]
