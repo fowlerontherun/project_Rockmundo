@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from auth.character_dependencies import get_current_character_id
 from schemas.avatar import AvatarResponse
 from services.avatar_service import AvatarService
 
@@ -19,7 +20,10 @@ svc = AvatarService()
     response_model=AvatarResponse,
     dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
-def rest_avatar(avatar_id: int):
+def rest_avatar(avatar_id: int, character_id: int = Depends(get_current_character_id)):
+    selected = svc.get_avatar_by_character_id(character_id)
+    if not selected or selected.id != avatar_id:
+        raise HTTPException(status_code=404, detail="Avatar not found")
     avatar = svc.rest(avatar_id)
     if not avatar:
         raise HTTPException(status_code=404, detail="Avatar not found")

@@ -1,4 +1,4 @@
-import { authFetch, getToken } from '../utils/auth.js';
+import { authFetch, getToken, getSelectedCharacterId } from '../utils/auth.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const token = getToken();
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bandFounderInput = document.getElementById('band-founder');
   const bandError = document.getElementById('band-error');
 
-  if (bandFounderInput && USER_ID) bandFounderInput.value = USER_ID;
+  if (bandFounderInput && getSelectedCharacterId()) bandFounderInput.value = getSelectedCharacterId();
 
   const avatarForm = document.getElementById('avatar-form');
   const avatarError = document.getElementById('avatar-error');
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       if (res.ok) {
         bandForm.reset();
-        if (bandFounderInput && USER_ID) bandFounderInput.value = USER_ID;
+        if (bandFounderInput && getSelectedCharacterId()) bandFounderInput.value = getSelectedCharacterId();
       } else {
         let errText = 'Failed to create band';
         try {
