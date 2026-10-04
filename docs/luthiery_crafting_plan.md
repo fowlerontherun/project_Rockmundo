@@ -82,57 +82,57 @@ Every guitar/bass requires exactly:
 Finish/colour is a separate customisation layer.
 
 ## Data
-- [ ] Add crafting_materials.
-- [ ] Add crafting_component_designs.
-- [ ] Add instrument_shapes.
-- [ ] Add crafting_unlocks.
-- [ ] Add character material inventory.
-- [ ] Add material purchase history.
-- [ ] Store rarity, cost, quality and stat affinities.
-- [ ] Store instrument compatibility.
-- [ ] Store required skill/level.
+- [x] Add crafting_materials.
+- [x] Add crafting_component_designs.
+- [x] Add instrument_shapes.
+- [x] Add crafting_unlocks.
+- [x] Add character material inventory.
+- [x] Add material purchase history.
+- [x] Store rarity, cost, quality and stat affinities.
+- [x] Store instrument compatibility.
+- [x] Store required skill/level.
 - [ ] Add admin enable/disable controls.
 
 ## Woods/materials
-- [ ] Basswood.
-- [ ] Poplar.
-- [ ] Alder.
-- [ ] Ash.
-- [ ] Maple.
-- [ ] Mahogany.
-- [ ] Walnut.
-- [ ] Rosewood.
-- [ ] Ebony.
-- [ ] Flame maple.
-- [ ] Quilted maple.
-- [ ] Initial exotic/premium set.
+- [x] Basswood.
+- [x] Poplar.
+- [x] Alder.
+- [x] Ash.
+- [x] Maple.
+- [x] Mahogany.
+- [x] Walnut.
+- [x] Rosewood.
+- [x] Ebony.
+- [x] Flame maple.
+- [x] Quilted maple.
+- [x] Initial exotic/premium set.
 
 ## Electronics
-- [ ] Standard single-coil.
-- [ ] Standard humbucker.
-- [ ] P-style bass pickup.
-- [ ] J-style bass pickup.
-- [ ] Ceramic variants.
-- [ ] Alnico variants.
-- [ ] Active electronics.
-- [ ] Premium/boutique electronics.
+- [x] Standard single-coil.
+- [x] Standard humbucker.
+- [x] P-style bass pickup.
+- [x] J-style bass pickup.
+- [x] Ceramic variants.
+- [x] Alnico variants.
+- [x] Active electronics.
+- [x] Premium/boutique electronics.
 
 ## Hardware
-- [ ] Standard bridge/tuners.
-- [ ] Compatible tremolo bridge.
-- [ ] Locking tuners.
-- [ ] Touring hardware.
-- [ ] Brass hardware.
-- [ ] Premium lightweight hardware.
+- [x] Standard bridge/tuners.
+- [x] Compatible tremolo bridge.
+- [x] Locking tuners.
+- [x] Touring hardware.
+- [x] Brass hardware.
+- [x] Premium lightweight hardware.
 
 ## Purchasing
-- [ ] Luthier supplier/shop inventory.
-- [ ] Economy-compatible stock/cost.
-- [ ] Locked-material restrictions.
-- [ ] Atomic money deduction + inventory addition.
-- [ ] Transaction rollback.
+- [x] Luthier supplier/shop inventory.
+- [x] Economy-compatible stock/cost.
+- [x] Locked-material restrictions.
+- [x] Atomic money deduction + inventory addition.
+- [x] Transaction rollback.
 - [ ] Material inventory UI.
-- [ ] Purchase/funds/ownership tests.
+- [x] Purchase/funds/ownership tests.
 
 **Exit:** starter inputs can be bought and persist; locked materials cannot be used early; transactions are atomic.
 
