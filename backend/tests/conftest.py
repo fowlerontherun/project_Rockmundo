@@ -14,7 +14,9 @@ except Exception:  # pragma: no cover
     TestClient = None  # type: ignore
     AsyncClient = None  # type: ignore
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+REPO_ROOT = str(Path(__file__).resolve().parents[2])
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from utils.db import get_conn
 from backend.auth.service import AuthService
