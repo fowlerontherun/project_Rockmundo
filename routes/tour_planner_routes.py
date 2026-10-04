@@ -5,7 +5,9 @@ from __future__ import annotations
 import math
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
+from services.band_service import BandService
 from pydantic import BaseModel
 
 from services.fame_service import FameService
@@ -17,6 +19,7 @@ from services.tour_service import (
 
 router = APIRouter(prefix="/tour-planner", tags=["TourPlanner"])
 svc = TourService()
+band_service = BandService()
 
 
 class _FameDB:
@@ -100,7 +103,10 @@ def haversine(coord1: tuple[float, float], coord2: tuple[float, float]) -> float
 
 
 @router.post("/optimize", response_model=TourResponse)
-def optimize_tour(payload: TourRequest) -> TourResponse:
+def optimize_tour(payload: TourRequest, character_id: int = Depends(get_current_character_id)) -> TourResponse:
+    info = band_service.get_band_info(payload.band_id)
+    if not info or character_id not in [m["user_id"] for m in info.get("members", [])]:
+        raise HTTPException(status_code=403, detail="Selected character is not a member of this band")
     """Calculate travel distance, time and cost and reorder route greedily."""
 
     if len(payload.route) < 2:
