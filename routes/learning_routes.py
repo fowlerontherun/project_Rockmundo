@@ -7,6 +7,12 @@ from pydantic import BaseModel
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
 from services.skill_service import SkillService
+from seeds.skill_seed import SEED_SKILLS, SKILL_NAME_TO_ID
+from services.luthiery_progression import (
+    SKILL_DESCRIPTIONS,
+    learning_options_for,
+    unlocks_for_level,
+)
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
 svc = SkillService()
@@ -60,6 +66,55 @@ def choose_specialization(payload: SpecializationRequest, character_id: int = De
     )
     svc.select_specialization(character_id, skill, payload.specialization)
     return {"status": "selected", "specialization": payload.specialization}
+
+
+@router.get("/luthiery/tree")
+def luthiery_tree(character_id: int = Depends(get_current_character_id)):
+    """Return selected-character Luthiery progression for the player skill UI."""
+
+    nodes = []
+    for seed in SEED_SKILLS:
+        if seed.name not in SKILL_DESCRIPTIONS:
+            continue
+        level = svc.get_skill_level(character_id, seed)
+        requirements = [
+            {
+                "skill": next(
+                    (candidate.name for candidate in SEED_SKILLS if candidate.id == prereq_id),
+                    str(prereq_id),
+                ),
+                "level": required,
+                "met": svc.get_skill_level(
+                    character_id,
+                    next(candidate for candidate in SEED_SKILLS if candidate.id == prereq_id),
+                ) >= required,
+            }
+            for prereq_id, required in seed.prerequisites.items()
+        ]
+        nodes.append(
+            {
+                "id": seed.id,
+                "key": seed.name,
+                "name": seed.name.replace("_", " ").title(),
+                "category": seed.category,
+                "level": level,
+                "parent_id": seed.parent_id,
+                "description": SKILL_DESCRIPTIONS[seed.name],
+                "locked": any(not requirement["met"] for requirement in requirements),
+                "requirements": requirements,
+                "learning": [
+                    {
+                        "method": option.method,
+                        "title": option.title,
+                        "min_level": option.min_level,
+                        "max_level": option.max_level,
+                    }
+                    for option in learning_options_for(seed.name)
+                ],
+                "rewards": unlocks_for_level(level) if seed.name == "luthiery" else None,
+            }
+        )
+    return {"category": "craftsmanship", "root": SKILL_NAME_TO_ID["luthiery"], "skills": nodes}
 
 
 __all__ = ["router"]
