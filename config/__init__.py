@@ -21,11 +21,11 @@ ENABLE_TOUR_AI_MANAGER: bool = ENABLE_ADVANCED_AI and os.getenv(
     "ENABLE_TOUR_AI_MANAGER", "1"
 ) == "1"
 ENABLE_PR_AI_MANAGER: bool = ENABLE_ADVANCED_AI and os.getenv(
-    "ENABLE_PR_AI_MANAGER", "1"
+    "ENABLE_PR_AI_MANAGER",\n    "ENABLE_LUTHIERY_CRAFTING", "1"
 ) == "1"
 
 
-__all__ = [
+# Luthiery is intentionally opt-in while the persistent character-owned crafting\n# architecture is being introduced. Do not enable this for production until the\n# Phase 0 release gate has passed.\nENABLE_LUTHIERY_CRAFTING: bool = os.getenv("ENABLE_LUTHIERY_CRAFTING", "0") == "1"\n\n\n__all__ = [
     "ENABLE_ADVANCED_AI",
     "ENABLE_TOUR_AI_MANAGER",
     "ENABLE_PR_AI_MANAGER",
