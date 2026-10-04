@@ -112,6 +112,8 @@ def set_networking(
     payload: NetworkingUpdate,
     user_id: int = Depends(get_current_user_id),
 ) -> dict[str, int]:
+    if not character_service.owns_character(user_id, character_id):
+        raise HTTPException(status_code=404, detail=_("Character not found"))
     avatar = avatar_service.get_avatar_by_character_id(character_id)
     if not avatar:
         raise HTTPException(status_code=404, detail=_("Character not found"))
