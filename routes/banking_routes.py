@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
 from pydantic import BaseModel
 
 from services.economy_service import EconomyError, EconomyService
@@ -22,10 +23,12 @@ class ConversionIn(BaseModel):
 
 
 @router.post("/loans")
-def create_loan(payload: LoanIn):
+def create_loan(payload: LoanIn, character_id: int = Depends(get_current_character_id)):
+    if payload.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Loan belongs to the selected character")
     try:
         loan_id = svc.create_loan(
-            payload.user_id,
+            character_id,
             payload.amount_cents,
             payload.interest_rate,
             payload.term_days,
