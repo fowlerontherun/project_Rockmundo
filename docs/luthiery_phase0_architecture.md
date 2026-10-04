@@ -1,7 +1,7 @@
 # Luthiery Phase 0 Architecture Contract
 
 ## Ownership
-Crafted instruments are **character-owned unique assets**. Account/user IDs authenticate the session but are not item owners. A band may be assigned an instrument for gameplay, but band assignment never transfers ownership. Every mutation must derive the acting character from the authenticated selected-character dependency; clients must never choose the owner.
+Crafted instruments are **character-owned unique assets**. Account/user IDs authenticate the session but are not item owners. A band may be assigned an instrument for gameplay, but band assignment never transfers ownership. Every mutation must derive the acting character from the authenticated selected-character dependency; clients must never choose or assert the owner. Legacy band-scoped routes may accept a requested band target only when server-side membership/ownership validation proves the selected character is authorised.
 
 ## Legacy gear audit
 The legacy GearService stores items and ownership in process memory. Direct callers found on main:
@@ -46,7 +46,7 @@ Phase 4 will persist:
 4. Band assignment requires the selected character to have appropriate band access and own the item.
 5. Changing selected characters must immediately change visible/mutable crafted inventory.
 6. Purchase/trade changes ownership exactly once in the same transaction as payment/listing state.
-7. No endpoint accepts from_character_id or owner_character_id as authoritative client input.
+7. No endpoint accepts from_character_id or owner_character_id as authoritative client input. Legacy band_id/from_band fields are compatibility selectors only and must be validated against server-side membership and actual item ownership before mutation.
 
 ## Legacy migration
 1. Do not attempt to persist process-memory legacy gear retroactively; it has no durable source of truth across restarts.
