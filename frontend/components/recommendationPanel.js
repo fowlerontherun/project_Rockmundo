@@ -1,5 +1,10 @@
-export async function fetchRecommendations(userId, goals) {
-  const res = await fetch('/api/schedule/recommend', {
+import { apiFetch } from '../utils/api.js';
+import { getSelectedCharacterId } from '../utils/auth.js';
+
+export async function fetchRecommendations(_userId, goals) {
+  const userId = getSelectedCharacterId();
+  if (!userId) throw new Error('Select a character first');
+  const res = await apiFetch('/api/schedule/recommend', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: userId, goals })
@@ -16,8 +21,8 @@ export function initRecommendationPanel() {
 
   const form = document.createElement('form');
   const userInput = document.createElement('input');
-  userInput.type = 'number';
-  userInput.placeholder = 'User ID';
+  userInput.type = 'hidden';
+  userInput.value = String(getSelectedCharacterId() || '');
   const goalsInput = document.createElement('input');
   goalsInput.placeholder = 'Goals (comma separated)';
   const submit = document.createElement('button');

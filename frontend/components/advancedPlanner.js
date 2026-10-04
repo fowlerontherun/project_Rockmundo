@@ -1,3 +1,6 @@
+import { apiFetch } from '../utils/api.js';
+import { getSelectedCharacterId } from '../utils/auth.js';
+
 let plannerGrid;
 let summaryPanel;
 
@@ -14,10 +17,10 @@ async function updateSummary() {
     return;
   }
   try {
-    const res = await fetch('/schedule/simulate', {
+    const res = await apiFetch('/schedule/simulate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: 1, entries })
+      body: JSON.stringify({ user_id: getSelectedCharacterId(), entries })
     });
     if (res.ok) {
       const data = await res.json();
@@ -29,7 +32,7 @@ async function updateSummary() {
 }
 
 export async function fetchSchedule() {
-  const res = await fetch('/api/schedule');
+  const res = await apiFetch('/api/schedule');
   if (!res.ok) {
     throw new Error('Failed to fetch schedule');
   }
@@ -37,7 +40,7 @@ export async function fetchSchedule() {
 }
 
 export async function saveSlot(time, value, durationDays = 1) {
-  const res = await fetch(`/api/schedule/${encodeURIComponent(time)}`, {
+  const res = await apiFetch(`/api/schedule/${encodeURIComponent(time)}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ value, durationDays })
@@ -49,7 +52,7 @@ export async function saveSlot(time, value, durationDays = 1) {
 }
 
 export async function deleteSlot(time) {
-  const res = await fetch(`/api/schedule/${encodeURIComponent(time)}`, {
+  const res = await apiFetch(`/api/schedule/${encodeURIComponent(time)}`, {
     method: 'DELETE'
   });
   if (!res.ok) {
