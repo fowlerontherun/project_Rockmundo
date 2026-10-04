@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Planned
+**Status:** Phase 2 in progress — Phases 0–1 complete
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -69,6 +69,7 @@ The current GearService crafting is in-memory base-item + component crafting. It
 **Exit:** a new character can discover/train Luthiery; advanced skills unlock correctly; no skill is unreachable; UI shows current/upcoming unlocks.
 
 # Phase 2 — Materials and component catalogue
+**Status:** In progress
 **Goal:** Establish the five-part recipe and material economy.
 
 Every guitar/bass requires exactly:
