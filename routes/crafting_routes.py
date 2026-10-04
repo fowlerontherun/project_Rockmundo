@@ -1,4 +1,5 @@
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Dict
@@ -27,9 +28,9 @@ def list_recipes():
 
 
 @router.post("/craft/{recipe_name}")
-def craft_item(recipe_name: str, user_id: int = Depends(get_current_user_id)):
+def craft_item(recipe_name: str, character_id: int = Depends(get_current_character_id)):
     try:
-        crafting_service.craft(user_id, recipe_name)
+        crafting_service.craft(character_id, recipe_name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "crafted"}
