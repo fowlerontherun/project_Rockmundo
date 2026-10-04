@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
 from services.books_service import books_service
 from services.city_shop_service import city_shop_service
 from services.economy_service import EconomyError, EconomyService
@@ -17,9 +18,12 @@ _economy = EconomyService()
 _economy.ensure_schema()
 
 
-async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
+async def _current_user(
+    user_id: int = Depends(get_current_user_id),
+    character_id: int = Depends(get_current_character_id),
+) -> int:
     await require_permission(["user", "band_member", "moderator", "admin"], user_id)
-    return user_id
+    return character_id
 
 
 class PurchaseIn(BaseModel):
@@ -180,24 +184,6 @@ def purchase_book(book_id: int, payload: PurchaseIn, user_id: int = Depends(_cur
         "discount_cents": discount_cents,
         "earned_points": earned,
     }
-
-@router.post("/city/{shop_id}/items/{item_id}/sell")
-def sell_item(
-    shop_id: int, item_id: int, payload: SellIn, user_id: int = Depends(_current_user)
-):
-    if payload.shop_id != shop_id:
-        # simple sanity check to avoid mismatched payload
-        raise HTTPException(status_code=400, detail="shop id mismatch")
-    try:
-        payout = city_shop_service.sell_item(shop_id, user_id, item_id, payload.quantity)
-=======
-@router.post("/city/{shop_id}/books/{book_id}/sell")
-def sell_book(shop_id: int, book_id: int, payload: SellIn, user_id: int = Depends(_current_user)):
-    try:
-        payout = city_shop_service.sell_book(shop_id, user_id, book_id, payload.quantity)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return {"status": "ok", "payout_cents": payout}
 
 @router.post("/city/{shop_id}/books/{book_id}/sell")
 def sell_book(

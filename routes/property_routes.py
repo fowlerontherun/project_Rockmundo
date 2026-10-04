@@ -2,7 +2,8 @@ from services.achievement_service import AchievementService
 from services.economy_service import EconomyService
 from services.property_service import PropertyError, PropertyService
 
-from auth.dependencies import get_current_user_id, require_permission
+from auth.dependencies import require_permission
+from auth.character_dependencies import get_current_character_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -22,7 +23,7 @@ class PropertyPurchaseIn(BaseModel):
 
 @router.post("/buy", dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))])
 def buy_property(
-    payload: PropertyPurchaseIn, owner_id: int = Depends(get_current_user_id)
+    payload: PropertyPurchaseIn, owner_id: int = Depends(get_current_character_id)
 ):
     try:
         pid = svc.buy_property(
@@ -53,7 +54,7 @@ def upgrade_property(property_id: int, owner_id: int = Depends(get_current_user_
     "/rent/{property_id}",
     dependencies=[Depends(require_permission(["band_member", "admin", "moderator"]))],
 )
-def rent_property(property_id: int, renter_id: int = Depends(get_current_user_id)):
+def rent_property(property_id: int, renter_id: int = Depends(get_current_character_id)):
     try:
         return svc.rent_property(property_id, renter_id)
     except PropertyError as e:

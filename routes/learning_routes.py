@@ -1,6 +1,7 @@
 """Routing stubs for skill learning sessions."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
 from pydantic import BaseModel
 
 from backend.models.learning_method import LearningMethod
@@ -29,11 +30,13 @@ class SpecializationRequest(BaseModel):
 
 
 @router.post("/sessions")
-def enqueue_session(payload: SessionRequest):
+def enqueue_session(payload: SessionRequest, character_id: int = Depends(get_current_character_id)):
+    if payload.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Learning belongs to the selected character")
     """Enqueue a learning session (stub)."""
     skill = Skill(id=payload.skill_id, name=payload.skill_name, category=payload.skill_category)
     try:
-        svc.train_with_method(payload.user_id, skill, payload.method, payload.duration)
+        svc.train_with_method(character_id, skill, payload.method, payload.duration)
     except ValueError as exc:  # pragma: no cover - stub handler
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "queued"}
@@ -46,14 +49,16 @@ def cancel_session(session_id: int):
 
 
 @router.post("/specializations")
-def choose_specialization(payload: SpecializationRequest):
+def choose_specialization(payload: SpecializationRequest, character_id: int = Depends(get_current_character_id)):
+    if payload.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Skills belong to the selected character")
     """Select a specialization for a skill."""
     skill = Skill(
         id=payload.skill_id,
         name=payload.skill_name,
         category=payload.skill_category,
     )
-    svc.select_specialization(payload.user_id, skill, payload.specialization)
+    svc.select_specialization(character_id, skill, payload.specialization)
     return {"status": "selected", "specialization": payload.specialization}
 
 

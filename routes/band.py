@@ -1,4 +1,6 @@
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
+from services.character_service import character_service
 from fastapi import APIRouter, Depends, HTTPException
 
 from schemas.band import (
@@ -21,8 +23,10 @@ tour_service = TourService()
     response_model=BandResponse,
     dependencies=[Depends(require_permission(["admin", "moderator", "band_member"]))],
 )
-def create_band(band: BandCreate):
-    created = band_service.create_band(band.founder_id, band.name, band.genre)
+def create_band(band: BandCreate, character_id: int = Depends(get_current_character_id)):
+    if band.founder_id != character_id:
+        raise HTTPException(status_code=403, detail=_("Band must be created by the selected character"))
+    created = band_service.create_band(character_id, band.name, band.genre)
     return BandResponse(
         id=created.id,
         name=created.name,
@@ -45,12 +49,18 @@ def get_band(band_id: int):
     )
 
 @router.post("/invite")
-def invite_member(invite: BandMemberInvite):
+def invite_member(invite: BandMemberInvite, character_id: int = Depends(get_current_character_id)):
+    info = band_service.get_band_info(invite.band_id)
+    if not info or character_id not in [m["user_id"] for m in info.get("members", [])]:
+        raise HTTPException(status_code=403, detail=_("Selected character is not a member of this band"))
     band_service.add_member(invite.band_id, invite.character_id, invite.role)
     return {"message": _("Member invited")}
 
 @router.post("/collaborate", response_model=BandCollaborationResponse)
-def create_collaboration(collab: BandCollaborationCreate):
+def create_collaboration(collab: BandCollaborationCreate, character_id: int = Depends(get_current_character_id)):
+    info = band_service.get_band_info(collab.band_1_id)
+    if not info or character_id not in [m["user_id"] for m in info.get("members", [])]:
+        raise HTTPException(status_code=403, detail=_("Selected character is not a member of this band"))
     if collab.band_1_id == collab.band_2_id:
         raise HTTPException(status_code=400, detail=_("A band cannot collaborate with itself"))
     return band_service.create_collaboration(
