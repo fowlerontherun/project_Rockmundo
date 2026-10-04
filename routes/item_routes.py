@@ -2,14 +2,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
 from services.item_service import item_service
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
 
-async def _current_user(user_id: int = Depends(get_current_user_id)) -> int:
+async def _current_user(
+    user_id: int = Depends(get_current_user_id),
+    character_id: int = Depends(get_current_character_id),
+) -> int:
     await require_permission(["user", "band_member", "moderator", "admin"], user_id)
-    return user_id
+    return character_id
 
 
 @router.post("/consume-drug/{item_id}")
