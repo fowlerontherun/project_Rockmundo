@@ -2,12 +2,18 @@ from typing import List, Dict, Optional
 import json
 import sqlite3
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
+from services.band_service import BandService
 from pydantic import BaseModel
 
 from database import DB_PATH
 
 router = APIRouter(prefix="/tour-collab", tags=["TourCollab"])
+band_service = BandService()
+
+def _can_manage_any(band_ids: List[int], character_id: int) -> bool:
+    return any(character_id in [m["user_id"] for m in (band_service.get_band_info(bid) or {}).get("members", [])] for bid in band_ids)
 
 
 class CollaborationCreate(BaseModel):
@@ -24,7 +30,9 @@ class InviteIn(BaseModel):
 
 
 @router.post("/")
-def create_collaboration(payload: CollaborationCreate):
+def create_collaboration(payload: CollaborationCreate, character_id: int = Depends(get_current_character_id)):
+    if not _can_manage_any(payload.band_ids, character_id):
+        raise HTTPException(status_code=403, detail="Selected character is not a member of a participating band")
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
@@ -45,7 +53,7 @@ def create_collaboration(payload: CollaborationCreate):
 
 
 @router.post("/{collab_id}/invite")
-def invite_band(collab_id: int, payload: InviteIn):
+def invite_band(collab_id: int, payload: InviteIn, character_id: int = Depends(get_current_character_id)):
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
@@ -56,6 +64,8 @@ def invite_band(collab_id: int, payload: InviteIn):
         if not row:
             raise HTTPException(status_code=404, detail="Collaboration not found")
         band_ids = json.loads(row[0])
+        if not _can_manage_any(band_ids, character_id):
+            raise HTTPException(status_code=403, detail="Selected character cannot manage this collaboration")
         revenue_split = json.loads(row[1])
         if payload.band_id in band_ids:
             raise HTTPException(status_code=400, detail="Band already added")
@@ -91,7 +101,9 @@ def get_collaboration(collab_id: int):
 
 
 @router.put("/{collab_id}")
-def update_collaboration(collab_id: int, payload: CollaborationCreate):
+def update_collaboration(collab_id: int, payload: CollaborationCreate, character_id: int = Depends(get_current_character_id)):
+    if not _can_manage_any(payload.band_ids, character_id):
+        raise HTTPException(status_code=403, detail="Selected character cannot manage this collaboration")
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         cur.execute(
