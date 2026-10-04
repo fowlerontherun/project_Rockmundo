@@ -221,6 +221,11 @@ def metrics() -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root() -> dict[str, str]:
     return {"message": _("Welcome to RockMundo API")}
