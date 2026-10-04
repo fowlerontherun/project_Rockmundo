@@ -87,6 +87,8 @@ UNLOCKS = {
 
 LEARNING_OPTIONS = [
     LearningOption("book", "Luthiery: First Builds", "luthiery", 1, 20),
+    LearningOption("book", "Luthiery: Workshop Techniques", "luthiery", 20, 60),
+    LearningOption("book", "Luthiery: Master Construction", "luthiery", 60, 100),
     LearningOption("youtube", "Workbench Basics: Guitar Building", "luthiery", 1, 10),
     LearningOption("apprenticeship", "Luthier Workshop Apprenticeship", "luthiery", 10),
     LearningOption("university", "Instrument Construction", "luthiery", 20),
