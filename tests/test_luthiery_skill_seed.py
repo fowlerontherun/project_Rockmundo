@@ -43,7 +43,7 @@ def test_advanced_master_and_legendary_unlock_chain():
     }
     master = _skill("master_luthier")
     assert master.parent_id == SKILL_NAME_TO_ID["advanced_luthiery"]
-    assert master.prerequisites == {SKILL_NAME_TO_ID["advanced_luthiery"]: 75}
+    assert master.prerequisites == {SKILL_NAME_TO_ID["advanced_luthiery"]: 100}
     legendary = _skill("legendary_luthier")
     assert legendary.parent_id == SKILL_NAME_TO_ID["master_luthier"]
     assert legendary.prerequisites == {SKILL_NAME_TO_ID["master_luthier"]: 100}
