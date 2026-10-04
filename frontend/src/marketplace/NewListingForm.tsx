@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Props {
   onCreated: () => void;
@@ -11,7 +12,7 @@ const NewListingForm: React.FC<Props> = ({ onCreated }) => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/marketplace/listings', {
+    await apiFetch('/marketplace/listings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
