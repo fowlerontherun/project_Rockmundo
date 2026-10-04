@@ -35,7 +35,7 @@ jobs:
       - name: ⚙️ Setup Node (for version checks)
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20.11.1"
 
       - name: 📦 Install system deps (gettext for msgfmt)
         run: |
@@ -51,14 +51,7 @@ jobs:
             echo "No requirements.txt found — continuing."
           fi
 
-      - name: 🩺 Run Startup Doctor (read-only)
+      - name: 🩺 Run startup import/health checks
         run: |
-          set -o pipefail
-          python rockmundo_startup_doctor.py 2>&1 | tee doctor.log
-
-      - name: ⬆️ Upload Doctor log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: startup-doctor-log
-          path: doctor.log
+          python -m compileall -q auth routes services models backend
+          pytest -q backend/tests/test_health.py
