@@ -53,5 +53,16 @@ jobs:
 
       - name: 🩺 Run startup import/health checks
         run: |
-          python -m compileall -q auth routes services models backend
-          pytest -q backend/tests/test_health.py
+          set -o pipefail
+          {
+            python -m compileall -q auth routes services models backend
+            pytest -q backend/tests/test_health.py
+          } 2>&1 | tee preflight.log
+
+      - name: ⬆️ Upload preflight log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-preflight-log
+          path: preflight.log
+          if-no-files-found: ignore

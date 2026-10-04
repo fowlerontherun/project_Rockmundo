@@ -42,7 +42,17 @@ jobs:
       - name: Install frontend deps
         if: hashFiles('frontend/package.json') != ''
         working-directory: frontend
-        run: npm ci --legacy-peer-deps
+        run: |
+          set -o pipefail
+          npm ci --legacy-peer-deps 2>&1 | tee npm-ci.log
+
+      - name: Upload frontend install log
+        if: always() && hashFiles('frontend/package.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-npm-ci-log
+          path: frontend/npm-ci.log
+          if-no-files-found: ignore
 
       - name: Check for frontend tests
         id: frontend-tests
