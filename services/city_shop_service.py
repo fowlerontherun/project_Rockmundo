@@ -682,13 +682,12 @@ class CityShopService:
                 INSERT INTO shop_books (
                     shop_id, book_id, quantity, price_cents, restock_interval, restock_quantity
                 )
-                INSERT INTO shop_books (shop_id, book_id, quantity, restock_interval, restock_quantity, price_cents)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(shop_id, book_id) DO UPDATE SET
                     quantity = quantity + excluded.quantity,
                     price_cents = excluded.price_cents,
                     restock_interval = COALESCE(excluded.restock_interval, restock_interval),
-              
+                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity)
                 """,
                 (
                     shop_id,
@@ -698,10 +697,6 @@ class CityShopService:
                     restock_interval,
                     restock_quantity,
                 ),
-                    restock_quantity = COALESCE(excluded.restock_quantity, restock_quantity),
-                    price_cents = excluded.price_cents
-                """,
-                (shop_id, book_id, quantity, restock_interval, restock_quantity, price_cents),
             )
             conn.commit()
         self._adjust_book_price(shop_id, book_id)
