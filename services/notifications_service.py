@@ -38,13 +38,18 @@ class NotificationsService:
         body: str = "",
         type_: str = "system",
         send_to_discord: bool = False,
+        character_id: int | None = None,
     ) -> int:
         with get_conn(self.db_path) as conn:
             cur = conn.cursor()
+            columns = {row["name"] for row in cur.execute("PRAGMA table_info(notifications)").fetchall()}
+            if "character_id" not in columns:
+                cur.execute("ALTER TABLE notifications ADD COLUMN character_id INTEGER")
+                cur.execute("CREATE INDEX IF NOT EXISTS ix_notifications_character_id ON notifications(character_id)")
             cur.execute(
-                """INSERT INTO notifications (user_id, type, title, body)
-                       VALUES (?, ?, ?, ?)""",
-                (user_id, type_, title, body),
+                """INSERT INTO notifications (user_id, character_id, type, title, body)
+                       VALUES (?, ?, ?, ?, ?)""",
+                (user_id, character_id, type_, title, body),
             )
             notif_id = int(cur.lastrowid)
 
@@ -70,16 +75,19 @@ class NotificationsService:
 
         return notif_id
 
-    def list(self, user_id: int, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    def list(self, user_id: int, limit: int = 50, offset: int = 0, character_id: int | None = None) -> List[Dict[str, Any]]:
         with get_conn(self.db_path) as conn:
             cur = conn.cursor()
+            columns = {row["name"] for row in cur.execute("PRAGMA table_info(notifications)").fetchall()}
+            if "character_id" not in columns:
+                cur.execute("ALTER TABLE notifications ADD COLUMN character_id INTEGER")
             cur.execute(
-                """SELECT id, user_id, type, title, body, created_at, read_at
+                """SELECT id, user_id, character_id, type, title, body, created_at, read_at
                        FROM notifications
-                       WHERE user_id = ?
+                       WHERE user_id = ? AND (character_id IS NULL OR character_id = ?)
                        ORDER BY read_at IS NULL DESC, COALESCE(read_at, '9999-12-31'), created_at DESC
                        LIMIT ? OFFSET ?""",
-                (user_id, limit, offset),
+                (user_id, character_id, limit, offset),
             )
             return [dict(r) for r in cur.fetchall()]
 
