@@ -1,6 +1,8 @@
 from typing import List
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Depends, HTTPException
+from auth.dependencies import get_current_user_id
+from auth.character_dependencies import get_current_character_id
 from pydantic import BaseModel
 
 from services.analytics_service import schedule_analytics_service
@@ -60,14 +62,18 @@ class DefaultEntry(BaseModel):
 
 
 @router.post("/default-plan/{user_id}/{day}")
-def set_default_plan(user_id: int, day: str, entries: List[DefaultEntry]):
-    schedule_service.set_default_plan(user_id, day, [e.dict() for e in entries])
+def set_default_plan(user_id: int, day: str, entries: List[DefaultEntry], account_id: int = Depends(get_current_user_id), character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    schedule_service.set_default_plan(character_id, day, [e.dict() for e in entries])
     return {"status": "ok"}
 
 
 @router.get("/default-plan/{user_id}/{day}")
-def get_default_plan(user_id: int, day: str):
-    plan = schedule_service.get_default_plan(user_id, day)
+def get_default_plan(user_id: int, day: str, account_id: int = Depends(get_current_user_id), character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    plan = schedule_service.get_default_plan(character_id, day)
     return {"plan": plan}
 
 
@@ -78,14 +84,18 @@ class WeeklyEntry(BaseModel):
 
 
 @router.post("/weekly/{user_id}/{week_start}")
-def set_weekly_schedule(user_id: int, week_start: str, entries: List[WeeklyEntry]):
-    schedule_service.set_weekly_schedule(user_id, week_start, [e.dict() for e in entries])
+def set_weekly_schedule(user_id: int, week_start: str, entries: List[WeeklyEntry], account_id: int = Depends(get_current_user_id), character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    schedule_service.set_weekly_schedule(character_id, week_start, [e.dict() for e in entries])
     return {"status": "ok"}
 
 
 @router.get("/weekly/{user_id}/{week_start}")
-def get_weekly_schedule(user_id: int, week_start: str):
-    schedule = schedule_service.get_weekly_schedule(user_id, week_start)
+def get_weekly_schedule(user_id: int, week_start: str, account_id: int = Depends(get_current_user_id), character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    schedule = schedule_service.get_weekly_schedule(character_id, week_start)
     return {"schedule": schedule}
 
 
@@ -102,10 +112,12 @@ class DailyEntry(BaseModel):
 
 
 @router.post("/daily/{user_id}/{date}")
-def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry):
+def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry, account_id: int = Depends(get_current_user_id), character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
     try:
         conflicts = schedule_service.schedule_activity(
-            user_id,
+            character_id,
             date,
             entry.slot,
             entry.activity_id,
