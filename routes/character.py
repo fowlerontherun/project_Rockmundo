@@ -23,7 +23,7 @@ def create_character(
     character: CharacterCreate, user_id: int = Depends(get_current_user_id)
 ):
     """Create a new character."""
-    return character_service.create_character(character)
+    return character_service.create_character(character, user_id)
 
 
 @router.get(
@@ -35,6 +35,8 @@ def read_character(
     character_id: int, user_id: int = Depends(get_current_user_id)
 ):
     """Retrieve a single character by ID."""
+    if not character_service.owns_character(user_id, character_id):
+        raise HTTPException(status_code=404, detail=_("Character not found"))
     char = character_service.get_character(character_id)
     if not char:
         raise HTTPException(status_code=404, detail=_("Character not found"))
@@ -48,7 +50,7 @@ def read_character(
 )
 def list_characters(user_id: int = Depends(get_current_user_id)):
     """List all characters."""
-    return character_service.list_characters()
+    return character_service.list_characters(user_id)
 
 
 @router.put(
@@ -62,7 +64,7 @@ def update_character(
     user_id: int = Depends(get_current_user_id),
 ):
     """Update character information."""
-    updated = character_service.update_character(character_id, character)
+    updated = character_service.update_character(character_id, character, user_id)
     if not updated:
         raise HTTPException(status_code=404, detail=_("Character not found"))
     return updated
@@ -76,7 +78,7 @@ def delete_character(
     character_id: int, user_id: int = Depends(get_current_user_id)
 ):
     """Delete a character."""
-    deleted = character_service.delete_character(character_id)
+    deleted = character_service.delete_character(character_id, user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=_("Character not found"))
     return {"ok": True}
@@ -93,6 +95,8 @@ class NetworkingUpdate(BaseModel):
 def get_networking(
     character_id: int, user_id: int = Depends(get_current_user_id)
 ) -> dict[str, int]:
+    if not character_service.owns_character(user_id, character_id):
+        raise HTTPException(status_code=404, detail=_("Character not found"))
     avatar = avatar_service.get_avatar_by_character_id(character_id)
     if not avatar:
         raise HTTPException(status_code=404, detail=_("Character not found"))
