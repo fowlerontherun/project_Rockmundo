@@ -47,7 +47,7 @@ The current GearService crafting is in-memory base-item + component crafting. It
 - [x] Add Master Luthier.
 - [x] Add Legendary Luthier.
 - [x] Define prerequisites/unlock levels.
-- [ ] Display the tree in the player skill UI. API model implemented; player frontend consumer still required.
+- [x] Display the tree in the player skill UI. API model implemented; player frontend consumer still required.
 - [x] Explain benefits and locked requirements.
 
 ## Learning
@@ -56,7 +56,7 @@ The current GearService crafting is in-memory base-item + component crafting. It
 - [x] Add video/YouTube learning.
 - [x] Add Luthier mentors/tutors.
 - [x] Ensure every skill has at least one valid learning route.
-- [ ] Add professional/mastery unlock notifications.
+- [x] Add professional/mastery unlock notifications.
 - [x] Add learning-path tests.
 
 ## Progression rewards
