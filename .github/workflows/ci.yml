@@ -42,7 +42,7 @@ jobs:
       - name: Install frontend deps
         if: hashFiles('frontend/package.json') != ''
         working-directory: frontend
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Check for frontend tests
         id: frontend-tests
