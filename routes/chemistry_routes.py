@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
 from services.chemistry_service import ChemistryService
 
 router = APIRouter(prefix="/chemistry", tags=["chemistry"])
@@ -15,8 +16,10 @@ class Adjustment(BaseModel):
 
 
 @router.get("/{player_id}")
-def list_chemistry(player_id: int, _uid: int = Depends(get_current_user_id)):
-    pairs = svc.list_for_player(player_id)
+def list_chemistry(player_id: int, character_id: int = Depends(get_current_character_id)):
+    if player_id != character_id:
+        return []
+    pairs = svc.list_for_player(character_id)
     return [
         {"player_a_id": p.player_a_id, "player_b_id": p.player_b_id, "score": p.score}
         for p in pairs
