@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from auth.dependencies import get_current_user_id
+from auth.character_dependencies import get_current_character_id
 from services.notifications_service import NotificationsService
 
 
@@ -13,8 +14,9 @@ def list_notifications(
     limit: int = 50,
     offset: int = 0,
     user_id: int = Depends(get_current_user_id),
+    character_id: int = Depends(get_current_character_id),
 ):
-    items = svc.list(user_id, limit=limit, offset=offset)
+    items = svc.list(user_id, limit=limit, offset=offset, character_id=character_id)
     return {"notifications": items, "unread": svc.unread_count(user_id)}
 
 
