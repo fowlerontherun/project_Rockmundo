@@ -253,6 +253,58 @@ class SkillService:
         if level != skill.level:
             skill.level = level
 
+    def _notify_luthiery_unlocks(
+        self, character_id: int, changed_skill_id: int, previous_level: int
+    ) -> None:
+        """Notify only when this level change makes a professional/mastery node reachable."""
+
+        from seeds.skill_seed import SEED_SKILLS
+
+        by_id = {skill.id: skill for skill in SEED_SKILLS}
+        by_name = {skill.name: skill for skill in SEED_SKILLS}
+        targets = ("advanced_luthiery", "master_luthier", "legendary_luthier")
+        changed = by_id.get(changed_skill_id)
+        if not changed:
+            return
+
+        for target_name in targets:
+            target = by_name.get(target_name)
+            if not target or changed_skill_id not in target.prerequisites:
+                continue
+
+            now_met = True
+            before_met = True
+            for prereq_id, required in target.prerequisites.items():
+                prereq = by_id[prereq_id]
+                current = self._get_skill(character_id, prereq).level
+                before = previous_level if prereq_id == changed_skill_id else current
+                now_met = now_met and current >= required
+                before_met = before_met and before >= required
+
+            if not now_met or before_met:
+                continue
+
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    row = conn.execute(
+                        "SELECT owner_user_id FROM characters WHERE id = ?",
+                        (character_id,),
+                    ).fetchone()
+                if not row:
+                    continue
+                from services.notifications_service import NotificationsService
+
+                NotificationsService(str(self.db_path)).create(
+                    user_id=int(row[0]),
+                    character_id=character_id,
+                    title="New Luthiery skill unlocked",
+                    body=f"You can now learn {target_name.replace('_', ' ').title()}.",
+                    type_="skill_unlock",
+                )
+            except (sqlite3.Error, OSError):
+                # Training must remain successful if notification delivery is unavailable.
+                continue
+
     def _has_item(self, user_id: int, item_name: str) -> bool:
         """Return True if the user possesses an item by name."""
 
@@ -353,8 +405,10 @@ class SkillService:
                 gain = allowed
             self._xp_today[(user_id, skill.id, today)] = used + gain
 
+        previous_level = inst.level
         inst.xp += gain
         self._check_level(inst)
+        self._notify_luthiery_unlocks(user_id, inst.id, previous_level)
         # Evaluate perk requirements after level change
         perk_service.update_skill(user_id, inst.name, inst.level)
 

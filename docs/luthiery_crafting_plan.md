@@ -38,33 +38,33 @@ The current GearService crafting is in-memory base-item + component crafting. It
 **Goal:** Make Luthiery a real skill family before production.
 
 ## Skill tree
-- [ ] Add Basic Luthiery under a Craftsmanship category.
-- [ ] Add Woodworking.
-- [ ] Add Fretwork.
-- [ ] Add Instrument Electronics.
-- [ ] Add Instrument Finishing.
-- [ ] Add Advanced Luthiery.
-- [ ] Add Master Luthier.
-- [ ] Add Legendary Luthier.
-- [ ] Define prerequisites/unlock levels.
-- [ ] Display the tree in the player skill UI.
-- [ ] Explain benefits and locked requirements.
+- [x] Add Basic Luthiery under a Craftsmanship category.
+- [x] Add Woodworking.
+- [x] Add Fretwork.
+- [x] Add Instrument Electronics.
+- [x] Add Instrument Finishing.
+- [x] Add Advanced Luthiery.
+- [x] Add Master Luthier.
+- [x] Add Legendary Luthier.
+- [x] Define prerequisites/unlock levels.
+- [x] Display the tree in the player skill UI.
+- [x] Explain benefits and locked requirements.
 
 ## Learning
-- [ ] Add beginner, intermediate and advanced Luthiery books.
-- [ ] Add courses.
-- [ ] Add video/YouTube learning.
-- [ ] Add Luthier mentors/tutors.
-- [ ] Ensure every skill has at least one valid learning route.
-- [ ] Add professional/mastery unlock notifications.
-- [ ] Add learning-path tests.
+- [x] Add beginner, intermediate and advanced Luthiery books.
+- [x] Add courses.
+- [x] Add video/YouTube learning.
+- [x] Add Luthier mentors/tutors.
+- [x] Ensure every skill has at least one valid learning route.
+- [x] Add professional/mastery unlock notifications.
+- [x] Add learning-path tests.
 
 ## Progression rewards
-- [ ] Level-based material unlock table.
-- [ ] Level-based shape unlock table.
-- [ ] Level-based finish unlock table.
-- [ ] Level-based component unlock table.
-- [ ] Show upcoming unlocks in skill tree.
+- [x] Level-based material unlock table.
+- [x] Level-based shape unlock table.
+- [x] Level-based finish unlock table.
+- [x] Level-based component unlock table.
+- [x] Show upcoming unlocks in skill tree.
 
 **Exit:** a new character can discover/train Luthiery; advanced skills unlock correctly; no skill is unreachable; UI shows current/upcoming unlocks.
 

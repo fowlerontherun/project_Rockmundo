@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../../utils/api.js';
+import LuthierySkillTree from './LuthierySkillTree';
 
 interface Recipe {
   name: string;
@@ -31,6 +32,7 @@ const CraftingPanel: React.FC = () => {
 
   return (
     <div>
+      <LuthierySkillTree />
       <select value={selected} onChange={(e) => setSelected(e.target.value)}>
         <option value="">Select recipe</option>
         {recipes.map((r) => (
