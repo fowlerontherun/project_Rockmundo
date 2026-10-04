@@ -139,7 +139,7 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
         "master_luthier",
         "craftsmanship",
         "advanced_luthiery",
-        {"advanced_luthiery": 75},
+        {"advanced_luthiery": 100},
     ),
     (
         "legendary_luthier",
