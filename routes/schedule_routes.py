@@ -35,8 +35,10 @@ def generate_plan(data: PlanPercentages):
 
 
 @router.post("/recommend")
-def recommend_activities(data: RecommendationRequest):
-    suggestions = plan_service.recommend_activities(data.user_id, data.goals)
+def recommend_activities(data: RecommendationRequest, character_id: int = Depends(get_current_character_id)):
+    if data.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    suggestions = plan_service.recommend_activities(character_id, data.goals)
     return {"recommendations": suggestions}
 
 
@@ -50,10 +52,12 @@ class PlanSimulation(BaseModel):
 
 
 @router.post("/simulate")
-def simulate_schedule(data: PlanSimulation):
+def simulate_schedule(data: PlanSimulation, character_id: int = Depends(get_current_character_id)):
+    if data.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
     from services.activity_processor import simulate_plan
 
-    return simulate_plan(data.user_id, [e.model_dump() for e in data.entries])
+    return simulate_plan(character_id, [e.model_dump() for e in data.entries])
 
 
 class DefaultEntry(BaseModel):
@@ -100,8 +104,10 @@ def get_weekly_schedule(user_id: int, week_start: str, account_id: int = Depends
 
 
 @router.get("/analytics/{user_id}/{week_start}")
-def get_schedule_analytics(user_id: int, week_start: str):
-    data = schedule_analytics_service.weekly_totals(user_id, week_start)
+def get_schedule_analytics(user_id: int, week_start: str, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    data = schedule_analytics_service.weekly_totals(character_id, week_start)
     return data
 
 
@@ -133,10 +139,12 @@ def schedule_daily_activity(user_id: int, date: str, entry: DailyEntry, account_
 
 
 @router.get("/stats/{user_id}/{date}")
-def get_schedule_stats(user_id: int, date: str):
+def get_schedule_stats(user_id: int, date: str, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
     from services.activity_processor import evaluate_schedule_completion
 
-    return evaluate_schedule_completion(user_id, date)
+    return evaluate_schedule_completion(character_id, date)
 
 
 @router.get("/history/{date}")
@@ -146,8 +154,10 @@ def get_schedule_history(date: str):
 
 
 @router.get("/export/ics")
-def export_schedule_ics(user_id: int, date: str):
-    ics = daily_schedule_to_ics(user_id, date)
+def export_schedule_ics(user_id: int, date: str, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    ics = daily_schedule_to_ics(character_id, date)
     return Response(
         content=ics,
         media_type="text/calendar",
@@ -172,26 +182,34 @@ class CopyRequest(BaseModel):
 
 
 @router.post("/templates/{user_id}")
-def create_template(user_id: int, data: TemplateCreate):
+def create_template(user_id: int, data: TemplateCreate, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
     template_id = schedule_service.create_template(
-        user_id, data.name, [e.dict() for e in data.entries]
+        character_id, data.name, [e.dict() for e in data.entries]
     )
     return {"id": template_id}
 
 
 @router.get("/templates/{user_id}")
-def list_templates(user_id: int):
-    templates = schedule_service.list_templates(user_id)
+def list_templates(user_id: int, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    templates = schedule_service.list_templates(character_id)
     return {"templates": templates}
 
 
 @router.post("/apply-template/{user_id}/{date}/{template_id}")
-def apply_template(user_id: int, date: str, template_id: int):
-    schedule_service.apply_template(user_id, date, template_id)
+def apply_template(user_id: int, date: str, template_id: int, character_id: int = Depends(get_current_character_id)):
+    if user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    schedule_service.apply_template(character_id, date, template_id)
     return {"status": "ok"}
 
 
 @router.post("/copy")
-def copy_schedule(data: CopyRequest):
-    schedule_service.copy_schedule(data.user_id, data.src_date, data.dest_dates)
+def copy_schedule(data: CopyRequest, character_id: int = Depends(get_current_character_id)):
+    if data.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Schedule belongs to the selected character")
+    schedule_service.copy_schedule(character_id, data.src_date, data.dest_dates)
     return {"status": "ok"}
