@@ -1,4 +1,5 @@
 from auth.dependencies import get_current_user_id, require_permission
+from auth.character_dependencies import get_current_character_id
 from fastapi import APIRouter, Depends, HTTPException
 from services.notifications_service import NotificationsService
 from sqlalchemy.orm import Session
@@ -96,7 +97,11 @@ def book_gig(
     gig: GigCreate,
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user_id),
+    character_id: int = Depends(get_current_character_id),
 ):
+    info = band_service.get_band_info(gig.band_id)
+    if not info or character_id not in [m["user_id"] for m in info.get("members", [])]:
+        raise HTTPException(status_code=403, detail=_("Selected character is not a member of this band"))
     """Create a gig with eligibility, conflict and payout checks."""
 
     # Acoustic eligibility using real services
