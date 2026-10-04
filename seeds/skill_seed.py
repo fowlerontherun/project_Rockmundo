@@ -109,6 +109,44 @@ _RAW_SKILLS: list[tuple[str, str, str | None, dict[str, int]]] = [
     ("financial_management", "business", None, {}),
     ("social_media_management", "business", None, {}),
     ("data_analytics", "business", None, {}),
+    # Craftsmanship: Luthiery. Append-only: existing skill IDs must remain stable.
+    ("luthiery", "craftsmanship", None, {}),
+    ("woodworking", "craftsmanship", "luthiery", {"luthiery": 20}),
+    ("fretwork", "craftsmanship", "luthiery", {"luthiery": 30}),
+    (
+        "instrument_electronics",
+        "craftsmanship",
+        "luthiery",
+        {"luthiery": 40},
+    ),
+    (
+        "instrument_finishing",
+        "craftsmanship",
+        "luthiery",
+        {"luthiery": 40},
+    ),
+    (
+        "advanced_luthiery",
+        "craftsmanship",
+        "luthiery",
+        {
+            "luthiery": 50,
+            "woodworking": 20,
+            "fretwork": 20,
+        },
+    ),
+    (
+        "master_luthier",
+        "craftsmanship",
+        "advanced_luthiery",
+        {"advanced_luthiery": 75},
+    ),
+    (
+        "legendary_luthier",
+        "craftsmanship",
+        "master_luthier",
+        {"master_luthier": 100},
+    ),
 ]
 
 
