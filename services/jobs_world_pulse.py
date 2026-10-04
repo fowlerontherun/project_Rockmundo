@@ -114,5 +114,13 @@ class WorldPulseService:
         for work_type, work_id, metric in cur.fetchall():
             wt = (work_type or "").lower()
             wid = int(work_id)
-            genre = songs_genre.get(wid, "
+            if wt in {"album", "albums"}:
+                genre = albums_genre.get(wid, "").strip()
+            else:
+                genre = songs_genre.get(wid, "").strip()
+            if not genre:
+                continue
+            totals[genre] = totals.get(genre, 0.0) + float(metric or 0) * CHART_SCORE_WEIGHT
+        return totals
+
 
