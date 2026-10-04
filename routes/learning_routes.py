@@ -1,24 +1,17 @@
-"""Routing stubs for skill learning sessions."""
+"""Routes for skill learning and Luthiery progression discovery."""
 
-from fastapi import APIRouter, HTTPException, Depends
-from auth.character_dependencies import get_current_character_id
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from auth.character_dependencies import get_current_character_id
 from backend.models.learning_method import LearningMethod
-from backend.models.skill import Skill
+from services.luthiery_progression import (
+    SKILL_DESCRIPTIONS,
+    learning_options_for,
+    unlocks_for_level,
+)
 from services.skill_service import SkillService
-from services.luthiery_progression import (
-    SKILL_DESCRIPTIONS,
-    learning_options_for,
-    unlocks_for_level,
-)
 from seeds.skill_seed import SEED_SKILLS
-from seeds.skill_seed import SEED_SKILLS, SKILL_NAME_TO_ID
-from services.luthiery_progression import (
-    SKILL_DESCRIPTIONS,
-    learning_options_for,
-    unlocks_for_level,
-)
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
 _SKILLS_BY_NAME = {skill.name: skill for skill in SEED_SKILLS}
@@ -43,103 +36,79 @@ class SpecializationRequest(BaseModel):
     specialization: str
 
 
-@router.post("/sessions")
-def enqueue_session(payload: SessionRequest, character_id: int = Depends(get_current_character_id)):
-    if payload.user_id != character_id:
-        raise HTTPException(status_code=403, detail="Learning belongs to the selected character")
-    """Enqueue a learning session (stub)."""
-    skill = _SKILLS_BY_ID.get(payload.skill_id)
-    if not skill or skill.name != payload.skill_name or skill.category != payload.skill_category:
+def _canonical_skill(skill_id: int, name: str, category: str):
+    skill = _SKILLS_BY_ID.get(skill_id)
+    if not skill or skill.name != name or skill.category != category:
         raise HTTPException(status_code=400, detail="Unknown or mismatched skill")
+    return skill
+
+
+@router.post("/sessions")
+def enqueue_session(
+    payload: SessionRequest,
+    character_id: int = Depends(get_current_character_id),
+):
+    """Train the selected character using a server-authoritative skill definition."""
+    if payload.user_id != character_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Learning belongs to the selected character",
+        )
+    skill = _canonical_skill(
+        payload.skill_id, payload.skill_name, payload.skill_category
+    )
     try:
         svc.train_with_method(character_id, skill, payload.method, payload.duration)
-    except ValueError as exc:  # pragma: no cover - stub handler
-        raise HTTPException(status_code=400, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"status": "queued"}
 
 
 @router.delete("/sessions/{session_id}")
 def cancel_session(session_id: int):
-    """Cancel a queued session (stub)."""
+    """Cancel a queued learning session."""
     return {"status": "cancelled", "session_id": session_id}
 
 
 @router.post("/specializations")
-def choose_specialization(payload: SpecializationRequest, character_id: int = Depends(get_current_character_id)):
+def choose_specialization(
+    payload: SpecializationRequest,
+    character_id: int = Depends(get_current_character_id),
+):
     if payload.user_id != character_id:
-        raise HTTPException(status_code=403, detail="Skills belong to the selected character")
-    """Select a specialization for a skill."""
-    skill = _SKILLS_BY_ID.get(payload.skill_id)
-    if not skill or skill.name != payload.skill_name or skill.category != payload.skill_category:
-        raise HTTPException(status_code=400, detail="Unknown or mismatched skill")
+        raise HTTPException(
+            status_code=403,
+            detail="Skills belong to the selected character",
+        )
+    skill = _canonical_skill(
+        payload.skill_id, payload.skill_name, payload.skill_category
+    )
     svc.select_specialization(character_id, skill, payload.specialization)
     return {"status": "selected", "specialization": payload.specialization}
 
 
 @router.get("/luthiery/tree")
 def luthiery_tree(character_id: int = Depends(get_current_character_id)):
-    """Return selected-character Luthiery progression for the player skill UI."""
+    """Return selected-character Luthiery progression for the player UI."""
 
-    nodes = []
-    for seed in SEED_SKILLS:
-        if seed.name not in SKILL_DESCRIPTIONS:
-            continue
-        level = svc.get_skill_level(character_id, seed)
-        requirements = [
-            {
-                "skill": next(
-                    (candidate.name for candidate in SEED_SKILLS if candidate.id == prereq_id),
-                    str(prereq_id),
-                ),
-                "level": required,
-                "met": svc.get_skill_level(
-                    character_id,
-                    next(candidate for candidate in SEED_SKILLS if candidate.id == prereq_id),
-                ) >= required,
-            }
-            for prereq_id, required in seed.prerequisites.items()
-        ]
-        nodes.append(
-            {
-                "id": seed.id,
-                "key": seed.name,
-                "name": seed.name.replace("_", " ").title(),
-                "category": seed.category,
-                "level": level,
-                "parent_id": seed.parent_id,
-                "description": SKILL_DESCRIPTIONS[seed.name],
-                "locked": any(not requirement["met"] for requirement in requirements),
-                "requirements": requirements,
-                "learning": [
-                    {
-                        "method": option.method,
-                        "title": option.title,
-                        "min_level": option.min_level,
-                        "max_level": option.max_level,
-                    }
-                    for option in learning_options_for(seed.name)
-                ],
-                "rewards": unlocks_for_level(level) if seed.name == "luthiery" else None,
-            }
-        )
-    return {"category": "craftsmanship", "root": SKILL_NAME_TO_ID["luthiery"], "skills": nodes}
-
-
-@router.get("/luthiery/tree")
-def luthiery_tree(character_id: int = Depends(get_current_character_id)):
-    """Return server-authoritative Luthiery discovery/progression metadata."""
     nodes = []
     for name, description in SKILL_DESCRIPTIONS.items():
         skill = _SKILLS_BY_NAME[name]
         level = svc.get_skill_level(character_id, skill)
         missing = []
         for prereq_id, required in skill.prerequisites.items():
-            prereq = next(item for item in SEED_SKILLS if item.id == prereq_id)
+            prereq = _SKILLS_BY_ID[prereq_id]
             actual = svc.get_skill_level(character_id, prereq)
             if actual < required:
                 missing.append(
-                    {"skill": prereq.name, "required_level": required, "current_level": actual}
+                    {
+                        "skill": prereq.name,
+                        "required_level": required,
+                        "current_level": actual,
+                    }
                 )
+
+        options = learning_options_for(name)
         nodes.append(
             {
                 "id": skill.id,
@@ -149,7 +118,7 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
                 "level": level,
                 "locked": bool(missing),
                 "missing_requirements": missing,
-                "learning_methods": sorted({option.method for option in learning_options_for(name)}),
+                "learning_methods": sorted({option.method for option in options}),
                 "learning_options": [
                     {
                         "method": option.method,
@@ -157,10 +126,11 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
                         "min_level": option.min_level,
                         "max_level": option.max_level,
                     }
-                    for option in learning_options_for(name)
+                    for option in options
                 ],
             }
         )
+
     root_level = svc.get_skill_level(character_id, _SKILLS_BY_NAME["luthiery"])
     return {
         "category": "craftsmanship",
