@@ -7,6 +7,13 @@ from pydantic import BaseModel
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
 from services.skill_service import SkillService
+from seeds.luthiery_progression import (
+    LUTHIERY_LEARNING_PATHS,
+    LUTHIERY_SKILL_META,
+    unlocked_rewards,
+    upcoming_rewards,
+)
+from seeds.skill_seed import SEED_SKILLS
 from seeds.skill_seed import SEED_SKILLS, SKILL_NAME_TO_ID
 from services.luthiery_progression import (
     SKILL_DESCRIPTIONS,
@@ -15,6 +22,7 @@ from services.luthiery_progression import (
 )
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
+_SKILLS_BY_NAME = {skill.name: skill for skill in SEED_SKILLS}
 svc = SkillService()
 
 
@@ -115,6 +123,41 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
             }
         )
     return {"category": "craftsmanship", "root": SKILL_NAME_TO_ID["luthiery"], "skills": nodes}
+
+
+@router.get("/luthiery/tree")
+def luthiery_tree(character_id: int = Depends(get_current_character_id)):
+    """Return server-authoritative Luthiery discovery/progression metadata."""
+    nodes = []
+    for name, meta in LUTHIERY_SKILL_META.items():
+        skill = _SKILLS_BY_NAME[name]
+        level = svc.get_skill_level(character_id, skill)
+        missing = []
+        for prereq_id, required in skill.prerequisites.items():
+            prereq = next(item for item in SEED_SKILLS if item.id == prereq_id)
+            actual = svc.get_skill_level(character_id, prereq)
+            if actual < required:
+                missing.append(
+                    {"skill": prereq.name, "required_level": required, "current_level": actual}
+                )
+        nodes.append(
+            {
+                "id": skill.id,
+                "key": name,
+                **meta,
+                "level": level,
+                "locked": bool(missing),
+                "missing_requirements": missing,
+                "learning_methods": list(LUTHIERY_LEARNING_PATHS[name]),
+            }
+        )
+    root_level = svc.get_skill_level(character_id, _SKILLS_BY_NAME["luthiery"])
+    return {
+        "category": "craftsmanship",
+        "skills": nodes,
+        "unlocked_rewards": unlocked_rewards(root_level),
+        "upcoming_rewards": upcoming_rewards(root_level),
+    }
 
 
 __all__ = ["router"]
