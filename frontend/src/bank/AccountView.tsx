@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Props {
   reloadKey: number;
@@ -17,7 +18,7 @@ const AccountView: React.FC<Props> = ({ reloadKey }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/bank/account');
+        const res = await apiFetch('/bank/account');
         if (res.ok) {
           const data = await res.json();
           setInfo(data);
@@ -31,7 +32,7 @@ const AccountView: React.FC<Props> = ({ reloadKey }) => {
 
   const deposit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/bank/deposit', {
+    await apiFetch('/bank/deposit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount_cents: depositAmt }),
@@ -41,7 +42,7 @@ const AccountView: React.FC<Props> = ({ reloadKey }) => {
 
   const withdraw = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/bank/withdraw', {
+    await apiFetch('/bank/withdraw', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount_cents: withdrawAmt }),
