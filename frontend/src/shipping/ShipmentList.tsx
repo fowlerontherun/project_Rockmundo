@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Shipment {
   id: number;
@@ -20,7 +21,7 @@ const ShipmentList: React.FC<Props> = ({ refresh }) => {
 
   useEffect(() => {
     const load = async () => {
-      const res = await fetch('/shipping/shipments');
+      const res = await apiFetch('/shipping/shipments');
       const data = await res.json();
       setShipments(data);
     };
