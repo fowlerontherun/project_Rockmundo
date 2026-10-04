@@ -5,6 +5,7 @@ from models.skin import Skin, SkinInventory
 from schemas.skin import SkinCreate, SkinResponse, SkinEquipRequest, SkinInventoryItem
 from database import get_db
 from utils.i18n import _
+from services.character_service import character_service
 
 router = APIRouter(prefix="/skins", tags=["Skins"])
 
@@ -31,7 +32,13 @@ def approve_skin(skin_id: int, db: Session = Depends(get_db)):
     return skin
 
 @router.post("/equip")
-def equip_skin(req: SkinEquipRequest, db: Session = Depends(get_db)):
+def equip_skin(
+    req: SkinEquipRequest,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    if not character_service.owns_character(user_id, req.character_id):
+        raise HTTPException(status_code=404, detail=_("Character not found"))
     # Unequip current skin in same slot
     db.query(SkinInventory).filter_by(character_id=req.character_id, slot=req.slot).update({"is_equipped": False})
     db.commit()
@@ -49,7 +56,13 @@ def equip_skin(req: SkinEquipRequest, db: Session = Depends(get_db)):
     return {"message": _("Skin equipped"), "slot": inv.slot}
 
 @router.get("/inventory/{character_id}", response_model=list[SkinInventoryItem])
-def get_inventory(character_id: int, db: Session = Depends(get_db)):
+def get_inventory(
+    character_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id),
+):
+    if not character_service.owns_character(user_id, character_id):
+        raise HTTPException(status_code=404, detail=_("Character not found"))
     inv = (
         db.query(SkinInventory)
         .options(joinedload(SkinInventory.skin))
