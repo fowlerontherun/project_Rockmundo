@@ -7,11 +7,10 @@ from pydantic import BaseModel
 from backend.models.learning_method import LearningMethod
 from backend.models.skill import Skill
 from services.skill_service import SkillService
-from seeds.luthiery_progression import (
-    LUTHIERY_LEARNING_PATHS,
-    LUTHIERY_SKILL_META,
-    unlocked_rewards,
-    upcoming_rewards,
+from services.luthiery_progression import (
+    SKILL_DESCRIPTIONS,
+    learning_options_for,
+    unlocks_for_level,
 )
 from seeds.skill_seed import SEED_SKILLS
 from seeds.skill_seed import SEED_SKILLS, SKILL_NAME_TO_ID
@@ -129,7 +128,7 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
 def luthiery_tree(character_id: int = Depends(get_current_character_id)):
     """Return server-authoritative Luthiery discovery/progression metadata."""
     nodes = []
-    for name, meta in LUTHIERY_SKILL_META.items():
+    for name, description in SKILL_DESCRIPTIONS.items():
         skill = _SKILLS_BY_NAME[name]
         level = svc.get_skill_level(character_id, skill)
         missing = []
@@ -144,19 +143,19 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
             {
                 "id": skill.id,
                 "key": name,
-                **meta,
+                "label": name.replace("_", " ").title(),
+                "description": description,
                 "level": level,
                 "locked": bool(missing),
                 "missing_requirements": missing,
-                "learning_methods": list(LUTHIERY_LEARNING_PATHS[name]),
+                "learning_methods": sorted({option.method for option in learning_options_for(name)}),
             }
         )
     root_level = svc.get_skill_level(character_id, _SKILLS_BY_NAME["luthiery"])
     return {
         "category": "craftsmanship",
         "skills": nodes,
-        "unlocked_rewards": unlocked_rewards(root_level),
-        "upcoming_rewards": upcoming_rewards(root_level),
+        "rewards": unlocks_for_level(root_level),
     }
 
 
