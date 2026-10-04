@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Recipe {
   name: string;
@@ -12,14 +13,14 @@ const CraftingPanel: React.FC = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetch('/crafting/recipes')
+    apiFetch('/crafting/recipes')
       .then((r) => r.json())
       .then((data) => setRecipes(data));
   }, []);
 
   const craft = async () => {
     setMessage('');
-    const res = await fetch(`/crafting/craft/${selected}`, { method: 'POST' });
+    const res = await apiFetch(`/crafting/craft/${selected}`, { method: 'POST' });
     if (res.ok) {
       setMessage('Crafting complete!');
     } else {

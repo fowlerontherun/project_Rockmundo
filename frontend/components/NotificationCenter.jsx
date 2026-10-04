@@ -1,3 +1,5 @@
+import { apiFetch } from '../utils/api.js';
+
 const { useState, useEffect } = React;
 
 function NotificationCenter() {
@@ -5,15 +7,18 @@ function NotificationCenter() {
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
 
-  // initial fetch
+  // initial fetch and character-switch refresh
   useEffect(() => {
-    fetch('/notifications')
+    const load = () => apiFetch('/notifications')
       .then((r) => r.json())
       .then((data) => {
         setNotifications(data.notifications || []);
         setUnread(data.unread || 0);
       })
       .catch(() => {});
+    load();
+    window.addEventListener('rockmundo:character-changed', load);
+    return () => window.removeEventListener('rockmundo:character-changed', load);
   }, []);
 
   // websocket subscription
@@ -38,7 +43,7 @@ function NotificationCenter() {
   }, []);
 
   function markRead(id) {
-    fetch(`/notifications/${id}/read`, { method: 'POST' })
+    apiFetch(`/notifications/${id}/read`, { method: 'POST' })
       .then(() => {
         setNotifications((prev) =>
           prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n))

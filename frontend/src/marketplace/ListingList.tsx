@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Listing {
   id: number;
@@ -16,7 +17,7 @@ const ListingList: React.FC<Props> = ({ reloadKey }) => {
   const [bids, setBids] = useState<Record<number, number>>({});
 
   const load = () => {
-    fetch('/marketplace/listings')
+    apiFetch('/marketplace/listings')
       .then((res) => res.json())
       .then(setListings);
   };
@@ -28,7 +29,7 @@ const ListingList: React.FC<Props> = ({ reloadKey }) => {
   const placeBid = async (id: number) => {
     const amount = bids[id];
     if (!amount) return;
-    await fetch(`/marketplace/listings/${id}/bid`, {
+    await apiFetch(`/marketplace/listings/${id}/bid`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount_cents: amount }),
@@ -38,7 +39,7 @@ const ListingList: React.FC<Props> = ({ reloadKey }) => {
   };
 
   const purchase = async (id: number) => {
-    await fetch(`/marketplace/listings/${id}/purchase`, { method: 'POST' });
+    await apiFetch(`/marketplace/listings/${id}/purchase`, { method: 'POST' });
     load();
   };
 
