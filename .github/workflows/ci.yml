@@ -76,7 +76,16 @@ jobs:
 
       - name: Run backend tests
         run: |
-          pytest --cov=backend --cov-report=term-missing -q
+          set -o pipefail
+          pytest --cov=backend --cov-report=term-missing -q 2>&1 | tee backend-pytest.log
+
+      - name: Upload backend test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-pytest-log
+          path: backend-pytest.log
+          if-no-files-found: ignore
 
       - name: Validate OpenAPI schema
         run: |
