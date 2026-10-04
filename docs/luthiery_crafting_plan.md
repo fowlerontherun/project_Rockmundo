@@ -26,11 +26,11 @@ The current GearService crafting is in-memory base-item + component crafting. It
 - [x] Audit skill ranges and professional/mastery conventions.
 - [x] Define crafted instruments as character-owned.
 - [x] Keep optional band assignment/equipping separate from ownership.
-- [ ] Remove client authority over owner/band identifiers.
+- [x] Remove client authority over owner/band identifiers.
 - [x] Document migration path for legacy crafted gear.
 - [x] Define stable IDs for materials, shapes, component designs and traits.
 - [x] Add Luthiery feature flag.
-- [ ] Add cross-character access/security tests.
+- [x] Add cross-character access/security tests.
 
 **Exit:** one persistent model; no new Luthiery dependency on in-memory ownership; character-safe ownership tested.
 
