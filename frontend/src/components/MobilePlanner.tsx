@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Schedule {
   mode: 'hourly';
@@ -7,7 +8,7 @@ interface Schedule {
 
 async function fetchSchedule(): Promise<Schedule | null> {
   try {
-    const res = await fetch('/api/schedule');
+    const res = await apiFetch('/api/schedule');
     if (!res.ok) throw new Error('failed');
     return res.json();
   } catch {
@@ -17,7 +18,7 @@ async function fetchSchedule(): Promise<Schedule | null> {
 
 async function saveSchedule(data: Schedule): Promise<Schedule | null> {
   try {
-    const res = await fetch('/api/schedule', {
+    const res = await apiFetch('/api/schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -35,11 +36,14 @@ const MobilePlanner: React.FC = () => {
   const [entries, setEntries] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchSchedule().then((sched) => {
+    const load = () => fetchSchedule().then((sched) => {
       if (sched && sched.entries) {
         setEntries(sched.entries);
       }
     });
+    load();
+    window.addEventListener('rockmundo:character-changed', load);
+    return () => window.removeEventListener('rockmundo:character-changed', load);
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
