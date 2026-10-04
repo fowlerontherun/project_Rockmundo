@@ -69,7 +69,7 @@ def withdraw(user_id: int, payload: AmountIn, character_id: int = Depends(get_cu
         raise HTTPException(status_code=403, detail="Wallet belongs to the selected character")
     try:
         svc.withdraw(character_id, payload.amount_cents, currency=payload.currency)
-        return {"balance_cents": svc.get_balance(user_id)}
+        return {"balance_cents": svc.get_balance(character_id)}
     except EconomyError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
