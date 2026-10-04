@@ -38,15 +38,15 @@ The current GearService crafting is in-memory base-item + component crafting. It
 **Goal:** Make Luthiery a real skill family before production.
 
 ## Skill tree
-- [ ] Add Basic Luthiery under a Craftsmanship category.
-- [ ] Add Woodworking.
-- [ ] Add Fretwork.
-- [ ] Add Instrument Electronics.
-- [ ] Add Instrument Finishing.
-- [ ] Add Advanced Luthiery.
-- [ ] Add Master Luthier.
-- [ ] Add Legendary Luthier.
-- [ ] Define prerequisites/unlock levels.
+- [x] Add Basic Luthiery under a Craftsmanship category.
+- [x] Add Woodworking.
+- [x] Add Fretwork.
+- [x] Add Instrument Electronics.
+- [x] Add Instrument Finishing.
+- [x] Add Advanced Luthiery.
+- [x] Add Master Luthier.
+- [x] Add Legendary Luthier.
+- [x] Define prerequisites/unlock levels.
 - [ ] Display the tree in the player skill UI.
 - [ ] Explain benefits and locked requirements.
 
