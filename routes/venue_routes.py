@@ -10,8 +10,7 @@ router = APIRouter(prefix="/venues", tags=["Venues"])
 svc = TourService()
 
 class CreateVenueIn(BaseModel):
-    
-name: str
+    name: str
     city: Optional[str] = ""
     country: Optional[str] = ""
     capacity: int = Field(0, ge=0)
