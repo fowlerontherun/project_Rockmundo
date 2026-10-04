@@ -44,14 +44,17 @@ jobs:
         working-directory: frontend
         run: |
           set -o pipefail
+          npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
           npm ci --legacy-peer-deps 2>&1 | tee npm-ci.log
 
-      - name: Upload frontend install log
+      - name: Upload frontend install diagnostics
         if: always() && hashFiles('frontend/package.json') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-npm-ci-log
-          path: frontend/npm-ci.log
+          name: frontend-install-diagnostics
+          path: |
+            frontend/npm-ci.log
+            frontend/package-lock.json
           if-no-files-found: ignore
 
       - name: Check for frontend tests
