@@ -13,16 +13,14 @@ svc = MusicService()
 metrics = MusicMetricsService()
 
 class SaleIn(BaseModel):
-    
-item_id: int = Field(..., ge=1)
+    item_id: int = Field(..., ge=1)
     quantity: int = Field(1, ge=1)
     revenue: float = Field(..., ge=0)
     is_vinyl: bool = False
     meta: Optional[str] = None
 
 class StreamIn(BaseModel):
-    
-item_id: int = Field(..., ge=1)
+    item_id: int = Field(..., ge=1)
     count: int = Field(1, ge=1)
     meta: Optional[str] = None
 
