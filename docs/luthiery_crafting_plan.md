@@ -69,7 +69,7 @@ The current GearService crafting is in-memory base-item + component crafting. It
 **Exit:** a new character can discover/train Luthiery; advanced skills unlock correctly; no skill is unreachable; UI shows current/upcoming unlocks.
 
 # Phase 2 — Materials and component catalogue
-**Status:** In progress
+**Status:** Complete — implementation review fixes pending CI
 **Goal:** Establish the five-part recipe and material economy.
 
 Every guitar/bass requires exactly:
@@ -91,7 +91,7 @@ Finish/colour is a separate customisation layer.
 - [x] Store rarity, cost, quality and stat affinities.
 - [x] Store instrument compatibility.
 - [x] Store required skill/level.
-- [ ] Add admin enable/disable controls.
+- [x] Add admin enable/disable controls.
 
 ## Woods/materials
 - [x] Basswood.
@@ -131,7 +131,7 @@ Finish/colour is a separate customisation layer.
 - [x] Locked-material restrictions.
 - [x] Atomic money deduction + inventory addition.
 - [x] Transaction rollback.
-- [ ] Material inventory UI.
+- [x] Material inventory UI.
 - [x] Purchase/funds/ownership tests.
 
 **Exit:** starter inputs can be bought and persist; locked materials cannot be used early; transactions are atomic.

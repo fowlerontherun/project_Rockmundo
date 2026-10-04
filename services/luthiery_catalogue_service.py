@@ -191,4 +191,37 @@ class LuthieryCatalogueService:
             return {"material_key": material_key, "quantity": quantity, "total_cents": total, "balance_cents": new_balance}
 
 
+    def admin_catalogue(self) -> dict:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return {
+                "materials": [dict(row) for row in conn.execute("SELECT * FROM crafting_materials ORDER BY required_level,id")],
+                "components": [dict(row) for row in conn.execute("SELECT * FROM crafting_component_designs ORDER BY required_level,id")],
+                "shapes": [dict(row) for row in conn.execute("SELECT * FROM instrument_shapes ORDER BY required_level,id")],
+            }
+
+    def set_enabled(self, content_type: str, content_key: str, enabled: bool) -> None:
+        tables = {
+            "material": "crafting_materials",
+            "component": "crafting_component_designs",
+            "shape": "instrument_shapes",
+        }
+        table = tables.get(content_type)
+        if not table:
+            raise ValueError("Unsupported catalogue type")
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            cur = conn.execute(
+                f"UPDATE {table} SET enabled=? WHERE key=?",
+                (1 if enabled else 0, content_key),
+            )
+            if cur.rowcount != 1:
+                raise ValueError("Catalogue entry not found")
+            conn.execute(
+                "UPDATE crafting_unlocks SET enabled=? WHERE content_key=?",
+                (1 if enabled else 0, content_key),
+            )
+
+
 luthiery_catalogue_service = LuthieryCatalogueService()

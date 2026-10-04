@@ -17,6 +17,7 @@ from middleware.rate_limit import RateLimitMiddleware
 from routes import (
     admin_analytics_routes,
     admin_media_moderation_routes,
+    admin_luthiery_routes,
     admin_routes,
     apprenticeship_routes,
     avatar,
@@ -128,6 +129,7 @@ async def startup() -> None:
 app.include_router(event_routes.router, prefix="/api/events", tags=["Events"])
 app.include_router(lifestyle_routes.router, prefix="/api", tags=["Lifestyle"])
 app.include_router(admin_routes.router)
+app.include_router(admin_luthiery_routes.router)
 app.include_router(
     admin_media_moderation_routes.router,
     prefix="/admin",
