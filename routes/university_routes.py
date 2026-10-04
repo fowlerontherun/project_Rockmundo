@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
 from pydantic import BaseModel
 
 from services.university_service import UniversityService
@@ -20,9 +21,11 @@ def list_courses():
 
 
 @router.post("/enroll")
-def enroll(payload: EnrollmentRequest):
+def enroll(payload: EnrollmentRequest, character_id: int = Depends(get_current_character_id)):
+    if payload.user_id != character_id:
+        raise HTTPException(status_code=403, detail="Enrollment belongs to the selected character")
     try:
-        svc.enroll(payload.user_id, payload.course_id, payload.skill_level, payload.gpa)
+        svc.enroll(character_id, payload.course_id, payload.skill_level, payload.gpa)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "enrolled"}
