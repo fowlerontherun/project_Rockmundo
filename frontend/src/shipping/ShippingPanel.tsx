@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 import ShipmentList from './ShipmentList';
 
 const ShippingPanel: React.FC = () => {
@@ -10,7 +11,7 @@ const ShippingPanel: React.FC = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/shipping/transfer', {
+    await apiFetch('/shipping/transfer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
