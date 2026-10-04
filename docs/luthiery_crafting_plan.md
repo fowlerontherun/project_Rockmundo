@@ -20,17 +20,17 @@ The current GearService crafting is in-memory base-item + component crafting. It
 # Phase 0 — Architecture and migration guardrails
 **Goal:** Freeze the data contract and prevent competing crafting systems.
 
-- [ ] Audit every caller of GearService craft/upgrade/repair/assign/trade/bonus functions.
-- [ ] Audit gear/item ownership and inventory APIs.
-- [ ] Audit marketplace/trade/shop assumptions about stackable vs unique items.
-- [ ] Audit skill ranges and professional/mastery conventions.
-- [ ] Define crafted instruments as character-owned.
-- [ ] Keep optional band assignment/equipping separate from ownership.
-- [ ] Remove client authority over owner/band identifiers.
-- [ ] Document migration path for legacy crafted gear.
-- [ ] Define stable IDs for materials, shapes, component designs and traits.
-- [ ] Add Luthiery feature flag.
-- [ ] Add cross-character access/security tests.
+- [x] Audit every caller of GearService craft/upgrade/repair/assign/trade/bonus functions.
+- [x] Audit gear/item ownership and inventory APIs.
+- [x] Audit marketplace/trade/shop assumptions about stackable vs unique items.
+- [x] Audit skill ranges and professional/mastery conventions.
+- [x] Define crafted instruments as character-owned.
+- [x] Keep optional band assignment/equipping separate from ownership.
+- [x] Remove client authority over owner/band identifiers (legacy band selectors are server-validated, never trusted as ownership proof).
+- [x] Document migration path for legacy crafted gear.
+- [x] Define stable IDs for materials, shapes, component designs and traits.
+- [x] Add Luthiery feature flag.
+- [x] Add cross-character access/security tests.
 
 **Exit:** one persistent model; no new Luthiery dependency on in-memory ownership; character-safe ownership tested.
 

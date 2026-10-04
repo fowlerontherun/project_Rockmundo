@@ -68,6 +68,10 @@ class GearService:
         self._ownership[item.id] = band_id
         self._band_items.setdefault(band_id, []).append(item.id)
 
+    def owner_band_id(self, item_id: int) -> int | None:
+        """Return the legacy band owner for authorization checks."""
+        return self._ownership.get(item_id)
+
     def trade(self, item_id: int, from_band: int, to_band: int) -> None:
         owner = self._ownership.get(item_id)
         if owner != from_band:
