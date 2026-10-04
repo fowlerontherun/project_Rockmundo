@@ -4,6 +4,12 @@ export async function apiFetch(input, init = {}) {
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  const characterId = typeof localStorage !== 'undefined'
+    ? localStorage.getItem('rockmundo.selectedCharacterId')
+    : null;
+  if (characterId && !headers.has('X-Character-ID')) {
+    headers.set('X-Character-ID', characterId);
+  }
 
   if (
     init.body &&

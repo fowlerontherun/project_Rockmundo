@@ -1,5 +1,7 @@
+import { apiFetch } from '../utils/api.js';
+
 export async function fetchSchedule() {
-  const res = await fetch('/api/schedule');
+  const res = await apiFetch('/api/schedule');
   if (!res.ok) {
     throw new Error('Failed to fetch schedule');
   }
@@ -7,7 +9,7 @@ export async function fetchSchedule() {
 }
 
 export async function saveSchedule(data) {
-  const res = await fetch('/api/schedule', {
+  const res = await apiFetch('/api/schedule', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
