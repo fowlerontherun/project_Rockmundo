@@ -44,6 +44,7 @@ jobs:
         working-directory: frontend
         run: |
           set -o pipefail
+          rm -f package-lock.json
           npm install --package-lock-only --legacy-peer-deps --ignore-scripts --no-audit --no-fund
           npm ci --legacy-peer-deps 2>&1 | tee npm-ci.log
 
