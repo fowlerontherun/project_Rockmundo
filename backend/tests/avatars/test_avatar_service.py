@@ -116,10 +116,12 @@ def test_update_validation_and_clamping():
     with pytest.raises(ValueError):
         AvatarUpdate(tech_savvy=200)
     with pytest.raises(ValueError):
-<        AvatarUpdate(voice=150)
+        AvatarUpdate(voice=150)
+    with pytest.raises(ValueError):
         AvatarUpdate(leadership=150)
     with pytest.raises(ValueError):
         AvatarUpdate(leadership=-5)
+    with pytest.raises(ValueError):
         AvatarUpdate(stage_presence=150)
     with pytest.raises(ValueError):
         AvatarUpdate(stage_presence=-10)
