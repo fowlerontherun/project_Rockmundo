@@ -22,6 +22,7 @@ from services.luthiery_progression import (
 
 router = APIRouter(prefix="/learning", tags=["Learning"])
 _SKILLS_BY_NAME = {skill.name: skill for skill in SEED_SKILLS}
+_SKILLS_BY_ID = {skill.id: skill for skill in SEED_SKILLS}
 svc = SkillService()
 
 
@@ -47,7 +48,9 @@ def enqueue_session(payload: SessionRequest, character_id: int = Depends(get_cur
     if payload.user_id != character_id:
         raise HTTPException(status_code=403, detail="Learning belongs to the selected character")
     """Enqueue a learning session (stub)."""
-    skill = Skill(id=payload.skill_id, name=payload.skill_name, category=payload.skill_category)
+    skill = _SKILLS_BY_ID.get(payload.skill_id)
+    if not skill or skill.name != payload.skill_name or skill.category != payload.skill_category:
+        raise HTTPException(status_code=400, detail="Unknown or mismatched skill")
     try:
         svc.train_with_method(character_id, skill, payload.method, payload.duration)
     except ValueError as exc:  # pragma: no cover - stub handler
@@ -66,11 +69,9 @@ def choose_specialization(payload: SpecializationRequest, character_id: int = De
     if payload.user_id != character_id:
         raise HTTPException(status_code=403, detail="Skills belong to the selected character")
     """Select a specialization for a skill."""
-    skill = Skill(
-        id=payload.skill_id,
-        name=payload.skill_name,
-        category=payload.skill_category,
-    )
+    skill = _SKILLS_BY_ID.get(payload.skill_id)
+    if not skill or skill.name != payload.skill_name or skill.category != payload.skill_category:
+        raise HTTPException(status_code=400, detail="Unknown or mismatched skill")
     svc.select_specialization(character_id, skill, payload.specialization)
     return {"status": "selected", "specialization": payload.specialization}
 
@@ -149,6 +150,15 @@ def luthiery_tree(character_id: int = Depends(get_current_character_id)):
                 "locked": bool(missing),
                 "missing_requirements": missing,
                 "learning_methods": sorted({option.method for option in learning_options_for(name)}),
+                "learning_options": [
+                    {
+                        "method": option.method,
+                        "title": option.title,
+                        "min_level": option.min_level,
+                        "max_level": option.max_level,
+                    }
+                    for option in learning_options_for(name)
+                ],
             }
         )
     root_level = svc.get_skill_level(character_id, _SKILLS_BY_NAME["luthiery"])
