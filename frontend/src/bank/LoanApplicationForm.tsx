@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../../utils/api.js';
 
 interface Props {
   onSubmitted: () => void;
@@ -11,7 +12,7 @@ const LoanApplicationForm: React.FC<Props> = ({ onSubmitted }) => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/bank/loan', {
+    await apiFetch('/bank/loan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
