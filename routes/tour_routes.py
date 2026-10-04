@@ -1,5 +1,7 @@
 """API routes for tour simulation."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from auth.character_dependencies import get_current_character_id
+from services.band_service import BandService
 from pydantic import BaseModel
 try:  # Pydantic may be stubbed in tests
     from pydantic import Field
@@ -25,6 +27,7 @@ except Exception:
     pass
 svc = TourService(weather=WeatherService(), economy=_economy)
 _logistics = TourLogisticsService(db=None, transport=TransportService(db=None))
+_band_service = BandService()
 
 
 # ----------------------- Pydantic models -----------------------
@@ -76,9 +79,16 @@ class TravelDisruptionIn(BaseModel):
     weather: str = "clear"
 
 
+def _require_band_member(band_id: int, character_id: int) -> None:
+    info = _band_service.get_band_info(band_id)
+    if not info or character_id not in [m["user_id"] for m in info.get("members", [])]:
+        raise HTTPException(status_code=403, detail="Selected character is not a member of this band")
+
+
 # ----------------------- Routes -----------------------
 @router.post("/")
-def create_tour(payload: CreateTourIn):
+def create_tour(payload: CreateTourIn, character_id: int = Depends(get_current_character_id)):
+    _require_band_member(payload.band_id, character_id)
     info = svc.create_tour(
         band_id=payload.band_id,
         name=payload.title,
@@ -91,7 +101,11 @@ def create_tour(payload: CreateTourIn):
 
 
 @router.post("/schedule")
-def schedule_show(payload: ScheduleShowIn):
+def schedule_show(payload: ScheduleShowIn, character_id: int = Depends(get_current_character_id)):
+    tour = svc.tours.get(payload.tour_id)
+    if not tour:
+        raise HTTPException(status_code=404, detail="Tour not found")
+    _require_band_member(tour.band_id, character_id)
     tiers = [TicketTier(**(t.dict() if hasattr(t, "dict") else t)) for t in payload.ticket_tiers]
     expenses = [Expense(**(e.dict() if hasattr(e, "dict") else e)) for e in payload.expenses]
     try:
