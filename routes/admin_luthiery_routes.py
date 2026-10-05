@@ -4,13 +4,24 @@ from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel
 from auth.dependencies import get_current_user_id,require_permission
 from services.luthiery_catalogue_service import luthiery_catalogue_service,DB_PATH
-from services.luthiery_reputation_service import luthiery_reputation\nfrom services.luthiery_balance_service import balance_service
+from services.luthiery_reputation_service import luthiery_reputation\nfrom services.luthiery_balance_service import balance_service\nfrom services.luthiery_crafting_service import luthiery_crafting_service
 
 router=APIRouter(prefix="/admin/luthiery",tags=["Admin Luthiery"])
 async def _admin(user_id:int=Depends(get_current_user_id))->int:
  await require_permission(["admin"],user_id);return user_id
 class EnabledUpdate(BaseModel): enabled:bool
-class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass FeatureUpdate(BaseModel): enabled:bool\nclass CatalogueBalanceUpdate(BaseModel):
+class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass FeatureUpdate(BaseModel): enabled:bool\nclass DemoPart(BaseModel):
+ material_key:str
+ component_key:str|None=None
+class CraftDemoRequest(BaseModel):
+ instrument_type:str
+ shape_key:str
+ selections:dict[str,DemoPart]
+ skills:dict[str,float]
+ finish_key:str="luthier.finish.solid"
+ workshop_score:float=50
+ seed_token:str="admin-demo"
+class CatalogueBalanceUpdate(BaseModel):
  required_level:int|None=None
  cost_cents:int|None=None
  stock:int|None=None
@@ -63,4 +74,10 @@ def features(_admin_id:int=Depends(_admin)):
 @router.put("/features/{feature_key}")
 def set_feature(feature_key:str,payload:FeatureUpdate,_admin_id:int=Depends(_admin)):
  try:return balance_service.set_feature(feature_key,payload.enabled)
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+
+@router.post("/demo/craft")
+def demo_craft(payload:CraftDemoRequest,_admin_id:int=Depends(_admin)):
+ try:
+  return luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,{k:v.model_dump() for k,v in payload.selections.items()},payload.skills,payload.finish_key,payload.workshop_score,payload.seed_token)
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
