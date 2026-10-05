@@ -33,6 +33,7 @@ from routes import (
     lifestyle_routes,
     learning_routes,
     luthiery_routes,
+    luthier_shop_routes,
     locale_routes,
     mail_routes,
     media_routes,
@@ -196,6 +197,7 @@ app.include_router(chemistry_routes.router)
 app.include_router(crafting_routes.router, prefix="/api", tags=["Crafting"])
 app.include_router(learning_routes.router, prefix="/api", tags=["Learning"])
 app.include_router(luthiery_routes.router, prefix="/api", tags=["Luthiery"])
+app.include_router(luthier_shop_routes.router, prefix="/api", tags=["Luthiery Shops"])
 app.include_router(gifting_routes.router, prefix="/api", tags=["Gifting"])
 app.include_router(shipping_routes.router, prefix="/api", tags=["Shipping"])
 app.include_router(trade_routes.router, prefix="/api", tags=["Trade"])
