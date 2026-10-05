@@ -5,7 +5,7 @@ type Shape={key:string;name:string;instrument_type:'guitar'|'bass';required_leve
 type Material={key:string;name:string;rarity:string;cost_cents:number;required_level:number;locked:boolean;material_type:string;stat_affinities_json?:string};
 type Component={key:string;name:string;part_type:string;required_level:number;locked:boolean};
 type Owned={key:string;quantity:number};
-type Workshop={character_id:number;quality_score:number;upgrade_level:number;next_upgrade_cost_cents:number|null};
+type Workshop={character_id:number;quality_score:number;upgrade_level:number;next_upgrade_cost_cents:number|null;balance_cents:number;can_afford_next_upgrade:boolean};
 const PARTS=['body','neck','fretboard','electronics','hardware'] as const;\nconst MATERIAL_TYPES:Record<string,string[]>={body:['body_wood','wood','decorative_wood'],neck:['wood'],fretboard:['fretboard_wood','wood'],electronics:['wood','body_wood','decorative_wood'],hardware:['wood','body_wood','decorative_wood']};
 type Part=typeof PARTS[number];
 
@@ -44,8 +44,8 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
   <header><h2 id="luthier-workshop-title">Luthier Workshop</h2><p>Build a unique instrument one part at a time.</p></header>
   {message&&<p role="status">{message}</p>}
   {workshop&&<div className="rounded border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" aria-label="Workshop quality">
-    <div><h3 className="font-semibold">Workshop quality {workshop.quality_score}/100</h3><p className="text-sm">Upgrade level {workshop.upgrade_level}/5. Workshop quality contributes 10% of the instrument quality calculation.</p></div>
-    {workshop.next_upgrade_cost_cents!=null?<button type="button" disabled={upgradingWorkshop} onClick={upgradeWorkshop} className="min-h-11">{upgradingWorkshop?'Upgrading…':`Upgrade workshop · ${(workshop.next_upgrade_cost_cents/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</button>:<span className="text-sm font-semibold">Maximum workshop quality</span>}
+    <div><h3 className="font-semibold">Workshop quality {workshop.quality_score}/100</h3><p className="text-sm">Upgrade level {workshop.upgrade_level}/5. Workshop quality contributes 10% of the instrument quality calculation.</p><p className="text-sm">Available funds: ${(workshop.balance_cents/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p></div>
+    {workshop.next_upgrade_cost_cents!=null?<button type="button" disabled={upgradingWorkshop||!workshop.can_afford_next_upgrade} onClick={upgradeWorkshop} className="min-h-11">{upgradingWorkshop?'Upgrading…':`Upgrade workshop · ${(workshop.next_upgrade_cost_cents/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</button>:<span className="text-sm font-semibold">Maximum workshop quality</span>}
    </div>}
   <div className="grid gap-4 lg:grid-cols-[minmax(280px,1fr)_minmax(320px,1fr)]">
    <div className="rounded border p-3 sm:p-4 min-h-[360px] lg:min-h-[420px] lg:sticky lg:top-2 lg:self-start" aria-label="Live instrument preview">
