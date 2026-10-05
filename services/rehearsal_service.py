@@ -16,6 +16,7 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 
 from services.event_service import is_skill_blocked
 from services.gear_service import gear_service
+from services.crafted_instrument_effects_service import crafted_instrument_effects
 from services.peer_learning_service import peer_learning_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
@@ -127,6 +128,7 @@ class RehearsalService:
             attendee_list: List[int] = list(attendees)
             bonus = float(len(attendee_list)) * 0.5
             bonus += gear_service.get_band_bonus(band_id, "rehearsal")
+            bonus += crafted_instrument_effects.band_effects(band_id, "rehearsal")
             c.execute(
                 """
                 INSERT INTO rehearsals(band_id, start, end, attendees, bonus, environment_quality)
