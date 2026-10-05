@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 8 substantially complete — shop configuration, serialized listing/delisting, exact previews/specification, purchases, provenance, sales history and duplicate-purchase protection implemented. Shipping/location and tax/fee integration remain optional integration work.
+**Status:** Initial Luthiery release (Phases 0–8) complete and release-gated. Shipping/location and tax/fee integration remain optional post-release integrations.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -361,24 +361,24 @@ Target weighting:
 - [x] No trivial infinite-money loop. *(supplier purchases destroy player currency; instrument sales transfer existing currency buyer→seller with no system buyback)*
 
 ## Release gate
-- [ ] Phase 1–8 exit criteria passed.
+- [x] Phase 1–8 exit criteria passed.
 - [x] No critical ownership/economy exploit.
 - [x] Balance telemetry enabled.
 - [x] Admin emergency disable available.
 - [x] Production migration tested. *(forward migration now explicitly repairs the legacy listing-history uniqueness constraint while preserving rows)*
 
 # Initial release content target
-- [ ] Electric guitars and basses.
-- [ ] Exactly five construction parts.
-- [ ] 25–35 useful material/component choices.
-- [ ] At least 8–10 shapes.
-- [ ] Multiple colours/finishes.
-- [ ] Skill-gated materials and shapes.
-- [ ] Persistent unique quality/traits/modifiers.
-- [ ] Visual workshop.
-- [ ] Character inventory/equipping.
-- [ ] Player Luthier shop sales.
-- [ ] Permanent maker/serial provenance.
+- [x] Electric guitars and basses.
+- [x] Exactly five construction parts.
+- [x] 25–35 useful material/component choices.
+- [x] At least 8–10 shapes.
+- [x] Multiple colours/finishes.
+- [x] Skill-gated materials and shapes.
+- [x] Persistent unique quality/traits/modifiers.
+- [x] Visual workshop.
+- [x] Character inventory/equipping.
+- [x] Player Luthier shop sales.
+- [x] Permanent maker/serial provenance.
 
 # Future Craftsmanship professions
 Do not implement during initial Luthiery release, but keep architecture reusable for drum building, amplifiers/electronics, effects pedals, synth/keyboards, stage equipment, fashion/clothing, jewellery/accessories and other player-manufactured items.

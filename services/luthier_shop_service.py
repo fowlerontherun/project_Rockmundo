@@ -52,7 +52,13 @@ class LuthierShopService:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
    c.row_factory=sqlite3.Row
-   row=c.execute("""SELECT l.*,s.name shop_name,i.* FROM luthier_shop_listings l JOIN luthier_shops s ON s.id=l.shop_id
+   row=c.execute("""SELECT l.id listing_id,l.shop_id,l.crafted_item_id,l.seller_character_id,l.price_cents,l.status,
+    l.buyer_character_id,l.created_at,l.sold_at,s.name shop_name,s.city_id shop_city_id,
+    i.creator_character_id,i.owner_character_id,i.name,i.serial_number,i.instrument_type,i.shape_key,
+    i.finish_key,i.primary_colour,i.accent_colour,i.hardware_colour,i.surface_sheen,i.quality_score,
+    i.quality_tier,i.condition_percent,i.traits_json,i.stat_modifiers_json,i.genre_affinities_json,
+    i.skill_snapshot_json,i.workshop_snapshot_json,i.created_at instrument_created_at
+    FROM luthier_shop_listings l JOIN luthier_shops s ON s.id=l.shop_id
     JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.id=? AND l.status='active' AND i.owner_character_id=l.seller_character_id""",(listing_id,)).fetchone()
    if not row:raise ValueError("Listing is not available")
    result=dict(row)
