@@ -4,13 +4,13 @@ from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel
 from auth.dependencies import get_current_user_id,require_permission
 from services.luthiery_catalogue_service import luthiery_catalogue_service,DB_PATH
-from services.luthiery_reputation_service import luthiery_reputation
+from services.luthiery_reputation_service import luthiery_reputation\nfrom services.luthiery_balance_service import balance_service
 
 router=APIRouter(prefix="/admin/luthiery",tags=["Admin Luthiery"])
 async def _admin(user_id:int=Depends(get_current_user_id))->int:
  await require_permission(["admin"],user_id);return user_id
 class EnabledUpdate(BaseModel): enabled:bool
-class CatalogueBalanceUpdate(BaseModel):
+class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass CatalogueBalanceUpdate(BaseModel):
  required_level:int|None=None
  cost_cents:int|None=None
  stock:int|None=None
@@ -37,3 +37,22 @@ def lookup_serial(serial_number:str,_admin_id:int=Depends(_admin)):
   out["events"]=[dict(x) for x in conn.execute("SELECT * FROM crafted_item_events WHERE crafted_item_id=? ORDER BY id",(iid,))]
   out["notable_history"]=luthiery_reputation.item_history(iid);out["desirability"]=luthiery_reputation.desirability(iid)
   return out
+
+@router.get("/balance/quality")
+def get_quality(_admin_id:int=Depends(_admin)):return balance_service.quality_weights()
+@router.put("/balance/quality")
+def set_quality(payload:QualityWeightsUpdate,_admin_id:int=Depends(_admin)):
+ try:return balance_service.set_quality_weights(payload.model_dump())
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+@router.put("/traits/{trait_key}")
+def set_trait(trait_key:str,payload:TraitUpdate,_admin_id:int=Depends(_admin)):
+ balance_service.set_trait(trait_key,payload.enabled);return {"trait_key":trait_key,"enabled":payload.enabled}
+@router.get("/suspicious")
+def suspicious(_admin_id:int=Depends(_admin)):
+ with sqlite3.connect(DB_PATH) as c:
+  c.row_factory=sqlite3.Row;findings=[]
+  try:
+   findings += [dict(x)|{"signal":"repeat_buyer_seller"} for x in c.execute("""SELECT seller_character_id,buyer_character_id,COUNT(*) count,SUM(price_cents) value_cents FROM luthier_shop_listings WHERE status='sold' GROUP BY seller_character_id,buyer_character_id HAVING COUNT(*)>=5 ORDER BY count DESC LIMIT 50""")]
+   findings += [dict(x)|{"signal":"extreme_price"} for x in c.execute("""SELECT id listing_id,seller_character_id,buyer_character_id,price_cents FROM luthier_shop_listings WHERE status='sold' AND price_cents>=10000000 ORDER BY price_cents DESC LIMIT 50""")]
+  except sqlite3.OperationalError:pass
+  return {"findings":findings}
