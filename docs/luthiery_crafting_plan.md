@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 4 in progress — Phases 0–2 complete
+**Status:** Phase 4 implementation complete — verification/CI pending
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -192,8 +192,8 @@ Finish/colour is a separate customisation layer.
 - [x] Crafting skill snapshot.
 - [x] Workshop/tool snapshot.
 - [x] Final quality/tier.
-- [ ] Generated traits.
-- [ ] Final stat modifiers.
+- [x] Generated traits.
+- [x] Final stat modifiers.
 - [x] Permanent resale provenance.
 
 ## Initial quality model
@@ -212,10 +212,10 @@ Target weighting:
 - [ ] Novice/intermediate/master balance tests.
 
 ## Imperfection
-- [ ] Prefer imperfect output over destructive random failure.
-- [ ] Low-skill defect chance.
-- [ ] Material waste rules.
-- [ ] Repair/rework rules.
+- [x] Prefer imperfect output over destructive random failure.
+- [x] Low-skill defect chance.
+- [x] Material waste rules. *(five required inputs are consumed atomically; failed validation/transactions roll back without waste)*
+- [x] Repair/rework rules.
 - [x] Prevent reroll exploits.
 
 **Exit:** controlled variation works; skill/materials matter; results survive restart; no duplication exploit.
