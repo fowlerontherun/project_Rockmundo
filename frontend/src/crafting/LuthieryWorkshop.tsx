@@ -5,23 +5,26 @@ type Shape={key:string;name:string;instrument_type:'guitar'|'bass';required_leve
 type Material={key:string;name:string;rarity:string;cost_cents:number;required_level:number;locked:boolean;material_type:string;stat_affinities_json?:string};
 type Component={key:string;name:string;part_type:string;required_level:number;locked:boolean};
 type Owned={key:string;quantity:number};
+type Workshop={character_id:number;quality_score:number;upgrade_level:number;next_upgrade_cost_cents:number|null};
 const PARTS=['body','neck','fretboard','electronics','hardware'] as const;\nconst MATERIAL_TYPES:Record<string,string[]>={body:['body_wood','wood','decorative_wood'],neck:['wood'],fretboard:['fretboard_wood','wood'],electronics:['wood','body_wood','decorative_wood'],hardware:['wood','body_wood','decorative_wood']};
 type Part=typeof PARTS[number];
 
 const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('maple'))return 'repeating-linear-gradient(100deg,#d9bd82 0 8px,#cba96d 9px 11px)';if(n.includes('rosewood'))return 'repeating-linear-gradient(100deg,#4b281c 0 7px,#6b3b27 8px 10px)';if(n.includes('mahogany'))return 'repeating-linear-gradient(100deg,#713c2c 0 8px,#8a4b36 9px 11px)';if(n.includes('ebony'))return 'repeating-linear-gradient(100deg,#171513 0 8px,#302b27 9px 10px)';return 'repeating-linear-gradient(100deg,#9b744b 0 8px,#c29a68 9px 11px)'};\nconst LuthieryWorkshop:React.FC=()=>{
  const [cat,setCat]=useState<{shapes:Shape[];materials:Material[];components:Component[]}>({shapes:[],materials:[],components:[]});
  const [finishingLevel,setFinishingLevel]=useState(0);
+ const [workshop,setWorkshop]=useState<Workshop|null>(null),[upgradingWorkshop,setUpgradingWorkshop]=useState(false);
  const [owned,setOwned]=useState<Owned[]>([]),[type,setType]=useState<'guitar'|'bass'>('guitar'),[shape,setShape]=useState('');
  const [step,setStep]=useState<Part|'finish'>('body'),[parts,setParts]=useState<Record<string,{material_key:string;component_key?:string}>>({});
  const [name,setName]=useState(''),[primary,setPrimary]=useState('#202020'),[accent,setAccent]=useState('#d0d0d0'),[hardwareColour,setHardwareColour]=useState('#c0c0c0'),[finish,setFinish]=useState('luthier.finish.solid');
  const [sheen,setSheen]=useState<'matte'|'satin'|'gloss'>('gloss'),[zoom,setZoom]=useState(1),[rotation,setRotation]=useState(0),[rareConfirmed,setRareConfirmed]=useState(false);
  const [message,setMessage]=useState(''),[result,setResult]=useState<any>(null),[busy,setBusy]=useState(false);\n const craftToken=useRef<string>('');
- useEffect(()=>{Promise.all([apiFetch('/luthiery/catalogue'),apiFetch('/luthiery/materials/inventory')]).then(async([a,b])=>{
-   if(!a.ok||!b.ok)throw new Error('Unable to load Luthier workshop');const catalogue=await a.json();setCat(catalogue);setFinishingLevel(Number(catalogue.skill_levels?.instrument_finishing||0));setOwned((await b.json()).items);
+ useEffect(()=>{Promise.all([apiFetch('/luthiery/catalogue'),apiFetch('/luthiery/materials/inventory'),apiFetch('/luthiery/workshop')]).then(async([a,b,w])=>{
+   if(!a.ok||!b.ok||!w.ok)throw new Error('Unable to load Luthier workshop');const catalogue=await a.json();setCat(catalogue);setFinishingLevel(Number(catalogue.skill_levels?.instrument_finishing||0));setOwned((await b.json()).items);setWorkshop(await w.json());
  }).catch(e=>setMessage(e.message));},[]);
  const shapes=cat.shapes.filter(s=>s.instrument_type===type); const selectedShape=shapes.find(s=>s.key===shape);
  useEffect(()=>{if(!selectedShape&&shapes.length)setShape(shapes.find(s=>!s.locked)?.key||shapes[0].key)},[type,cat.shapes]);
  const qty=(k:string)=>owned.find(x=>x.key===k)?.quantity||0;\n const materialsFor=(p:Part)=>cat.materials.filter(m=>MATERIAL_TYPES[p].includes(m.material_type));\n const refreshOwned=async()=>{const r=await apiFetch('/luthiery/materials/inventory');if(r.ok)setOwned((await r.json()).items)};
+ const upgradeWorkshop=async()=>{if(!workshop?.next_upgrade_cost_cents||upgradingWorkshop)return;setUpgradingWorkshop(true);setMessage('');const r=await apiFetch('/luthiery/workshop/upgrade',{method:'POST'});const d=await r.json();setUpgradingWorkshop(false);if(!r.ok){setMessage(d.detail||'Workshop upgrade failed');return;}setWorkshop(d);setMessage('Luthier workshop upgraded successfully.');};
  const ready=!!shape&&PARTS.every(p=>parts[p]?.material_key)&&!!name.trim()&&!selectedShape?.locked;
  const estimated=useMemo(()=>{const chosen=PARTS.map(p=>cat.materials.find(m=>m.key===parts[p]?.material_key)).filter(Boolean) as Material[];
    if(!chosen.length)return null; const rarity={common:1,uncommon:2,rare:3,epic:4,legendary:5};return Math.round(chosen.reduce((n,m)=>n+(rarity[m.rarity as keyof typeof rarity]||1),0)/chosen.length*20);
@@ -40,6 +43,10 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
  return <section aria-labelledby="luthier-workshop-title" className="space-y-4">
   <header><h2 id="luthier-workshop-title">Luthier Workshop</h2><p>Build a unique instrument one part at a time.</p></header>
   {message&&<p role="status">{message}</p>}
+  {workshop&&<div className="rounded border p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" aria-label="Workshop quality">
+    <div><h3 className="font-semibold">Workshop quality {workshop.quality_score}/100</h3><p className="text-sm">Upgrade level {workshop.upgrade_level}/5. Workshop quality contributes 10% of the instrument quality calculation.</p></div>
+    {workshop.next_upgrade_cost_cents!=null?<button type="button" disabled={upgradingWorkshop} onClick={upgradeWorkshop} className="min-h-11">{upgradingWorkshop?'Upgrading…':`Upgrade workshop · ${(workshop.next_upgrade_cost_cents/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`}</button>:<span className="text-sm font-semibold">Maximum workshop quality</span>}
+   </div>}
   <div className="grid gap-4 lg:grid-cols-[minmax(280px,1fr)_minmax(320px,1fr)]">
    <div className="rounded border p-3 sm:p-4 min-h-[360px] lg:min-h-[420px] lg:sticky lg:top-2 lg:self-start" aria-label="Live instrument preview">
     <div className="flex flex-wrap gap-2"><button onClick={()=>setType('guitar')} aria-pressed={type==='guitar'}>Guitar</button><button onClick={()=>setType('bass')} aria-pressed={type==='bass'}>Bass</button></div>
