@@ -92,4 +92,14 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.post("/crafted/{item_id}/rework")
+def rework_instrument(item_id: int, character_id: int = Depends(get_current_character_id)):
+    by_name = {skill.name: skill for skill in SEED_SKILLS}
+    skills = {"luthiery": _skill_service.get_skill_level(character_id, by_name["luthiery"])}
+    try:
+        return luthiery_crafting_service.rework(character_id, item_id, skills)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 __all__ = ["router"]
