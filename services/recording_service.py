@@ -9,6 +9,8 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 from backend.services.chemistry_service import ChemistryService
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.skill_service import skill_service
+from services.crafted_instrument_effects_service import crafted_instrument_effects
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment
 
 
 
@@ -64,6 +66,7 @@ class RecordingService:
         ]
         avg_level = sum(levels) / len(levels)
         quality_mult = 1 + avg_level / 200
+        quality_mult += crafted_instrument_effects.band_effects(band_id, "recording")
 
         # Apply multiplier: higher skill improves quality and reduces cost
         environment_quality *= quality_mult
@@ -96,6 +99,7 @@ class RecordingService:
                 session.environment_quality *= 1 + (avg - 50) / 100
         session.chemistry_avg = avg
         self.sessions[session.id] = session
+        crafted_instrument_equipment.wear_band(band_id, 1)
         self._id_seq += 1
         return session
 
