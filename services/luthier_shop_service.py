@@ -66,24 +66,33 @@ class LuthierShopService:
     FROM luthier_shop_listings l JOIN luthier_shops s ON s.id=l.shop_id JOIN crafted_items i ON i.id=l.crafted_item_id
     WHERE l.status='active' AND s.active=1 AND i.owner_character_id=l.seller_character_id ORDER BY l.id DESC""")]
  def purchase(self,buyer:int,listing_id:int)->dict:
+  """Atomically transfer payment, serialized ownership, listing state and provenance."""
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
-   c.row_factory=sqlite3.Row;c.execute("BEGIN IMMEDIATE")
+   c.row_factory=sqlite3.Row;c.execute("PRAGMA foreign_keys=ON");c.execute("BEGIN IMMEDIATE")
    l=c.execute("""SELECT l.*,i.owner_character_id FROM luthier_shop_listings l JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.id=?""",(listing_id,)).fetchone()
    if not l or l["status"]!="active":raise ValueError("Listing is not available")
-   seller=int(l["seller_character_id"])
+   seller=int(l["seller_character_id"]);price=int(l["price_cents"])
    if buyer==seller:raise ValueError("You cannot buy your own instrument")
    if int(l["owner_character_id"])!=seller:raise ValueError("Instrument ownership changed; listing is invalid")
-   try:self.economy.transfer(buyer,seller,int(l["price_cents"]))
-   except EconomyError as exc:raise ValueError(str(exc)) from exc
-   # Recheck ownership immediately before the serialized transfer.
+   buyer_acct=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(buyer,)).fetchone()
+   if not buyer_acct or int(buyer_acct["balance_cents"])<price:raise ValueError("Insufficient funds")
+   seller_acct=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(seller,)).fetchone()
+   if not seller_acct:
+    c.execute("INSERT INTO accounts(user_id,currency,balance_cents) VALUES (?,'USD',0)",(seller,))
+    seller_acct=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(seller,)).fetchone()
+   buyer_balance=int(buyer_acct["balance_cents"])-price;seller_balance=int(seller_acct["balance_cents"])+price
+   c.execute("UPDATE accounts SET balance_cents=? WHERE id=?",(buyer_balance,buyer_acct["id"]))
+   c.execute("UPDATE accounts SET balance_cents=? WHERE id=?",(seller_balance,seller_acct["id"]))
+   tx=c.execute("""INSERT INTO transactions(type,amount_cents,currency,src_account_id,dest_account_id)
+    VALUES ('luthiery_instrument_sale',?,'USD',?,?)""",(price,buyer_acct["id"],seller_acct["id"]))
+   c.execute("INSERT INTO ledger_entries(account_id,transaction_id,delta_cents,balance_after) VALUES (?,?,?,?)",(buyer_acct["id"],tx.lastrowid,-price,buyer_balance))
+   c.execute("INSERT INTO ledger_entries(account_id,transaction_id,delta_cents,balance_after) VALUES (?,?,?,?)",(seller_acct["id"],tx.lastrowid,price,seller_balance))
    changed=c.execute("UPDATE crafted_items SET owner_character_id=? WHERE id=? AND owner_character_id=?",(buyer,l["crafted_item_id"],seller))
-   if changed.rowcount!=1:
-    try:self.economy.transfer(seller,buyer,int(l["price_cents"]))
-    except EconomyError as refund_exc:raise ValueError("Purchase failed after payment; refund also failed and requires audit") from refund_exc
-    raise ValueError("Instrument ownership changed during purchase; payment refunded")
-   c.execute("UPDATE luthier_shop_listings SET status='sold',buyer_character_id=?,sold_at=datetime('now') WHERE id=? AND status='active'",(buyer,listing_id))
-   try:c.execute("INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json) VALUES(?,?,'sold',?)",(l["crafted_item_id"],buyer,'{"seller_character_id":%d,"price_cents":%d}'%(seller,l["price_cents"])))
-   except sqlite3.OperationalError:pass
-   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":l["price_cents"],"seller_character_id":seller,"buyer_character_id":buyer}
+   if changed.rowcount!=1:raise ValueError("Instrument ownership changed during purchase")
+   sold=c.execute("UPDATE luthier_shop_listings SET status='sold',buyer_character_id=?,sold_at=datetime('now') WHERE id=? AND status='active'",(buyer,listing_id))
+   if sold.rowcount!=1:raise ValueError("Listing changed during purchase")
+   c.execute("INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json) VALUES(?,?,'sold',?)",(l["crafted_item_id"],buyer,'{"seller_character_id":%d,"price_cents":%d}'%(seller,price)))
+   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":price,"seller_character_id":seller,"buyer_character_id":buyer}
+
 luthier_shop_service=LuthierShopService()

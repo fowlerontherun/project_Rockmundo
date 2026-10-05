@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import re
 import sqlite3
 from pathlib import Path
 
@@ -11,6 +12,17 @@ from services.luthiery_catalogue_service import LuthieryCatalogueService, DB_PAT
 from services.luthiery_stats_service import build_profile
 
 PARTS = ("body", "neck", "fretboard", "electronics", "hardware")
+MATERIAL_TYPES_BY_PART = {
+    "body": {"body_wood","wood","decorative_wood"},
+    "neck": {"wood"},
+    "fretboard": {"fretboard_wood","wood"},
+    # Electronics/hardware currently use the selected material as a build/finish
+    # substrate; until dedicated metal/electronic materials are seeded, general
+    # woods remain accepted for these two legacy slots.
+    "electronics": {"wood","body_wood","decorative_wood"},
+    "hardware": {"wood","body_wood","decorative_wood"},
+}
+HEX_COLOUR = re.compile(r"^#[0-9a-fA-F]{6}$")
 TIERS = ((30,"Poor"),(45,"Basic"),(60,"Good"),(72,"Excellent"),(84,"Professional"),(94,"Masterwork"),(101,"Legendary"))
 
 
@@ -68,8 +80,10 @@ class LuthieryCraftingService:
             raise ValueError("Unsupported instrument finish")
         if surface_sheen not in ("matte","satin","gloss"):
             raise ValueError("Unsupported surface sheen")
-        if not isinstance(hardware_colour,str) or len(hardware_colour)!=7 or not hardware_colour.startswith("#"):
-            raise ValueError("Invalid hardware colour")
+        for label, colour, optional in (("primary",primary_colour,False),("accent",accent_colour,True),("hardware",hardware_colour,False)):
+            if optional and colour is None: continue
+            if not isinstance(colour,str) or not HEX_COLOUR.fullmatch(colour):
+                raise ValueError(f"Invalid {label} colour")
         if set(selections) != set(PARTS):
             raise ValueError("Exactly body, neck, fretboard, electronics and hardware are required")
         self.ensure_schema()
@@ -111,6 +125,14 @@ class LuthieryCraftingService:
                 ).fetchone()
                 if not material or level < int(material["required_level"]):
                     raise ValueError(f"{part} material is unavailable or locked")
+                try:
+                    material_instruments=json.loads(material["instrument_compatibility_json"] or "[]")
+                except (json.JSONDecodeError,TypeError,ValueError):
+                    material_instruments=[]
+                if instrument_type not in material_instruments:
+                    raise ValueError(f"{part} material is incompatible with this instrument")
+                if material["material_type"] not in MATERIAL_TYPES_BY_PART[part]:
+                    raise ValueError(f"{material['name']} cannot be used for {part}")
                 stock = conn.execute(
                     """SELECT quantity FROM character_crafting_materials
                        WHERE character_id=? AND material_id=?""",
@@ -126,6 +148,12 @@ class LuthieryCraftingService:
                     ).fetchone()
                     if not component or level < int(component["required_level"]):
                         raise ValueError(f"{part} component is unavailable or locked")
+                    try:
+                        component_instruments=json.loads(component["instrument_compatibility_json"] or "[]")
+                    except (json.JSONDecodeError,TypeError,ValueError):
+                        component_instruments=[]
+                    if instrument_type not in component_instruments:
+                        raise ValueError(f"{part} component is incompatible with this instrument")
                 resolved.append((part, material, component))
                 material_scores.append(float(material["quality"]) * 50.0 + (float(component["quality"]) * 10.0 if component else 0.0))
 
