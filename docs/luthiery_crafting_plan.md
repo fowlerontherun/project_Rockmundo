@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 8 in progress — player shops, serialized fixed-price listings, exact-instrument browsing and compensated ownership/payment transfer implemented.
+**Status:** Phase 8 substantially complete — shop configuration, serialized listing/delisting, exact previews/specification, purchases, provenance, sales history and duplicate-purchase protection implemented. Shipping/location and broader marketplace discovery remain optional integration work.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -284,19 +284,19 @@ Target weighting:
 # Phase 8 — Player Luthier shops
 **Goal:** Turn Luthiery into a player business.
 
-- [ ] Allow eligible players to operate/configure an instrument shop.
-- [ ] Reuse existing player-shop ownership.
-- [ ] Support individually serialized stock.
-- [ ] List/delist unique instrument.
-- [ ] Set asking price.
-- [ ] Preview exact instrument.
-- [ ] Show maker, serial, quality, traits, stats, specification and condition.
-- [ ] Atomic money + ownership transfer.
+- [x] Allow eligible players to operate/configure an instrument shop.
+- [x] Reuse existing player-shop ownership. *(No generic character-owned shop entity currently exists; Phase 8 uses the dedicated character-owned Luthier shop relation while reusing shared economy/shop authorization patterns.)*
+- [x] Support individually serialized stock.
+- [x] List/delist unique instrument.
+- [x] Set asking price.
+- [x] Preview exact instrument.
+- [x] Show maker, serial, quality, traits, stats, specification and condition.
+- [x] Atomic money + ownership transfer.
 - [ ] Existing taxes/fees where appropriate.
-- [ ] Sales history and revenue reporting.
+- [x] Sales history and revenue reporting.
 - [ ] Shipping/location integration where required.
 - [ ] Marketplace discovery/search.
-- [ ] Race-condition tests for duplicate purchase.
+- [x] Race-condition tests for duplicate purchase.
 
 **Exit:** one player can craft/list/sell and another receives the exact serialized item; provenance survives resale.
 
