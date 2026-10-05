@@ -66,6 +66,35 @@ class LuthieryCraftingService:
             modifiers["reliability"] = modifiers.get("reliability", 0) - 1
         return traits, modifiers, defect
 
+    def admin_preview(self,instrument_type:str,shape_key:str,selections:dict,skills:dict,finish_key:str="luthier.finish.solid",workshop_score:float=50.0,seed_token:str="admin-demo")->dict:
+        """Run crafting balance/compatibility calculations without inventory/economy writes."""
+        self.ensure_schema()
+        if instrument_type not in ("guitar","bass"):raise ValueError("Unsupported instrument type")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory=sqlite3.Row
+            shape=conn.execute("SELECT * FROM instrument_shapes WHERE key=? AND enabled=1",(shape_key,)).fetchone()
+            level=int(skills.get("luthiery",0))
+            if not shape or shape["instrument_type"]!=instrument_type:raise ValueError("Shape is not compatible with this instrument")
+            if level<int(shape["required_level"]):raise ValueError("Shape is locked at this demo skill level")
+            resolved=[];material_scores=[]
+            for part in PARTS:
+                choice=selections.get(part) or {};mk=choice.get("material_key");ck=choice.get("component_key")
+                material=conn.execute("SELECT * FROM crafting_materials WHERE key=? AND enabled=1",(mk,)).fetchone()
+                if not material or level<int(material["required_level"]):raise ValueError(f"{part} material is unavailable or locked")
+                component=conn.execute("SELECT * FROM crafting_component_designs WHERE key=? AND part_type=? AND enabled=1",(ck,part)).fetchone() if ck else None
+                if ck and (not component or level<int(component["required_level"])):raise ValueError(f"{part} component is unavailable or locked")
+                resolved.append((part,material,component))
+                mq=max(0.0,min(100.0,55.0+(float(material["quality"])-0.90)*93.75));cb=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
+                material_scores.append(min(100.0,mq+cb))
+            specialist=sum(float(skills.get(k,0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing"))/4.0
+            material_score=sum(material_scores)/len(material_scores);w=balance_service.quality_weights()
+            raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
+            raw+=self._variance(0,seed_token)*(w["variance"]/.05 if w["variance"] else 0)
+            score=round(max(max(1.0,level*.35),min(min(100.0,48.0+level*.52),raw)),2);tier=self._tier(score)
+            traits,mods,defect=self._outcome(score,0,seed_token);profile=build_profile(resolved,score,skills)
+            traits.extend(x["key"] for x in profile["traits"] if x["key"] not in traits);mods.update(profile["gameplay_modifiers"])
+            return {"dry_run":True,"quality_score":score,"quality_tier":tier,"traits":traits,"defect":defect,"characteristics":profile["characteristics"],"gameplay_modifiers":mods,"genre_affinities":profile["genre_affinities"],"material_score":round(material_score,2),"specialist_score":round(specialist,2),"workshop_score":workshop_score}
+
     def craft(self, character_id: int, request_token: str, name: str, instrument_type: str,
               shape_key: str, selections: dict, skills: dict, finish_key: str = "luthier.finish.solid",
               primary_colour: str = "#202020", accent_colour: str | None = None,
