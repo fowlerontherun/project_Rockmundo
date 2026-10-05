@@ -53,7 +53,10 @@ class LuthierShopService:
    except EconomyError as exc:raise ValueError(str(exc)) from exc
    # Recheck ownership immediately before the serialized transfer.
    changed=c.execute("UPDATE crafted_items SET owner_character_id=? WHERE id=? AND owner_character_id=?",(buyer,l["crafted_item_id"],seller))
-   if changed.rowcount!=1:raise ValueError("Instrument ownership changed during purchase")
+   if changed.rowcount!=1:
+    try:self.economy.transfer(seller,buyer,int(l["price_cents"]))
+    except EconomyError as refund_exc:raise ValueError("Purchase failed after payment; refund also failed and requires audit") from refund_exc
+    raise ValueError("Instrument ownership changed during purchase; payment refunded")
    c.execute("UPDATE luthier_shop_listings SET status='sold',buyer_character_id=?,sold_at=datetime('now') WHERE id=? AND status='active'",(buyer,listing_id))
    try:c.execute("INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json) VALUES(?,?,'sold',?)",(l["crafted_item_id"],buyer,'{"seller_character_id":%d,"price_cents":%d}'%(seller,l["price_cents"])))
    except sqlite3.OperationalError:pass
