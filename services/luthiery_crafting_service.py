@@ -9,7 +9,7 @@ import sqlite3
 from pathlib import Path
 
 from services.luthiery_catalogue_service import LuthieryCatalogueService, DB_PATH
-from services.luthiery_stats_service import build_profile
+from services.luthiery_stats_service import build_profile\nfrom services.luthiery_balance_service import balance_service
 
 PARTS = ("body", "neck", "fretboard", "electronics", "hardware")
 MATERIAL_TYPES_BY_PART = {
