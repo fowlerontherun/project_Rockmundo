@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Request
 
 from auth.dependencies import get_current_user_id, require_permission
-from services.admin_analytics_service import fetch_shop_metrics
+from services.admin_analytics_service import fetch_shop_metrics, fetch_luthiery_metrics
 from services.admin_audit_service import audit_dependency
 
 from .admin_analytics_routes import router as analytics_router
@@ -56,6 +56,12 @@ async def economy_analytics(
     await require_permission(["admin"], admin_id)
     return fetch_shop_metrics(period_start, period_end, limit)
 
+
+@router.get("/luthiery/analytics", dependencies=[Depends(audit_dependency)])
+async def luthiery_analytics(req: Request):
+    admin_id=await get_current_user_id(req)
+    await require_permission(["admin"],admin_id)
+    return fetch_luthiery_metrics()
 
 router.include_router(analytics_router)
 router.include_router(audit_router)
