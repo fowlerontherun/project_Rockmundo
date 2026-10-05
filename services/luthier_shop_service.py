@@ -33,11 +33,24 @@ class LuthierShopService:
    if existing:raise ValueError("Instrument is already listed")
    cur=c.execute("INSERT INTO luthier_shop_listings(shop_id,crafted_item_id,seller_character_id,price_cents) VALUES(?,?,?,?)",(shop["id"],item_id,seller,price))
    return dict(c.execute("SELECT * FROM luthier_shop_listings WHERE id=?",(cur.lastrowid,)).fetchone())
+ def withdraw(self,seller:int,listing_id:int)->None:
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:
+   cur=c.execute("UPDATE luthier_shop_listings SET status='withdrawn' WHERE id=? AND seller_character_id=? AND status='active'",(listing_id,seller))
+   if cur.rowcount!=1:raise ValueError("Active listing not found")
+ def mine(self,seller:int)->dict:
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:
+   c.row_factory=sqlite3.Row
+   shop=c.execute("SELECT * FROM luthier_shops WHERE owner_character_id=?",(seller,)).fetchone()
+   listings=[dict(r) for r in c.execute("""SELECT l.*,i.name instrument_name,i.serial_number,i.quality_tier
+    FROM luthier_shop_listings l JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.seller_character_id=? ORDER BY l.id DESC""",(seller,))]
+   return {"shop":dict(shop) if shop else None,"listings":listings}
  def browse(self)->list[dict]:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
    c.row_factory=sqlite3.Row
-   return [dict(r) for r in c.execute("""SELECT l.*,s.name shop_name,i.name instrument_name,i.serial_number,i.instrument_type,i.quality_tier,i.quality_score,i.condition_percent
+   return [dict(r) for r in c.execute("""SELECT l.*,s.name shop_name,i.name instrument_name,i.serial_number,i.instrument_type,i.quality_tier,i.quality_score,i.condition_percent,i.shape_key,i.primary_colour,i.accent_colour,i.finish_key,i.workshop_snapshot_json
     FROM luthier_shop_listings l JOIN luthier_shops s ON s.id=l.shop_id JOIN crafted_items i ON i.id=l.crafted_item_id
     WHERE l.status='active' AND s.active=1 AND i.owner_character_id=l.seller_character_id ORDER BY l.id DESC""")]
  def purchase(self,buyer:int,listing_id:int)->dict:
