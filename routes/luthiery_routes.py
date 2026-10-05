@@ -33,6 +33,8 @@ class CraftInstrument(BaseModel):
     finish_key: str = "luthier.finish.solid"
     primary_colour: str = "#202020"
     accent_colour: str | None = None
+    hardware_colour: str = "#c0c0c0"
+    surface_sheen: str = "gloss"
 
 
 def _level(character_id: int) -> int:
@@ -41,7 +43,10 @@ def _level(character_id: int) -> int:
 
 @router.get("/catalogue")
 def catalogue(character_id: int = Depends(get_current_character_id)):
-    return luthiery_catalogue_service.catalogue(_level(character_id))
+    data = luthiery_catalogue_service.catalogue(_level(character_id))
+    finishing = next(skill for skill in SEED_SKILLS if skill.name == "instrument_finishing")
+    data["skill_levels"] = {"instrument_finishing": _skill_service.get_skill_level(character_id, finishing)}
+    return data
 
 
 @router.get("/materials/inventory")
@@ -87,6 +92,8 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
             finish_key=payload.finish_key,
             primary_colour=payload.primary_colour,
             accent_colour=payload.accent_colour,
+            hardware_colour=payload.hardware_colour,
+            surface_sheen=payload.surface_sheen,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

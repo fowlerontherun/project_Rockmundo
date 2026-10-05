@@ -57,11 +57,19 @@ class LuthieryCraftingService:
     def craft(self, character_id: int, request_token: str, name: str, instrument_type: str,
               shape_key: str, selections: dict, skills: dict, finish_key: str = "luthier.finish.solid",
               primary_colour: str = "#202020", accent_colour: str | None = None,
+              hardware_colour: str = "#c0c0c0", surface_sheen: str = "gloss",
               workshop_score: float = 50.0) -> dict:
         if not request_token.strip():
             raise ValueError("A request token is required")
         if instrument_type not in ("guitar", "bass"):
             raise ValueError("Unsupported instrument type")
+        finish_levels={"luthier.finish.solid":1,"luthier.finish.natural":1,"luthier.finish.transparent":20,"luthier.finish.metallic":40}
+        if finish_key not in finish_levels:
+            raise ValueError("Unsupported instrument finish")
+        if surface_sheen not in ("matte","satin","gloss"):
+            raise ValueError("Unsupported surface sheen")
+        if not isinstance(hardware_colour,str) or len(hardware_colour)!=7 or not hardware_colour.startswith("#"):
+            raise ValueError("Invalid hardware colour")
         if set(selections) != set(PARTS):
             raise ValueError("Exactly body, neck, fretboard, electronics and hardware are required")
         self.ensure_schema()
@@ -83,6 +91,8 @@ class LuthieryCraftingService:
                 "SELECT * FROM instrument_shapes WHERE key=? AND enabled=1", (shape_key,)
             ).fetchone()
             level = int(skills.get("luthiery", 0))
+            if int(skills.get("instrument_finishing",0)) < finish_levels[finish_key]:
+                raise ValueError(f"Instrument Finishing level {finish_levels[finish_key]} is required for this finish")
             if not shape or shape["instrument_type"] != instrument_type:
                 raise ValueError("Shape is not compatible with this instrument")
             if level < int(shape["required_level"]):
@@ -148,7 +158,7 @@ class LuthieryCraftingService:
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (serial, character_id, character_id, instrument_type, shape_key, name.strip()[:80] or "Unnamed Instrument",
                  primary_colour, accent_colour, finish_key, score, tier, json.dumps(skills, sort_keys=True),
-                 json.dumps({"score": workshop_score}), json.dumps(traits), json.dumps(modifiers)),
+                 json.dumps({"score": workshop_score, "hardware_colour": hardware_colour, "surface_sheen": surface_sheen}), json.dumps(traits), json.dumps(modifiers)),
             )
             item_id = cur.lastrowid
             for part, material, component in resolved:

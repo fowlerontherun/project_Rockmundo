@@ -10,13 +10,14 @@ type Part=typeof PARTS[number];
 
 const LuthieryWorkshop:React.FC=()=>{
  const [cat,setCat]=useState<{shapes:Shape[];materials:Material[];components:Component[]}>({shapes:[],materials:[],components:[]});
+ const [finishingLevel,setFinishingLevel]=useState(0);
  const [owned,setOwned]=useState<Owned[]>([]),[type,setType]=useState<'guitar'|'bass'>('guitar'),[shape,setShape]=useState('');
  const [step,setStep]=useState<Part|'finish'>('body'),[parts,setParts]=useState<Record<string,{material_key:string;component_key?:string}>>({});
  const [name,setName]=useState(''),[primary,setPrimary]=useState('#202020'),[accent,setAccent]=useState('#d0d0d0'),[hardwareColour,setHardwareColour]=useState('#c0c0c0'),[finish,setFinish]=useState('luthier.finish.solid');
  const [sheen,setSheen]=useState<'matte'|'satin'|'gloss'>('gloss'),[zoom,setZoom]=useState(1),[rotation,setRotation]=useState(0),[rareConfirmed,setRareConfirmed]=useState(false);
  const [message,setMessage]=useState(''),[result,setResult]=useState<any>(null),[busy,setBusy]=useState(false);
  useEffect(()=>{Promise.all([apiFetch('/luthiery/catalogue'),apiFetch('/luthiery/materials/inventory')]).then(async([a,b])=>{
-   if(!a.ok||!b.ok)throw new Error('Unable to load Luthier workshop');setCat(await a.json());setOwned((await b.json()).items);
+   if(!a.ok||!b.ok)throw new Error('Unable to load Luthier workshop');const catalogue=await a.json();setCat(catalogue);setFinishingLevel(Number(catalogue.skill_levels?.instrument_finishing||0));setOwned((await b.json()).items);
  }).catch(e=>setMessage(e.message));},[]);
  const shapes=cat.shapes.filter(s=>s.instrument_type===type); const selectedShape=shapes.find(s=>s.key===shape);
  useEffect(()=>{if(!selectedShape&&shapes.length)setShape(shapes.find(s=>!s.locked)?.key||shapes[0].key)},[type,cat.shapes]);
@@ -32,7 +33,7 @@ const LuthieryWorkshop:React.FC=()=>{
  const craft=async()=>{if(!ready)return;if(rareSelected&&!rareConfirmed){setMessage('Confirm use of rare materials before crafting.');return;}setBusy(true);setMessage('');setResult(null);
    const token=globalThis.crypto?.randomUUID?.()||`craft-${Date.now()}`;
    const r=await apiFetch('/luthiery/craft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    request_token:token,name,instrument_type:type,shape_key:shape,selections:parts,finish_key:finish,primary_colour:primary,accent_colour:accent})});
+    request_token:token,name,instrument_type:type,shape_key:shape,selections:parts,finish_key:finish,primary_colour:primary,accent_colour:accent,hardware_colour:hardwareColour,surface_sheen:sheen})});
    const d=await r.json();setBusy(false);if(!r.ok){setMessage(d.detail||'Crafting failed');return;}setResult(d);setMessage('Instrument crafted successfully.');
  };
  const anchor=selectedShape?.visual?.anchors||{};
@@ -46,7 +47,7 @@ const LuthieryWorkshop:React.FC=()=>{
     <div className="relative mx-auto mt-4 aspect-[3/4] max-w-sm overflow-hidden rounded border" style={{background:`linear-gradient(145deg,${primary},${accent})`}}>
       <div className="absolute inset-0 transition-transform" style={{transform:`scale(${zoom}) rotate(${rotation}deg)`}}>
        <div className="absolute inset-0 flex items-center justify-center text-center p-8"><strong>{selectedShape?.name||'Select a shape'}</strong></div>
-       {PARTS.filter(p=>parts[p]).map(p=><span key={p} className="absolute text-xs border rounded px-1" style={{left:`${(anchor[p]?.x||.5)*100}%`,top:`${(anchor[p]?.y||.5)*100}%`,transform:'translate(-50%,-50%)',borderColor:p==='hardware'?hardwareColour:undefined}}>{p}</span>)}
+       {PARTS.map(p=><button type="button" key={p} onClick={()=>setStep(p)} aria-label={`Edit ${p}`} className="absolute text-xs border rounded px-1" style={{left:`${(anchor[p]?.x||.5)*100}%`,top:`${(anchor[p]?.y||.5)*100}%`,transform:'translate(-50%,-50%)',borderColor:p==='hardware'?hardwareColour:undefined}}>{p}{parts[p]?' ✓':''}</button>)}
       </div>
     </div>
     <div className="flex gap-2 mt-2"><button onClick={()=>setRotation(r=>r-15)} aria-label="Rotate left">↺</button><button onClick={()=>setRotation(r=>r+15)} aria-label="Rotate right">↻</button><button onClick={()=>setZoom(z=>Math.max(.75,z-.1))} aria-label="Zoom out">−</button><button onClick={()=>setZoom(z=>Math.min(1.6,z+.1))} aria-label="Zoom in">+</button><button onClick={()=>{setZoom(1);setRotation(0)}}>Reset view</button></div>
@@ -60,7 +61,7 @@ const LuthieryWorkshop:React.FC=()=>{
       <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{cat.materials.slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:`linear-gradient(135deg,#7b5a3a,#d2b48c)`}} />{m.name}</button>)}</div>
       <label>Component<select className="w-full" value={parts[step]?.component_key||''} onChange={e=>chooseComponent(step,e.target.value)}><option value="">Standard / none</option>{cat.components.filter(c=>c.part_type===step).map(c=><option key={c.key} value={c.key} disabled={c.locked}>{c.name}{c.locked?` · level ${c.required_level}`:''}</option>)}</select></label>
     </div>:<div className="mt-4 space-y-3"><label>Instrument name<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} /></label>
-      <label>Finish<select value={finish} onChange={e=>setFinish(e.target.value)}><option value="luthier.finish.solid">Solid</option><option value="luthier.finish.natural">Natural</option><option value="luthier.finish.transparent">Transparent</option><option value="luthier.finish.metallic">Metallic</option></select></label>
+      <label>Finish<select value={finish} onChange={e=>setFinish(e.target.value)}><option value="luthier.finish.solid">Solid</option><option value="luthier.finish.natural">Natural</option><option value="luthier.finish.transparent" disabled={finishingLevel<20}>Transparent{finishingLevel<20?' — Instrument Finishing 20':''}</option><option value="luthier.finish.metallic" disabled={finishingLevel<40}>Metallic{finishingLevel<40?' — Instrument Finishing 40':''}</option></select></label>
       <label>Primary colour<input type="color" value={primary} onChange={e=>setPrimary(e.target.value)} /></label><label>Accent colour<input type="color" value={accent} onChange={e=>setAccent(e.target.value)} /></label>
       <label>Hardware colour<input type="color" value={hardwareColour} onChange={e=>setHardwareColour(e.target.value)} /></label>
       <fieldset><legend>Surface sheen</legend>{(['matte','satin','gloss'] as const).map(x=><label key={x} className="mr-3"><input type="radio" checked={sheen===x} onChange={()=>setSheen(x)} /> {x}</label>)}</fieldset>
