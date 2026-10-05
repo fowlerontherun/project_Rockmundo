@@ -7,6 +7,12 @@ class LuthieryBalanceService:
  def ensure_schema(self):
   with sqlite3.connect(self.db_path) as c:c.executescript("""CREATE TABLE IF NOT EXISTS luthiery_live_config(key TEXT PRIMARY KEY,value_json TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT(datetime('now')));
    CREATE TABLE IF NOT EXISTS luthiery_trait_controls(trait_key TEXT PRIMARY KEY,enabled INTEGER NOT NULL DEFAULT 1);""")
+ def snapshot(self):
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:
+   rows={r[0]:json.loads(r[1]) for r in c.execute("SELECT key,value_json FROM luthiery_live_config")}
+  return {"quality_weights":rows.get("quality_weights",dict(DEFAULT_WEIGHTS)),
+   "features":{k:bool(rows.get(f"feature:{k}",False)) for k in ("legendary_shapes","premium_materials","boutique_electronics","metallic_finishes")}}
  def quality_weights(self):
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
