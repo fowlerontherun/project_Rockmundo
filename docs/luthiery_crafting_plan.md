@@ -356,13 +356,13 @@ Target weighting:
 ## Economy
 - [x] Starter materials affordable.
 - [x] Premium materials meaningful money sinks.
-- [ ] Crafted gear does not immediately obsolete NPC gear.
-- [ ] Player shops can make viable margins.
-- [ ] No trivial infinite-money loop.
+- [x] Crafted gear does not immediately obsolete NPC gear. *(single crafted-instrument effects are capped below the whole-band context cap; legacy gear remains independently additive)*
+- [x] Player shops can make viable margins. *(asking prices are player-set above finite material input costs; no forced fee currently consumes margin)*
+- [x] No trivial infinite-money loop. *(supplier purchases destroy player currency; instrument sales transfer existing currency buyer→seller with no system buyback)*
 
 ## Release gate
 - [ ] Phase 1–8 exit criteria passed.
-- [ ] No critical ownership/economy exploit.
+- [x] No critical ownership/economy exploit.
 - [ ] Balance telemetry enabled.
 - [ ] Admin emergency disable available.
 - [ ] Production migration tested.
