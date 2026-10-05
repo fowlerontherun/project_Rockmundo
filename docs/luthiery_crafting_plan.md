@@ -209,7 +209,7 @@ Target weighting:
 - [x] Premium materials cannot bypass low skill.
 - [x] Masters can make strong instruments from ordinary materials.
 - [x] Tiers: Poor, Basic, Good, Excellent, Professional, Masterwork, Legendary.
-- [ ] Novice/intermediate/master balance tests.
+- [x] Novice/intermediate/master balance tests.
 
 ## Imperfection
 - [x] Prefer imperfect output over destructive random failure.
@@ -341,7 +341,7 @@ Target weighting:
 - [x] Shop ownership.
 
 ## Gameplay/UX
-- [ ] Novice/intermediate/master progression.
+- [x] Novice/intermediate/master progression.
 - [x] Guitar and bass builds.
 - [x] Locked materials/shapes.
 - [x] Equip/rehearsal/gig/recording.
@@ -354,8 +354,8 @@ Target weighting:
 - [x] Missing visual fallback.
 
 ## Economy
-- [ ] Starter materials affordable.
-- [ ] Premium materials meaningful money sinks.
+- [x] Starter materials affordable.
+- [x] Premium materials meaningful money sinks.
 - [ ] Crafted gear does not immediately obsolete NPC gear.
 - [ ] Player shops can make viable margins.
 - [ ] No trivial infinite-money loop.
