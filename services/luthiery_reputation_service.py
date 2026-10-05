@@ -68,10 +68,21 @@ class LuthieryReputationService:
    if not row:return {"score":0,"tier":"ordinary"}
    rep=c.execute("SELECT COALESCE(SUM(points),0) FROM luthier_reputation_events WHERE luthier_character_id=?",(int(row[0]),)).fetchone()[0]
    owners=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='owner'",(item_id,)).fetchone()[0]
-   notable=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type IN ('notable_gig','notable_recording')",(item_id,)).fetchone()[0]
-   score=min(100,round(float(row[1] or 0)*.55+min(20,int(rep)*.2)+min(10,int(owners)*2)+min(15,int(notable)*5)))
+   notable=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type IN ('notable_gig','notable_recording')",(item_id,)).fetchone()[0]\n   famous=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='famous_owner'",(item_id,)).fetchone()[0]
+   score=min(100,round(float(row[1] or 0)*.55+min(20,int(rep)*.2)+min(10,int(owners)*2)+min(15,int(notable)*5)+min(10,int(famous)*5)))
    tier="iconic" if score>=90 else "collectible" if score>=75 else "notable" if score>=60 else "ordinary"
    return {"score":score,"tier":tier}
+ def record_famous_owner(self,item_id:int,character_id:int,fame:int)->int:
+  if fame<1000:return 0
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:
+   row=c.execute("SELECT creator_character_id FROM crafted_items WHERE id=?",(item_id,)).fetchone()
+   if not row:return 0
+   payload=json.dumps({"fame":int(fame)},sort_keys=True,separators=(",",":"))
+   try:c.execute("INSERT INTO crafted_item_notable_history(crafted_item_id,event_type,character_id,details_json) VALUES(?,'famous_owner',?,?)",(item_id,character_id,payload))
+   except sqlite3.IntegrityError:return 0
+   c.execute("INSERT INTO luthier_reputation_events(luthier_character_id,crafted_item_id,event_type,points,source_character_id,details_json) VALUES(?,?,'famous_owner',5,?,?)",(int(row[0]),item_id,character_id,payload))
+   return 5
  def profile(self,character_id:int)->dict:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:

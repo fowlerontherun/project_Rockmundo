@@ -110,6 +110,6 @@ class LuthierShopService:
    sold=c.execute("UPDATE luthier_shop_listings SET status='sold',buyer_character_id=?,sold_at=datetime('now') WHERE id=? AND status='active'",(buyer,listing_id))
    if sold.rowcount!=1:raise ValueError("Listing changed during purchase")
    c.execute("INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json) VALUES(?,?,'sold',?)",(l["crafted_item_id"],buyer,'{"seller_character_id":%d,"price_cents":%d}'%(seller,price)))
-   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":price,"seller_character_id":seller,"buyer_character_id":buyer,"maker_reputation_awarded":reputation_points}
+   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":price,"seller_character_id":seller,"buyer_character_id":buyer,"maker_reputation_awarded":reputation_points,"famous_owner_reputation_awarded":famous_owner_points}
 
 luthier_shop_service=LuthierShopService()
