@@ -7,6 +7,7 @@ import sqlite3
 from pathlib import Path
 
 from services.luthiery_progression import UNLOCKS
+from services.luthiery_visual_definitions import SHAPES as VISUAL_SHAPES, visual_definition
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
 
@@ -82,7 +83,7 @@ class LuthieryCatalogueService:
                    VALUES (?,?,?,?,?)""",
                 (key, name, part, cost, level),
             )
-        for key, name, instrument_type, level in SHAPES:
+        for key, name, instrument_type, level, _asset_key in VISUAL_SHAPES:
             conn.execute(
                 """INSERT OR IGNORE INTO instrument_shapes
                    (key,name,instrument_type,required_level) VALUES (?,?,?,?)""",
@@ -116,7 +117,7 @@ class LuthieryCatalogueService:
                 "parts": ["body", "neck", "fretboard", "electronics", "hardware"],
                 "materials": rows("crafting_materials"),
                 "components": rows("crafting_component_designs"),
-                "shapes": rows("instrument_shapes"),
+                "shapes": [{**row, "visual": visual_definition(row["key"])} for row in rows("instrument_shapes")],
             }
 
     def inventory(self, character_id: int) -> list[dict]:
