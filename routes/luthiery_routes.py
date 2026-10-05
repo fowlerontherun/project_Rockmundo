@@ -43,7 +43,10 @@ def _level(character_id: int) -> int:
 
 @router.get("/catalogue")
 def catalogue(character_id: int = Depends(get_current_character_id)):
-    return luthiery_catalogue_service.catalogue(_level(character_id))
+    data = luthiery_catalogue_service.catalogue(_level(character_id))
+    finishing = next(skill for skill in SEED_SKILLS if skill.name == "instrument_finishing")
+    data["skill_levels"] = {"instrument_finishing": _skill_service.get_skill_level(character_id, finishing)}
+    return data
 
 
 @router.get("/materials/inventory")
