@@ -303,14 +303,14 @@ Target weighting:
 # Phase 9 — Luthier reputation and collectibles
 - [x] Luthier reputation.
 - [x] Reputation from legitimate sales.
-- [ ] Reputation when notable/high-fame musicians use an instrument.
+- [x] Reputation when notable/high-fame musicians use an instrument.
 - [x] Reputation from high-quality builds.
 - [x] Anti-farming/diminishing returns.
 - [x] Maker reputation on listings.
 - [x] Provenance/history log.
 - [x] Track notable owners.
-- [ ] Track notable gigs/recordings where practical.
-- [ ] Collector/desirability signal.
+- [x] Track notable gigs/recordings where practical.
+- [x] Collector/desirability signal.
 - [ ] Luthier achievements.
 - [ ] Signature/masterpiece milestones.
 - [ ] Later: custom commissions.
