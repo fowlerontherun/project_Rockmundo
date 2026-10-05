@@ -155,7 +155,11 @@ class LuthieryCraftingService:
                     if instrument_type not in component_instruments:
                         raise ValueError(f"{part} component is incompatible with this instrument")
                 resolved.append((part, material, component))
-                material_scores.append(float(material["quality"]) * 50.0 + (float(component["quality"]) * 10.0 if component else 0.0))
+                # Catalogue quality is a multiplier centred around 1.0. Normalise it to
+                # a 0-100 crafting contribution: starter woods ~=55, premium woods ~=85.
+                material_quality=max(0.0,min(100.0,55.0+(float(material["quality"])-0.90)*93.75))
+                component_bonus=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
+                material_scores.append(min(100.0,material_quality+component_bonus))
 
             specialist = sum(float(skills.get(k, 0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing")) / 4.0
             material_score = min(100.0, sum(material_scores) / len(material_scores))
