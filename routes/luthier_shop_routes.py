@@ -27,6 +27,10 @@ def list_instrument(payload:ListingIn,character_id:int=Depends(get_current_chara
  except ValueError as e:raise HTTPException(status_code=400,detail=str(e)) from e
 @router.get("")
 def browse_shops():return {"items":luthier_shop_service.browse()}
+@router.get("/listings/{listing_id}")
+def listing_detail(listing_id:int):
+ try:return luthier_shop_service.listing_detail(listing_id)
+ except ValueError as e:raise HTTPException(status_code=404,detail=str(e)) from e
 @router.post("/listings/{listing_id}/purchase")
 def purchase(listing_id:int,character_id:int=Depends(get_current_character_id)):
  try:return luthier_shop_service.purchase(character_id,listing_id)
