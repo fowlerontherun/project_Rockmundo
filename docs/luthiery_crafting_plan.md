@@ -317,7 +317,7 @@ Target weighting:
 
 **Exit:** Luthiery supports a long-term career loop and historic instruments retain provenance.
 
-# Phase 10 — Admin, balancing and live operations
+# Phase 10 — Admin, balancing and live operations\n**Status:** Complete — production controls, auditing, telemetry, abuse signals and advanced-content gating implemented.
 - [x] Material/component/shape catalogues.
 - [x] Unlock-level controls.
 - [x] Material price/supply controls.
@@ -327,7 +327,7 @@ Target weighting:
 - [x] Ownership/provenance audit.
 - [x] Economy/craft/material/quality/sales metrics.
 - [x] Suspicious crafting/trading detection.
-- [ ] Feature flags for advanced content.
+- [x] Feature flags for advanced content.
 
 # Phase 11 — QA and release gate
 ## Security/integrity
