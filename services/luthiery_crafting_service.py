@@ -67,15 +67,16 @@ class LuthieryCraftingService:
         return traits, modifiers, defect
 
     @staticmethod
-    def _validate_advanced_features(shape, resolved, finish_key):
-        if finish_key=="luthier.finish.metallic" and not balance_service.feature_enabled("metallic_finishes"):
+    def _validate_advanced_features(shape, resolved, finish_key, features=None):
+        features=features or {k:balance_service.feature_enabled(k) for k in ("legendary_shapes","premium_materials","boutique_electronics","metallic_finishes")}
+        if finish_key=="luthier.finish.metallic" and not features["metallic_finishes"]:
             raise ValueError("Metallic finishes are currently disabled")
-        if int(shape["required_level"])>=80 and not balance_service.feature_enabled("legendary_shapes"):
+        if int(shape["required_level"])>=80 and not features["legendary_shapes"]:
             raise ValueError("Legendary shapes are currently disabled")
         for _part,material,component in resolved:
-            if int(material["required_level"])>=80 and not balance_service.feature_enabled("premium_materials"):
+            if int(material["required_level"])>=80 and not features["premium_materials"]:
                 raise ValueError("Premium materials are currently disabled")
-            if component and component["key"]=="luthier.component.electronics.boutique" and not balance_service.feature_enabled("boutique_electronics"):
+            if component and component["key"]=="luthier.component.electronics.boutique" and not features["boutique_electronics"]:
                 raise ValueError("Boutique electronics are currently disabled")
 
     @staticmethod
@@ -93,8 +94,8 @@ class LuthieryCraftingService:
         return normalized,workshop
 
     @staticmethod
-    def _quality_result(level:float,material_score:float,specialist:float,workshop_score:float,variance:float)->float:
-        w=balance_service.quality_weights()
+    def _quality_result(level:float,material_score:float,specialist:float,workshop_score:float,variance:float,weights=None)->float:
+        w=weights or balance_service.quality_weights()
         raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
         raw+=variance*(w["variance"]/.05 if w["variance"] else 0)
         floor=max(1.0,level*.35);ceiling=min(100.0,48.0+level*.52)
@@ -168,6 +169,7 @@ class LuthieryCraftingService:
         if set(selections) != set(PARTS):
             raise ValueError("Exactly body, neck, fretboard, electronics and hardware are required")
         self.ensure_schema()
+        live_balance=balance_service.snapshot()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys=ON")
@@ -229,11 +231,11 @@ class LuthieryCraftingService:
                 component_bonus=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
                 material_scores.append(min(100.0,material_quality+component_bonus))
 
-            self._validate_advanced_features(shape,resolved,finish_key)
+            self._validate_advanced_features(shape,resolved,finish_key,live_balance["features"])
             specialist = sum(float(skills.get(k, 0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing")) / 4.0
             material_score = min(100.0, sum(material_scores) / len(material_scores))
             # Live and admin simulations share the same server-authoritative balance calculation.
-            score = self._quality_result(level,material_score,specialist,workshop_score,self._variance(character_id,request_token))
+            score = self._quality_result(level,material_score,specialist,workshop_score,self._variance(character_id,request_token),live_balance["quality_weights"])
             tier = self._tier(score)
             traits, modifiers, defect = self._outcome(score, character_id, request_token)
             profile = build_profile(resolved, score, skills)
@@ -285,6 +287,7 @@ class LuthieryCraftingService:
     def rework(self, character_id: int, item_id: int, skills: dict) -> dict:
         """One-way improvement action; never rerolls the original craft."""
         self.ensure_schema()
+        live_balance=balance_service.snapshot()
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             conn.execute("BEGIN IMMEDIATE")
