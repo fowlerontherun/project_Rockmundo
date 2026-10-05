@@ -8,6 +8,7 @@ import sqlite3
 from pathlib import Path
 
 from services.luthiery_catalogue_service import LuthieryCatalogueService, DB_PATH
+from services.luthiery_stats_service import build_profile
 
 PARTS = ("body", "neck", "fretboard", "electronics", "hardware")
 TIERS = ((30,"Poor"),(45,"Basic"),(60,"Good"),(72,"Excellent"),(84,"Professional"),(94,"Masterwork"),(101,"Legendary"))
@@ -128,6 +129,11 @@ class LuthieryCraftingService:
             score = round(max(floor, min(ceiling, raw)), 2)
             tier = self._tier(score)
             traits, modifiers, defect = self._outcome(score, character_id, request_token)
+            profile = build_profile(resolved, score, skills)
+            traits.extend(t["key"] for t in profile["traits"] if t["key"] not in traits)
+            modifiers.update(profile["gameplay_modifiers"])
+            modifiers["characteristics"] = profile["characteristics"]
+            modifiers["genre_affinities"] = profile["genre_affinities"]
             serial = "RM-" + hashlib.sha256(f"{character_id}:{request_token}:{shape_key}".encode()).hexdigest()[:12].upper()
 
             job = conn.execute(
