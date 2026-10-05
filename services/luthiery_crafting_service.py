@@ -66,6 +66,18 @@ class LuthieryCraftingService:
             modifiers["reliability"] = modifiers.get("reliability", 0) - 1
         return traits, modifiers, defect
 
+    @staticmethod
+    def _validate_advanced_features(shape, resolved, finish_key):
+        if finish_key=="luthier.finish.metallic" and not balance_service.feature_enabled("metallic_finishes"):
+            raise ValueError("Metallic finishes are currently disabled")
+        if int(shape["required_level"])>=80 and not balance_service.feature_enabled("legendary_shapes"):
+            raise ValueError("Legendary shapes are currently disabled")
+        for _part,material,component in resolved:
+            if int(material["required_level"])>=80 and not balance_service.feature_enabled("premium_materials"):
+                raise ValueError("Premium materials are currently disabled")
+            if component and component["key"]=="luthier.component.electronics.boutique" and not balance_service.feature_enabled("boutique_electronics"):
+                raise ValueError("Boutique electronics are currently disabled")
+
     def admin_preview(self,instrument_type:str,shape_key:str,selections:dict,skills:dict,finish_key:str="luthier.finish.solid",workshop_score:float=50.0,seed_token:str="admin-demo")->dict:
         """Run crafting balance/compatibility calculations without inventory/economy writes."""
         self.ensure_schema()
@@ -86,6 +98,7 @@ class LuthieryCraftingService:
                 resolved.append((part,material,component))
                 mq=max(0.0,min(100.0,55.0+(float(material["quality"])-0.90)*93.75));cb=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
                 material_scores.append(min(100.0,mq+cb))
+            self._validate_advanced_features(shape,resolved,finish_key)
             specialist=sum(float(skills.get(k,0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing"))/4.0
             material_score=sum(material_scores)/len(material_scores);w=balance_service.quality_weights()
             raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
@@ -190,6 +203,7 @@ class LuthieryCraftingService:
                 component_bonus=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
                 material_scores.append(min(100.0,material_quality+component_bonus))
 
+            self._validate_advanced_features(shape,resolved,finish_key)
             specialist = sum(float(skills.get(k, 0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing")) / 4.0
             material_score = min(100.0, sum(material_scores) / len(material_scores))
             # Premium inputs help, but the skill term and skill-dependent ceiling stop novices buying mastery.
