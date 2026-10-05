@@ -120,3 +120,26 @@ def demo_matrix(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
  if master_low>.10:warnings.append("Master Luthiers produce low-tier instruments too frequently.")
  if by["Master"]["average"]-by["Competent"]["average"]<10:warnings.append("Master progression has less than a 10-point average quality advantage over Competent.")
  return {"samples_per_preset":samples,"rows":rows,"warnings":warnings}
+
+@router.post("/demo/recipe-sweep")
+def demo_recipe_sweep(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
+ samples=min(max(payload.samples,1),250);base={k:v.model_dump() for k,v in payload.selections.items()};rows=[]
+ luthiery_crafting_service.ensure_schema()
+ with sqlite3.connect(DB_PATH) as c:
+  c.row_factory=sqlite3.Row
+  materials=[dict(x) for x in c.execute("SELECT key,name FROM crafting_materials WHERE enabled=1 ORDER BY required_level,key")]
+ for material in materials:
+  scores=[];valid=True
+  candidate={k:dict(v) for k,v in base.items()};candidate["body"]["material_key"]=material["key"]
+  try:
+   for i in range(samples):
+    r=luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,candidate,payload.skills,payload.finish_key,payload.workshop_score,f"sweep:{material['key']}:{i}")
+    scores.append(float(r["quality_score"]))
+  except ValueError:valid=False
+  if valid:rows.append({"material_key":material["key"],"material_name":material["name"],"average":round(sum(scores)/len(scores),2),"min":min(scores),"max":max(scores)})
+ rows.sort(key=lambda x:x["average"],reverse=True);warnings=[]
+ if len(rows)>1:
+  spread=rows[0]["average"]-rows[-1]["average"]
+  if spread<2:warnings.append("Body material choice changes average quality by less than 2 points; material progression may feel insignificant.")
+  if spread>20:warnings.append("Body material choice changes average quality by more than 20 points; premium materials may be overly dominant.")
+ return {"samples_per_material":samples,"rows":rows,"warnings":warnings}
