@@ -79,6 +79,20 @@ class LuthieryCraftingService:
                 raise ValueError("Boutique electronics are currently disabled")
 
     @staticmethod
+    def _normalize_inputs(skills:dict,workshop_score:float)->tuple[dict[str,float],float]:
+        keys=("luthiery","woodworking","fretwork","instrument_electronics","instrument_finishing")
+        normalized={}
+        for key in keys:
+            try:value=float(skills.get(key,0))
+            except (TypeError,ValueError):raise ValueError(f"{key} skill must be numeric")
+            if value<0 or value>100:raise ValueError(f"{key} skill must be between 0 and 100")
+            normalized[key]=value
+        try:workshop=float(workshop_score)
+        except (TypeError,ValueError):raise ValueError("Workshop score must be numeric")
+        if workshop<0 or workshop>100:raise ValueError("Workshop score must be between 0 and 100")
+        return normalized,workshop
+
+    @staticmethod
     def _quality_result(level:float,material_score:float,specialist:float,workshop_score:float,variance:float)->float:
         w=balance_service.quality_weights()
         raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
@@ -102,6 +116,7 @@ class LuthieryCraftingService:
     def admin_preview(self,instrument_type:str,shape_key:str,selections:dict,skills:dict,finish_key:str="luthier.finish.solid",workshop_score:float=50.0,seed_token:str="admin-demo")->dict:
         """Run crafting balance/compatibility calculations without inventory/economy writes."""
         self.ensure_schema()
+        skills,workshop_score=self._normalize_inputs(skills,workshop_score)
         if instrument_type not in ("guitar","bass"):raise ValueError("Unsupported instrument type")
         finish_levels={"luthier.finish.solid":1,"luthier.finish.natural":1,"luthier.finish.transparent":20,"luthier.finish.metallic":40}
         if finish_key not in finish_levels:raise ValueError("Unsupported instrument finish")
@@ -138,6 +153,7 @@ class LuthieryCraftingService:
               workshop_score: float = 50.0) -> dict:
         if not request_token.strip():
             raise ValueError("A request token is required")
+        skills,workshop_score=self._normalize_inputs(skills,workshop_score)
         if instrument_type not in ("guitar", "bass"):
             raise ValueError("Unsupported instrument type")
         finish_levels={"luthier.finish.solid":1,"luthier.finish.natural":1,"luthier.finish.transparent":20,"luthier.finish.metallic":40}
