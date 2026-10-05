@@ -365,7 +365,7 @@ Target weighting:
 - [x] No critical ownership/economy exploit.
 - [x] Balance telemetry enabled.
 - [x] Admin emergency disable available.
-- [x] Production migration tested. *(forward migration now explicitly repairs the legacy listing-history uniqueness constraint while preserving rows)*
+- [x] Production migration tested.\n- [x] Live-config, reputation/provenance, achievements and admin-audit tables have explicit idempotent production migration. *(forward migration now explicitly repairs the legacy listing-history uniqueness constraint while preserving rows)*
 
 # Initial release content target
 - [x] Electric guitars and basses.
