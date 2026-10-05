@@ -1,6 +1,6 @@
 """Phase 5 stat profiles, traits and gameplay effects for crafted instruments."""
 from __future__ import annotations
-import json
+import json\nfrom services.luthiery_balance_service import balance_service
 
 CHARACTERISTICS=("tone","sustain","clarity","output","playability","reliability","durability","stage_impact")
 TRAIT_RULES=(
