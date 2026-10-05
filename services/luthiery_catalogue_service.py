@@ -118,6 +118,7 @@ class LuthieryCatalogueService:
                 "materials": rows("crafting_materials"),
                 "components": rows("crafting_component_designs"),
                 "shapes": [{**row, "visual": visual_definition(row["key"])} for row in rows("instrument_shapes")],
+                "skill_levels": {"instrument_finishing": luthiery_level},
             }
 
     def inventory(self, character_id: int) -> list[dict]:
