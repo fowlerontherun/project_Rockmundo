@@ -311,8 +311,8 @@ Target weighting:
 - [x] Track notable owners.
 - [x] Track notable gigs/recordings where practical.
 - [x] Collector/desirability signal.
-- [ ] Luthier achievements.
-- [ ] Signature/masterpiece milestones.
+- [x] Luthier achievements.
+- [x] Signature/masterpiece milestones.
 - [ ] Later: custom commissions.
 
 **Exit:** Luthiery supports a long-term career loop and historic instruments retain provenance.
