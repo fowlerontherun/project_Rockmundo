@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 2 in progress — Phases 0–1 complete
+**Status:** Phase 4 in progress — Phases 0–2 complete
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -180,21 +180,21 @@ Finish/colour is a separate customisation layer.
 **Goal:** Produce a unique persistent instrument.
 
 ## Persistence
-- [ ] Add crafted_items.
-- [ ] Add crafted_item_parts.
-- [ ] Add crafting_jobs if builds consume scheduled time.
-- [ ] Permanent creator character ID.
-- [ ] Creation timestamp.
-- [ ] Unique serial number.
-- [ ] Instrument type/shape.
-- [ ] Five component/material selections.
-- [ ] Colour/finish.
-- [ ] Crafting skill snapshot.
-- [ ] Workshop/tool snapshot.
-- [ ] Final quality/tier.
+- [x] Add crafted_items.
+- [x] Add crafted_item_parts.
+- [x] Add crafting_jobs if builds consume scheduled time.
+- [x] Permanent creator character ID.
+- [x] Creation timestamp.
+- [x] Unique serial number.
+- [x] Instrument type/shape.
+- [x] Five component/material selections.
+- [x] Colour/finish.
+- [x] Crafting skill snapshot.
+- [x] Workshop/tool snapshot.
+- [x] Final quality/tier.
 - [ ] Generated traits.
 - [ ] Final stat modifiers.
-- [ ] Permanent resale provenance.
+- [x] Permanent resale provenance.
 
 ## Initial quality model
 Target weighting:
@@ -204,11 +204,11 @@ Target weighting:
 - 10% workshop/tools.
 - 5% controlled craftsmanship variance.
 
-- [ ] Server-authoritative calculation.
-- [ ] Skill-based quality floor/ceiling.
-- [ ] Premium materials cannot bypass low skill.
-- [ ] Masters can make strong instruments from ordinary materials.
-- [ ] Tiers: Poor, Basic, Good, Excellent, Professional, Masterwork, Legendary.
+- [x] Server-authoritative calculation.
+- [x] Skill-based quality floor/ceiling.
+- [x] Premium materials cannot bypass low skill.
+- [x] Masters can make strong instruments from ordinary materials.
+- [x] Tiers: Poor, Basic, Good, Excellent, Professional, Masterwork, Legendary.
 - [ ] Novice/intermediate/master balance tests.
 
 ## Imperfection
@@ -216,7 +216,7 @@ Target weighting:
 - [ ] Low-skill defect chance.
 - [ ] Material waste rules.
 - [ ] Repair/rework rules.
-- [ ] Prevent reroll exploits.
+- [x] Prevent reroll exploits.
 
 **Exit:** controlled variation works; skill/materials matter; results survive restart; no duplication exploit.
 
