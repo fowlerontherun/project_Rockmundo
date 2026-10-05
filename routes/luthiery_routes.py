@@ -9,6 +9,7 @@ from services.luthiery_catalogue_service import luthiery_catalogue_service
 from services.luthiery_crafting_service import luthiery_crafting_service
 from services.crafted_instrument_equipment_service import crafted_instrument_equipment
 from services.skill_service import SkillService
+from services.luthiery_workshop_service import luthiery_workshop_service
 
 router = APIRouter(prefix="/luthiery", tags=["Luthiery"])
 _skill_service = SkillService()
@@ -66,6 +67,15 @@ def catalogue(character_id: int = Depends(get_current_character_id)):
     return data
 
 
+@router.get("/workshop")
+def workshop(character_id:int=Depends(get_current_character_id)):
+    return luthiery_workshop_service.get(character_id)
+
+@router.post("/workshop/upgrade")
+def upgrade_workshop(character_id:int=Depends(get_current_character_id)):
+    try:return luthiery_workshop_service.upgrade(character_id)
+    except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+
 @router.get("/materials/inventory")
 def material_inventory(character_id: int = Depends(get_current_character_id)):
     return {"items": luthiery_catalogue_service.inventory(character_id)}
@@ -104,6 +114,7 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
             shape_key=payload.shape_key,
             selections={key: value.model_dump() for key, value in payload.selections.items()},
             skills=skills,
+            workshop_score=luthiery_workshop_service.quality(character_id),
             finish_key=payload.finish_key,
             primary_colour=payload.primary_colour,
             accent_colour=payload.accent_colour,
