@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional\nimport sqlite3\nfrom pathlib import Path
 
 from backend.models.learning_method import LearningMethod
 from backend.models.recording_session import RecordingSession
@@ -10,7 +10,7 @@ from backend.services.chemistry_service import ChemistryService
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.skill_service import skill_service
 from services.crafted_instrument_effects_service import crafted_instrument_effects
-from services.crafted_instrument_equipment_service import crafted_instrument_equipment
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment\nfrom services.luthiery_reputation_service import luthiery_reputation\nfrom database import DB_PATH
 
 
 
