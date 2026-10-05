@@ -42,9 +42,12 @@ class CraftedInstrumentEquipmentService:
    r=c.execute("""SELECT i.* FROM character_equipped_crafted_instruments e JOIN crafted_items i ON i.id=e.crafted_item_id
      WHERE e.character_id=? AND i.owner_character_id=e.character_id""",(character_id,)).fetchone()
    return dict(r) if r else None
- def wear_band(self,band_id:int,amount:int)->int:
+ def wear_band(self,band_id:int,amount:int,character_ids:list[int]|None=None)->int:
   if amount<=0:return 0
   equipment=self.band_equipment(band_id)
+  if character_ids is not None:
+   allowed={int(x) for x in character_ids}
+   equipment={cid:iid for cid,iid in equipment.items() if cid in allowed}
   if not equipment:return 0
   with sqlite3.connect(self.db_path) as c:
    changed=0
@@ -64,10 +67,17 @@ class CraftedInstrumentEquipmentService:
    current=int(item["condition_percent"])
    if current>=100:raise ValueError("Instrument does not need maintenance")
    restored=min(amount,100-current)
-   # Maintenance is intentionally modest and deterministic; economy charging can be layered by shop/workshop later.
+   # $2 per condition point keeps wear meaningful while making small repairs affordable.
+   cost=restored*200
+   account=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(character_id,)).fetchone()
+   if not account or int(account["balance_cents"])<cost:raise ValueError("Insufficient funds for maintenance")
+   balance=int(account["balance_cents"])-cost
+   c.execute("UPDATE accounts SET balance_cents=? WHERE id=?",(balance,account["id"]))
+   tx=c.execute("INSERT INTO transactions(type,amount_cents,currency,src_account_id) VALUES ('luthiery_maintenance',?,'USD',?)",(cost,account["id"]))
+   c.execute("INSERT INTO ledger_entries(account_id,transaction_id,delta_cents,balance_after) VALUES (?,?,?,?)",(account["id"],tx.lastrowid,-cost,balance))
    c.execute("UPDATE crafted_items SET condition_percent=condition_percent+? WHERE id=?",(restored,item_id))
    try:c.execute("""INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json)
-     VALUES (?,?,'maintained',?)""",(item_id,character_id,'{"condition_restored":%d}'%restored))
+     VALUES (?,?,'maintained',?)""",(item_id,character_id,'{"condition_restored":%d,"cost_cents":%d}'%(restored,cost)))
    except sqlite3.OperationalError:pass
    return dict(c.execute("SELECT * FROM crafted_items WHERE id=?",(item_id,)).fetchone())
 
