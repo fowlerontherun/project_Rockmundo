@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 7 in progress — equipment, rehearsal/gig/recording effects, condition wear and maintenance implemented.
+**Status:** Phase 7 in progress — equipment/effects, condition/maintenance, provenance/specification inventory and lock controls implemented; visual display and final character-switch verification remain.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -272,11 +272,11 @@ Target weighting:
 - [x] Apply modifiers to rehearsals, gigs, recording and relevant practice.
 - [x] Durability/condition.
 - [x] Repair/maintenance.
-- [ ] Full item provenance page.
+- [x] Full item provenance page.
 - [x] Permanent maker and serial.
-- [ ] Five-part specification/materials.
-- [ ] Quality/traits/date.
-- [ ] Favourite/lock to prevent accidental sale.
+- [x] Five-part specification/materials.
+- [x] Quality/traits/date.
+- [x] Favourite/lock to prevent accidental sale.
 - [ ] Character-switch safety tests.
 
 **Exit:** crafted gear replaces ordinary gear in normal gameplay safely and bonuses cannot duplicate/stack incorrectly.
