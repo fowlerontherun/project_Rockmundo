@@ -5,7 +5,7 @@ from pathlib import Path
 
 from auth.dependencies import get_current_user_id
 from auth.routes import admin_mfa_router
-from core.config import settings
+from core.config import settings\nfrom config import ENABLE_LUTHIERY_CRAFTING
 from database import init_db
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
