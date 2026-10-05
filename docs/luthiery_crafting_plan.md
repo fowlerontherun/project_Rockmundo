@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 6 in progress — interactive workshop and rich preview controls implemented; persistence for hardware colour/sheen and advanced finish gating remains.
+**Status:** Phase 6 implementation complete — interactive workshop, persisted finish details, specialist finish gating and direct part interaction implemented.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -240,7 +240,7 @@ Target weighting:
 - [x] Large persistent live preview.
 - [x] Build rail: Body → Neck → Fretboard → Electronics → Hardware → Finish.
 - [x] Preview remains visible while changing options.
-- [ ] Click/tap parts to select/place them.
+- [x] Click/tap parts to select/place them.
 - [x] Rotate/zoom.
 - [x] Mobile controls.
 - [x] Desktop layout.
@@ -252,10 +252,10 @@ Target weighting:
 - [x] Predicted characteristic changes.
 - [x] Rare-material warning.
 - [x] Primary/accent/body colour.
-- [ ] Hardware colour. *(workshop preview control added; persistence still required)*
+- [x] Hardware colour.
 - [x] Natural, solid, transparent, metallic finishes.
-- [ ] Gloss/matte. *(workshop preview control added; persistence still required)*
-- [ ] Advanced finishes gated by Instrument Finishing.
+- [x] Gloss/matte.
+- [x] Advanced finishes gated by Instrument Finishing.
 - [x] Final build review.
 - [x] Player names instrument.
 - [x] Confirm material consumption.
