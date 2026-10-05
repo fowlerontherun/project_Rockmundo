@@ -7,11 +7,16 @@ from auth.character_dependencies import get_current_character_id
 from seeds.skill_seed import SEED_SKILLS
 from services.luthiery_catalogue_service import luthiery_catalogue_service
 from services.luthiery_crafting_service import luthiery_crafting_service
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment
 from services.skill_service import SkillService
 
 router = APIRouter(prefix="/luthiery", tags=["Luthiery"])
 _skill_service = SkillService()
 _luthiery_skill = next(skill for skill in SEED_SKILLS if skill.name == "luthiery")
+
+
+class EquipInstrument(BaseModel):
+    role: str | None = None
 
 
 class MaterialPurchase(BaseModel):
@@ -97,6 +102,25 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/crafted/equipped")
+def equipped_instrument(character_id: int = Depends(get_current_character_id)):
+    return {"item": crafted_instrument_equipment.equipped(character_id)}
+
+
+@router.post("/crafted/{item_id}/equip")
+def equip_instrument(payload: EquipInstrument, item_id: int, character_id: int = Depends(get_current_character_id)):
+    try:
+        return crafted_instrument_equipment.equip(character_id, item_id, payload.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/crafted/equipped")
+def unequip_instrument(character_id: int = Depends(get_current_character_id)):
+    crafted_instrument_equipment.unequip(character_id)
+    return {"ok": True}
 
 
 @router.post("/crafted/{item_id}/rework")

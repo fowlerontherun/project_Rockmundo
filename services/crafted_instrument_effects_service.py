@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from services.luthiery_catalogue_service import DB_PATH
+from services.crafted_instrument_equipment_service import CraftedInstrumentEquipmentService
 
 CONTEXT_KEYS={
  "rehearsal":("practice_effectiveness","instrument_effectiveness"),
@@ -32,6 +33,10 @@ class CraftedInstrumentEffectsService:
         condition=max(0,min(100,int(row[1])))/100
         value=sum(max(-0.10,min(0.10,float(mods.get(k,0)))) for k in CONTEXT_KEYS[context])
         return round(max(-MAX_CONTEXT_BONUS[context],min(MAX_CONTEXT_BONUS[context],value*condition)),4)
+
+    def band_effects(self,band_id:int,context:str)->float:
+        equipment=CraftedInstrumentEquipmentService(self.db_path).band_equipment(band_id)
+        return self.equipped_effects(equipment,context)
 
     def equipped_effects(self,character_items:dict[int,int],context:str)->float:
         """Aggregate explicit equipped item ids only; max one instrument per character."""
