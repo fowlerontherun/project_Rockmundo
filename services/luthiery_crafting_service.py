@@ -222,6 +222,40 @@ class LuthieryCraftingService:
             )
             return dict(conn.execute("SELECT * FROM crafted_items WHERE id=?", (item_id,)).fetchone())
 
+    def detail(self, character_id: int, item_id: int) -> dict:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            item = conn.execute("SELECT * FROM crafted_items WHERE id=? AND owner_character_id=?", (item_id, character_id)).fetchone()
+            if not item:
+                raise ValueError("Crafted instrument not found")
+            result = dict(item)
+            result["parts"] = [dict(r) for r in conn.execute(
+                """SELECT p.part_type,p.material_key,m.name material_name,p.component_key,c.name component_name,p.quality_contribution
+                   FROM crafted_item_parts p
+                   LEFT JOIN crafting_materials m ON m.key=p.material_key
+                   LEFT JOIN crafting_component_designs c ON c.key=p.component_key
+                   WHERE p.crafted_item_id=? ORDER BY CASE p.part_type
+                   WHEN 'body' THEN 1 WHEN 'neck' THEN 2 WHEN 'fretboard' THEN 3 WHEN 'electronics' THEN 4 ELSE 5 END""",
+                (item_id,),
+            )]
+            try:
+                result["events"] = [dict(r) for r in conn.execute(
+                    "SELECT event_type,details_json,created_at FROM crafted_item_events WHERE crafted_item_id=? ORDER BY id DESC", (item_id,)
+                )]
+            except sqlite3.OperationalError:
+                result["events"] = []
+            return result
+
+    def set_locked(self, character_id: int, item_id: int, locked: bool) -> dict:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute("UPDATE crafted_items SET locked=? WHERE id=? AND owner_character_id=?", (1 if locked else 0, item_id, character_id))
+            if cur.rowcount != 1:
+                raise ValueError("Crafted instrument not found")
+            return dict(conn.execute("SELECT * FROM crafted_items WHERE id=?", (item_id,)).fetchone())
+
     def inventory(self, character_id: int) -> list[dict]:
         self.ensure_schema()
         with sqlite3.connect(self.db_path) as conn:
