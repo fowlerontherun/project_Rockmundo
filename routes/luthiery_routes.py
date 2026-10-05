@@ -33,6 +33,8 @@ class CraftInstrument(BaseModel):
     finish_key: str = "luthier.finish.solid"
     primary_colour: str = "#202020"
     accent_colour: str | None = None
+    hardware_colour: str = "#c0c0c0"
+    surface_sheen: str = "gloss"
 
 
 def _level(character_id: int) -> int:
@@ -87,6 +89,8 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
             finish_key=payload.finish_key,
             primary_colour=payload.primary_colour,
             accent_colour=payload.accent_colour,
+            hardware_colour=payload.hardware_colour,
+            surface_sheen=payload.surface_sheen,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
