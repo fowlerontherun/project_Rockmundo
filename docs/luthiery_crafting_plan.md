@@ -348,8 +348,8 @@ Target weighting:
 - [x] Repair/condition.
 - [x] Resale/provenance.
 - [ ] Desktop/mobile workshop.
-- [ ] Slow network/retry.
-- [ ] Refresh/reload.
+- [x] Slow network/retry.
+- [x] Refresh/reload.
 - [x] Character switching.
 - [x] Missing visual fallback.
 
@@ -364,8 +364,8 @@ Target weighting:
 - [ ] Phase 1–8 exit criteria passed.
 - [x] No critical ownership/economy exploit.
 - [ ] Balance telemetry enabled.
-- [ ] Admin emergency disable available.
-- [ ] Production migration tested.
+- [x] Admin emergency disable available.
+- [x] Production migration tested. *(forward migration now explicitly repairs the legacy listing-history uniqueness constraint while preserving rows)*
 
 # Initial release content target
 - [ ] Electric guitars and basses.
