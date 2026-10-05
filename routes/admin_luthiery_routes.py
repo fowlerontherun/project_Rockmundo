@@ -10,7 +10,7 @@ router=APIRouter(prefix="/admin/luthiery",tags=["Admin Luthiery"])
 async def _admin(user_id:int=Depends(get_current_user_id))->int:
  await require_permission(["admin"],user_id);return user_id
 class EnabledUpdate(BaseModel): enabled:bool
-class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass CatalogueBalanceUpdate(BaseModel):
+class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass FeatureUpdate(BaseModel): enabled:bool\nclass CatalogueBalanceUpdate(BaseModel):
  required_level:int|None=None
  cost_cents:int|None=None
  stock:int|None=None
@@ -56,3 +56,11 @@ def suspicious(_admin_id:int=Depends(_admin)):
    findings += [dict(x)|{"signal":"extreme_price"} for x in c.execute("""SELECT id listing_id,seller_character_id,buyer_character_id,price_cents FROM luthier_shop_listings WHERE status='sold' AND price_cents>=10000000 ORDER BY price_cents DESC LIMIT 50""")]
   except sqlite3.OperationalError:pass
   return {"findings":findings}
+
+@router.get("/features")
+def features(_admin_id:int=Depends(_admin)):
+ return {"legendary_shapes":balance_service.feature_enabled("legendary_shapes"),"premium_materials":balance_service.feature_enabled("premium_materials"),"boutique_electronics":balance_service.feature_enabled("boutique_electronics"),"metallic_finishes":balance_service.feature_enabled("metallic_finishes")}
+@router.put("/features/{feature_key}")
+def set_feature(feature_key:str,payload:FeatureUpdate,_admin_id:int=Depends(_admin)):
+ try:return balance_service.set_feature(feature_key,payload.enabled)
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc

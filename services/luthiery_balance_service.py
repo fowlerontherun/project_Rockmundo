@@ -18,6 +18,16 @@ class LuthieryBalanceService:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:c.execute("INSERT INTO luthiery_live_config(key,value_json,updated_at) VALUES('quality_weights',?,datetime('now')) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at",(json.dumps(v,sort_keys=True),))
   return v
+ def feature_enabled(self,key):
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:
+   r=c.execute("SELECT value_json FROM luthiery_live_config WHERE key=?",(f"feature:{key}",)).fetchone()
+   return False if not r else bool(json.loads(r[0]))
+ def set_feature(self,key,enabled):
+  if key not in {"legendary_shapes","premium_materials","boutique_electronics","metallic_finishes"}:raise ValueError("Unsupported advanced feature")
+  self.ensure_schema()
+  with sqlite3.connect(self.db_path) as c:c.execute("INSERT INTO luthiery_live_config(key,value_json,updated_at) VALUES(?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,updated_at=excluded.updated_at",(f"feature:{key}",json.dumps(bool(enabled))))
+  return {"feature":key,"enabled":bool(enabled)}
  def trait_enabled(self,key):
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
