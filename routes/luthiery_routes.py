@@ -16,6 +16,10 @@ _skill_service = SkillService()
 _luthiery_skill = next(skill for skill in SEED_SKILLS if skill.name == "luthiery")
 
 
+class WorkshopUpgrade(BaseModel):
+    request_token: str
+
+
 class InstrumentLock(BaseModel):
     locked: bool
 
@@ -72,8 +76,8 @@ def workshop(character_id:int=Depends(get_current_character_id)):
     return luthiery_workshop_service.get(character_id)
 
 @router.post("/workshop/upgrade")
-def upgrade_workshop(character_id:int=Depends(get_current_character_id)):
-    try:return luthiery_workshop_service.upgrade(character_id)
+def upgrade_workshop(payload:WorkshopUpgrade,character_id:int=Depends(get_current_character_id)):
+    try:return luthiery_workshop_service.upgrade(character_id,payload.request_token)
     except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 
 @router.get("/materials/inventory")
