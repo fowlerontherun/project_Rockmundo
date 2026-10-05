@@ -17,6 +17,7 @@ from seeds.skill_seed import SKILL_NAME_TO_ID
 from services.event_service import is_skill_blocked
 from services.gear_service import gear_service
 from services.crafted_instrument_effects_service import crafted_instrument_effects
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment
 from services.peer_learning_service import peer_learning_service
 
 DB_PATH = Path(__file__).resolve().parents[1] / "rockmundo.db"
@@ -152,6 +153,7 @@ class RehearsalService:
                 (skill_gain, bonus * 0.5, band_id),
             )
             conn.commit()
+        crafted_instrument_equipment.wear_band(band_id, 1)
         peer_learning_service.schedule_session(
             band_id, attendee_list, end_dt.isoformat()
         )
