@@ -3,9 +3,9 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 from services.luthiery_catalogue_service import DB_PATH
-from services.economy_service import EconomyService,EconomyError
+from services.economy_service import EconomyService,EconomyError\nfrom services.luthiery_reputation_service import LuthieryReputationService
 class LuthierShopService:
- def __init__(self,db_path:str|None=None):self.db_path=str(db_path or DB_PATH);self.economy=EconomyService(db_path=self.db_path)
+ def __init__(self,db_path:str|None=None):self.db_path=str(db_path or DB_PATH);self.economy=EconomyService(db_path=self.db_path);self.reputation=LuthieryReputationService(self.db_path)
  def ensure_schema(self):
   self.economy.ensure_schema();sql=Path(__file__).resolve().parents[1]/"migrations/sql/174_luthiery_phase8_shops.sql"
   with sqlite3.connect(self.db_path) as c:c.executescript(sql.read_text())
@@ -62,7 +62,7 @@ class LuthierShopService:
     JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.id=? AND l.status='active' AND i.owner_character_id=l.seller_character_id""",(listing_id,)).fetchone()
    if not row:raise ValueError("Listing is not available")
    result=dict(row)
-   result["parts"]=[dict(x) for x in c.execute("""SELECT p.part_type,p.material_key,m.name material_name,p.component_key,co.name component_name,p.quality_contribution
+   result["maker_reputation"]=self.reputation.profile(int(row["creator_character_id"]))["reputation"]\n   result["history"]=self.reputation.item_history(int(row["crafted_item_id"]))\n   result["parts"]=[dict(x) for x in c.execute("""SELECT p.part_type,p.material_key,m.name material_name,p.component_key,co.name component_name,p.quality_contribution
     FROM crafted_item_parts p LEFT JOIN crafting_materials m ON m.key=p.material_key LEFT JOIN crafting_component_designs co ON co.key=p.component_key
     WHERE p.crafted_item_id=? ORDER BY p.id""",(row["crafted_item_id"],))]
    return result
@@ -110,6 +110,6 @@ class LuthierShopService:
    sold=c.execute("UPDATE luthier_shop_listings SET status='sold',buyer_character_id=?,sold_at=datetime('now') WHERE id=? AND status='active'",(buyer,listing_id))
    if sold.rowcount!=1:raise ValueError("Listing changed during purchase")
    c.execute("INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json) VALUES(?,?,'sold',?)",(l["crafted_item_id"],buyer,'{"seller_character_id":%d,"price_cents":%d}'%(seller,price)))
-   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":price,"seller_character_id":seller,"buyer_character_id":buyer}
+   return {"listing_id":listing_id,"crafted_item_id":l["crafted_item_id"],"price_cents":price,"seller_character_id":seller,"buyer_character_id":buyer,"maker_reputation_awarded":reputation_points}
 
 luthier_shop_service=LuthierShopService()

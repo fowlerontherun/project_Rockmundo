@@ -301,14 +301,14 @@ Target weighting:
 **Exit:** one player can craft/list/sell and another receives the exact serialized item; provenance survives resale.
 
 # Phase 9 — Luthier reputation and collectibles
-- [ ] Luthier reputation.
-- [ ] Reputation from legitimate sales.
+- [x] Luthier reputation.
+- [x] Reputation from legitimate sales.
 - [ ] Reputation when notable/high-fame musicians use an instrument.
-- [ ] Reputation from high-quality builds.
-- [ ] Anti-farming/diminishing returns.
-- [ ] Maker reputation on listings.
-- [ ] Provenance/history log.
-- [ ] Track notable owners.
+- [x] Reputation from high-quality builds.
+- [x] Anti-farming/diminishing returns.
+- [x] Maker reputation on listings.
+- [x] Provenance/history log.
+- [x] Track notable owners.
 - [ ] Track notable gigs/recordings where practical.
 - [ ] Collector/desirability signal.
 - [ ] Luthier achievements.
