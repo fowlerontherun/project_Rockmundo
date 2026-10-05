@@ -23,6 +23,7 @@ except Exception:  # pragma: no cover - fallback if DB unavailable
 from services.city_service import city_service
 from services.event_service import is_skill_blocked
 from services.gear_service import gear_service
+from services.crafted_instrument_effects_service import crafted_instrument_effects
 from services.setlist_service import get_approved_setlist
 
 try:
@@ -255,6 +256,7 @@ def simulate_gig(
         _handle_action(action)
 
     skill_gain += gear_service.get_band_bonus(band_id, "performance") * chem_mod
+    skill_gain += crafted_instrument_effects.band_effects(band_id, "performance") * chem_mod
     fame_bonus *= perf_mult
     skill_gain *= perf_mult
     fame_total = crowd_size // 10 + fame_bonus
