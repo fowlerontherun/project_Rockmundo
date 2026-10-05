@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 7 complete — crafted instruments can be equipped, used, maintained, inspected and rendered through a reusable saved-appearance contract with character-switch isolation.
+**Status:** Phase 8 in progress — player shops, serialized fixed-price listings, exact-instrument browsing and compensated ownership/payment transfer implemented.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
