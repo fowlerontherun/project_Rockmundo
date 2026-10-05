@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 4 implementation complete — verification/CI pending
+**Status:** Phase 5 in progress — Phase 4 merged; repository preflight currently blocked by unrelated missing monitoring.websocket module
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -223,13 +223,13 @@ Target weighting:
 # Phase 5 — Stats and unique traits
 **Goal:** Make construction choices meaningful without one universal best build.
 
-- [ ] Characteristics: Tone, Sustain, Clarity, Output, Playability, Reliability, Durability, Stage Impact.
-- [ ] Gameplay modifiers: performance quality, instrument effectiveness, recording quality, practice effectiveness, stage presence, audience reaction, reliability.
-- [ ] Carefully balanced genre affinities where useful.
-- [ ] Traits: Exceptional Sustain, Perfectly Balanced, Hot Pickups, Studio Clean, Road Warrior, Vintage Character, Heavyweight, Temperamental Electronics.
-- [ ] Add more positive/neutral/negative traits.
-- [ ] Weight traits by materials, skills and quality.
-- [ ] Prevent conflicting traits.
+- [x] Characteristics: Tone, Sustain, Clarity, Output, Playability, Reliability, Durability, Stage Impact.
+- [x] Gameplay modifiers: performance quality, instrument effectiveness, recording quality, practice effectiveness, stage presence, audience reaction, reliability.
+- [x] Carefully balanced genre affinities where useful.
+- [x] Traits: Exceptional Sustain, Perfectly Balanced, Hot Pickups, Studio Clean, Road Warrior, Vintage Character, Heavyweight, Temperamental Electronics.
+- [x] Add more positive/neutral/negative traits.
+- [x] Weight traits by materials, skills and quality.
+- [x] Prevent conflicting traits.
 - [ ] Integrate modifiers with rehearsal/gig/recording consumers.
 
 **Exit:** builds have different profiles; no universal best combination; existing gameplay consumes modifiers.
