@@ -173,7 +173,6 @@ class LuthieryCraftingService:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys=ON")
-            conn.execute("BEGIN IMMEDIATE")
             existing = conn.execute(
                 "SELECT crafted_item_id FROM crafting_jobs WHERE character_id=? AND request_token=?",
                 (character_id, request_token),
@@ -245,6 +244,22 @@ class LuthieryCraftingService:
             modifiers["genre_affinities"] = profile["genre_affinities"]
             serial = "RM-" + hashlib.sha256(f"{character_id}:{request_token}:{shape_key}".encode()).hexdigest()[:12].upper()
 
+            # Keep the write lock short: catalogue validation and deterministic
+            # quality/profile calculation above are read-only. Re-enter a write
+            # transaction only for idempotency, inventory consumption and writes.
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            existing = conn.execute(
+                "SELECT crafted_item_id FROM crafting_jobs WHERE character_id=? AND request_token=?",
+                (character_id, request_token),
+            ).fetchone()
+            if existing:
+                item = conn.execute("SELECT * FROM crafted_items WHERE id=?", (existing[0],)).fetchone()
+                if item:return dict(item)
+                raise ValueError("Craft request is already in progress")
+            for part, material, _component in resolved:
+                stock=conn.execute("SELECT quantity FROM character_crafting_materials WHERE character_id=? AND material_id=?",(character_id,material["id"])).fetchone()
+                if not stock or int(stock[0])<1:raise ValueError(f"You do not own the required material for {part}")
             job = conn.execute(
                 "INSERT INTO crafting_jobs(character_id,request_token,status) VALUES (?,?,'pending')",
                 (character_id, request_token),
