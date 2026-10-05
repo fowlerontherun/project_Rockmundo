@@ -24,7 +24,7 @@ from services.city_service import city_service
 from services.event_service import is_skill_blocked
 from services.gear_service import gear_service
 from services.crafted_instrument_effects_service import crafted_instrument_effects
-from services.crafted_instrument_equipment_service import crafted_instrument_equipment
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment\nfrom services.luthiery_reputation_service import luthiery_reputation
 from services.setlist_service import get_approved_setlist
 
 try:
