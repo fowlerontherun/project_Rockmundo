@@ -25,10 +25,13 @@ class LuthieryWorkshopService:
    out["can_afford_next_upgrade"]=out["next_upgrade_cost_cents"] is not None and out["balance_cents"]>=out["next_upgrade_cost_cents"]
    return out
  def quality(self,character_id:int)->float:return float(self.get(character_id)["quality_score"])
- def upgrade(self,character_id:int)->dict:
+ def upgrade(self,character_id:int,request_token:str)->dict:
+  if not request_token or not request_token.strip():raise ValueError("An upgrade request token is required")
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
    c.row_factory=sqlite3.Row;c.execute("BEGIN IMMEDIATE")
+   prior=c.execute("SELECT resulting_level FROM luthiery_workshop_upgrade_requests WHERE character_id=? AND request_token=?",(character_id,request_token)).fetchone()
+   if prior:return self.get(character_id)
    row=c.execute("SELECT quality_score,upgrade_level FROM character_luthiery_workshops WHERE character_id=?",(character_id,)).fetchone()
    level=int(row["upgrade_level"]) if row else 0
    if level>=5:raise ValueError("Luthiery workshop is already fully upgraded")
@@ -41,6 +44,7 @@ class LuthieryWorkshopService:
    c.execute("INSERT INTO ledger_entries(account_id,transaction_id,delta_cents,balance_after) VALUES(?,?,?,?)",(account["id"],tx.lastrowid,-cost,new_balance))
    c.execute("""INSERT INTO character_luthiery_workshops(character_id,quality_score,upgrade_level,updated_at) VALUES(?,?,?,datetime('now'))
     ON CONFLICT(character_id) DO UPDATE SET quality_score=excluded.quality_score,upgrade_level=excluded.upgrade_level,updated_at=excluded.updated_at""",(character_id,UPGRADE_QUALITIES[next_level],next_level))
+   c.execute("INSERT INTO luthiery_workshop_upgrade_requests(character_id,request_token,resulting_level,transaction_id) VALUES(?,?,?,?)",(character_id,request_token,next_level,tx.lastrowid))
   return self.get(character_id)
 
 luthiery_workshop_service=LuthieryWorkshopService()
