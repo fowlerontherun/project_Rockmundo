@@ -28,6 +28,8 @@ class CraftDemoRequest(BaseModel):
  seed_token:str="admin-demo"
 class CraftBatchRequest(CraftDemoRequest):
  samples:int=100
+class AuditRollbackRequest(BaseModel):
+ confirm:bool=False
 class CatalogueBalanceUpdate(BaseModel):
  required_level:int|None=None
  cost_cents:int|None=None
@@ -178,3 +180,31 @@ def audit_log(limit:int=100,_admin_id:int=Depends(_admin)):
   c.row_factory=sqlite3.Row
   c.execute("""CREATE TABLE IF NOT EXISTS luthiery_admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,admin_user_id INTEGER NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,before_json TEXT,after_json TEXT,created_at TEXT NOT NULL DEFAULT(datetime('now')))""")
   return {"events":[dict(x) for x in c.execute("SELECT * FROM luthiery_admin_audit ORDER BY id DESC LIMIT ?",(min(max(limit,1),500),))]}
+
+@router.post("/audit/{event_id}/rollback")
+def rollback_audit(event_id:int,payload:AuditRollbackRequest,_admin_id:int=Depends(_admin)):
+ import json
+ if not payload.confirm:raise HTTPException(status_code=400,detail="Rollback requires explicit confirmation")
+ with sqlite3.connect(DB_PATH) as c:
+  c.row_factory=sqlite3.Row
+  event=c.execute("SELECT * FROM luthiery_admin_audit WHERE id=?",(event_id,)).fetchone()
+ if not event:raise HTTPException(status_code=404,detail="Audit event not found")
+ before=json.loads(event["before_json"]) if event["before_json"] else None
+ if before is None:raise HTTPException(status_code=400,detail="This event has no restorable previous state")
+ action=event["action"];target=event["target"]
+ try:
+  if action=="feature":result=balance_service.set_feature(target,bool(before["enabled"]))
+  elif action=="trait":
+   balance_service.set_trait(target,bool(before["enabled"]));result={"trait_key":target,"enabled":bool(before["enabled"])}
+  elif action=="quality_weights":result=balance_service.set_quality_weights(before)
+  elif action in ("catalogue_update","catalogue_enabled"):
+   content_type,content_key=target.split(":",1)
+   if action=="catalogue_enabled":
+    luthiery_catalogue_service.set_enabled(content_type,content_key,bool(before["enabled"]));result=luthiery_catalogue_service.admin_get(content_type,content_key)
+   else:
+    result=luthiery_catalogue_service.admin_update(content_type,content_key,before.get("required_level"),before.get("cost_cents"),before.get("stock"))
+    if "enabled" in before:luthiery_catalogue_service.set_enabled(content_type,content_key,bool(before["enabled"]));result=luthiery_catalogue_service.admin_get(content_type,content_key)
+  else:raise HTTPException(status_code=400,detail="This audit action cannot be rolled back")
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+ _audit(_admin_id,"rollback",f"audit:{event_id}",{"event_id":event_id,"action":action,"target":target},result)
+ return {"rolled_back_event_id":event_id,"restored":result}
