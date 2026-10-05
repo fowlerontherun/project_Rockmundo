@@ -24,6 +24,7 @@ from services.city_service import city_service
 from services.event_service import is_skill_blocked
 from services.gear_service import gear_service
 from services.crafted_instrument_effects_service import crafted_instrument_effects
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment
 from services.setlist_service import get_approved_setlist
 
 try:
@@ -256,7 +257,7 @@ def simulate_gig(
         _handle_action(action)
 
     skill_gain += gear_service.get_band_bonus(band_id, "performance") * chem_mod
-    skill_gain += crafted_instrument_effects.band_effects(band_id, "performance") * chem_mod
+    skill_gain += crafted_instrument_effects.band_effects(band_id, "performance") * chem_mod\n    crafted_instrument_equipment.wear_band(band_id, 2)
     fame_bonus *= perf_mult
     skill_gain *= perf_mult
     fame_total = crowd_size // 10 + fame_bonus
