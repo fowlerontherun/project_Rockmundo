@@ -153,7 +153,7 @@ class RehearsalService:
                 (skill_gain, bonus * 0.5, band_id),
             )
             conn.commit()
-        crafted_instrument_equipment.wear_band(band_id, 1)
+        crafted_instrument_equipment.wear_band(band_id, 1, attendee_list)
         peer_learning_service.schedule_session(
             band_id, attendee_list, end_dt.isoformat()
         )
