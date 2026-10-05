@@ -123,3 +123,20 @@ def fetch_shop_metrics(
             top_items = [dict(r) for r in cur.fetchall()]
 
         return {"orders": orders, "revenue_cents": revenue, "top_items": top_items}
+
+
+def fetch_luthiery_metrics() -> Dict[str, Any]:
+    """Operational balance metrics for the Luthiery release gate."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory=sqlite3.Row;cur=conn.cursor()
+        if not _table_exists(cur,"crafted_items"):
+            return {"crafted_total":0,"avg_quality":0,"quality_tiers":[],"active_listings":0,"sold_listings":0,"gross_sales_cents":0}
+        base=cur.execute("SELECT COUNT(*) n,IFNULL(AVG(quality_score),0) q FROM crafted_items").fetchone()
+        tiers=[dict(r) for r in cur.execute("SELECT quality_tier,COUNT(*) count FROM crafted_items GROUP BY quality_tier ORDER BY count DESC")]
+        market={"active_listings":0,"sold_listings":0,"gross_sales_cents":0}
+        if _table_exists(cur,"luthier_shop_listings"):
+            row=cur.execute("""SELECT SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) active_listings,
+              SUM(CASE WHEN status='sold' THEN 1 ELSE 0 END) sold_listings,
+              SUM(CASE WHEN status='sold' THEN price_cents ELSE 0 END) gross_sales_cents FROM luthier_shop_listings""").fetchone()
+            market={k:int(row[k] or 0) for k in market}
+        return {"crafted_total":int(base["n"] or 0),"avg_quality":round(float(base["q"] or 0),2),"quality_tiers":tiers,**market}
