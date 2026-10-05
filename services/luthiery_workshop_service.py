@@ -17,8 +17,13 @@ class LuthieryWorkshopService:
   with sqlite3.connect(self.db_path) as c:
    c.row_factory=sqlite3.Row
    row=c.execute("SELECT * FROM character_luthiery_workshops WHERE character_id=?",(character_id,)).fetchone()
-   if not row:return {"character_id":character_id,"quality_score":BASE_QUALITY,"upgrade_level":0,"next_upgrade_cost_cents":UPGRADE_COSTS_CENTS[1]}
-   out=dict(row);level=int(row["upgrade_level"]);out["next_upgrade_cost_cents"]=UPGRADE_COSTS_CENTS[level+1] if level<5 else None;return out
+   if not row:out={"character_id":character_id,"quality_score":BASE_QUALITY,"upgrade_level":0}
+   else:out=dict(row)
+   level=int(out["upgrade_level"]);out["next_upgrade_cost_cents"]=UPGRADE_COSTS_CENTS[level+1] if level<5 else None
+   account=c.execute("SELECT balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(character_id,)).fetchone()
+   out["balance_cents"]=int(account[0]) if account else 0
+   out["can_afford_next_upgrade"]=out["next_upgrade_cost_cents"] is not None and out["balance_cents"]>=out["next_upgrade_cost_cents"]
+   return out
  def quality(self,character_id:int)->float:return float(self.get(character_id)["quality_score"])
  def upgrade(self,character_id:int)->dict:
   self.ensure_schema()
