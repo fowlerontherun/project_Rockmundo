@@ -43,3 +43,31 @@ def test_premium_material_cannot_bypass_low_skill(tmp_path):
         c.execute("INSERT INTO character_crafting_materials(character_id,material_id,quantity) VALUES (101,?,5)",(mid,))
     with pytest.raises(ValueError, match="locked"):
         svc.craft(101,"premium","Premium","guitar","luthier.shape.guitar.double_cut",choices("luthier.material.premium_exotic"),{"luthiery":1})
+
+
+def test_outcome_is_deterministic_and_cannot_be_rerolled(tmp_path):
+    db=str(tmp_path/"craft.db"); svc=setup(db)
+    first=svc.craft(101,"fixed-token","Build","guitar","luthier.shape.guitar.double_cut",choices(),{"luthiery":1})
+    again=svc.craft(101,"fixed-token","Changed Name","guitar","luthier.shape.guitar.double_cut",choices(),{"luthiery":100})
+    assert first["id"]==again["id"]
+    assert first["quality_score"]==again["quality_score"]
+    assert first["traits_json"]==again["traits_json"]
+
+def test_rework_is_owner_only_and_one_time(tmp_path):
+    db=str(tmp_path/"craft.db"); svc=setup(db)
+    item=None
+    for i in range(100):
+        candidate=svc.craft(101,f"defect-{i}","Build","guitar","luthier.shape.guitar.double_cut",choices(),{"luthiery":1})
+        if any(x in candidate["traits_json"] for x in ("cosmetic_finish_flaw","minor_setup_issue","noisy_electronics")):
+            item=candidate; break
+        with sqlite3.connect(db) as c:
+            mids=[r[0] for r in c.execute("SELECT material_id FROM character_crafting_materials WHERE character_id=101")]
+            for mid in mids: c.execute("UPDATE character_crafting_materials SET quantity=quantity+5 WHERE character_id=101 AND material_id=?",(mid,))
+    assert item is not None
+    with pytest.raises(ValueError, match="not found"):
+        svc.rework(202,item["id"],{"luthiery":100})
+    repaired=svc.rework(101,item["id"],{"luthiery":20})
+    assert repaired["rework_count"]==1
+    assert repaired["quality_score"]>item["quality_score"]
+    with pytest.raises(ValueError, match="already"):
+        svc.rework(101,item["id"],{"luthiery":100})
