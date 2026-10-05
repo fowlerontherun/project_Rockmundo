@@ -97,3 +97,26 @@ def demo_batch(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
    if i<5:examples.append(result)
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
  return {"samples":payload.samples,"quality":{"min":min(scores),"max":max(scores),"average":round(sum(scores)/len(scores),2)},"tiers":tiers,"traits":traits,"examples":examples}
+
+@router.post("/demo/matrix")
+def demo_matrix(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
+ samples=min(max(payload.samples,1),500)
+ presets={"Novice":10,"Competent":50,"Master":100};rows=[]
+ selections={k:v.model_dump() for k,v in payload.selections.items()}
+ try:
+  for label,level in presets.items():
+   skills={k:level for k in ("luthiery","woodworking","fretwork","instrument_electronics","instrument_finishing")}
+   scores=[];tiers={}
+   for i in range(samples):
+    r=luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,selections,skills,payload.finish_key,payload.workshop_score,f"matrix:{label}:{i}")
+    scores.append(float(r["quality_score"]));tiers[r["quality_tier"]]=tiers.get(r["quality_tier"],0)+1
+   rows.append({"preset":label,"level":level,"average":round(sum(scores)/len(scores),2),"min":min(scores),"max":max(scores),"tiers":tiers})
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+ warnings=[]
+ by={x["preset"]:x for x in rows}
+ novice_high=sum(v for k,v in by["Novice"]["tiers"].items() if k in ("Masterwork","Legendary"))/samples
+ master_low=sum(v for k,v in by["Master"]["tiers"].items() if k in ("Poor","Basic","Good"))/samples
+ if novice_high>.01:warnings.append("Novices produce Masterwork/Legendary instruments too frequently.")
+ if master_low>.10:warnings.append("Master Luthiers produce low-tier instruments too frequently.")
+ if by["Master"]["average"]-by["Competent"]["average"]<10:warnings.append("Master progression has less than a 10-point average quality advantage over Competent.")
+ return {"samples_per_preset":samples,"rows":rows,"warnings":warnings}
