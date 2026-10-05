@@ -139,4 +139,12 @@ def fetch_luthiery_metrics() -> Dict[str, Any]:
               SUM(CASE WHEN status='sold' THEN 1 ELSE 0 END) sold_listings,
               SUM(CASE WHEN status='sold' THEN price_cents ELSE 0 END) gross_sales_cents FROM luthier_shop_listings""").fetchone()
             market={k:int(row[k] or 0) for k in market}
-        return {"crafted_total":int(base["n"] or 0),"avg_quality":round(float(base["q"] or 0),2),"quality_tiers":tiers,**market}
+        materials={"material_purchases":0,"material_spend_cents":0}
+        if _table_exists(cur,"material_purchase_history"):
+            row=cur.execute("SELECT COALESCE(SUM(quantity),0) qty,COALESCE(SUM(total_cost_cents),0) spend FROM material_purchase_history").fetchone()
+            materials={"material_purchases":int(row["qty"] or 0),"material_spend_cents":int(row["spend"] or 0)}
+        reputation={"reputation_events":0,"reputation_points":0}
+        if _table_exists(cur,"luthier_reputation_events"):
+            row=cur.execute("SELECT COUNT(*) events,COALESCE(SUM(points),0) points FROM luthier_reputation_events").fetchone()
+            reputation={"reputation_events":int(row["events"] or 0),"reputation_points":int(row["points"] or 0)}
+        return {"crafted_total":int(base["n"] or 0),"avg_quality":round(float(base["q"] or 0),2),"quality_tiers":tiers,**market,**materials,**reputation}
