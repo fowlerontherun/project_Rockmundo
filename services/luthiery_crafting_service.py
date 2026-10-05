@@ -257,9 +257,26 @@ class LuthieryCraftingService:
                 item = conn.execute("SELECT * FROM crafted_items WHERE id=?", (existing[0],)).fetchone()
                 if item:return dict(item)
                 raise ValueError("Craft request is already in progress")
-            for part, material, _component in resolved:
+            # Revalidate mutable catalogue rows inside the write transaction so an
+            # admin change between preview calculation and commit cannot create a stale craft.
+            current_shape=conn.execute("SELECT * FROM instrument_shapes WHERE key=? AND enabled=1",(shape_key,)).fetchone()
+            if not current_shape or current_shape["instrument_type"]!=instrument_type or level<int(current_shape["required_level"]):
+                raise ValueError("Shape availability changed during crafting")
+            for part, material, component in resolved:
+                current_material=conn.execute("SELECT * FROM crafting_materials WHERE id=? AND enabled=1",(material["id"],)).fetchone()
+                if not current_material:raise ValueError(f"{part} material availability changed during crafting")
+                current_component=None
+                if component:
+                    current_component=conn.execute("SELECT * FROM crafting_component_designs WHERE id=? AND part_type=? AND enabled=1",(component["id"],part)).fetchone()
+                    if not current_component:raise ValueError(f"{part} component availability changed during crafting")
+                self._validate_recipe_choice(part,current_material,current_component,instrument_type,level)
                 stock=conn.execute("SELECT quantity FROM character_crafting_materials WHERE character_id=? AND material_id=?",(character_id,material["id"])).fetchone()
                 if not stock or int(stock[0])<1:raise ValueError(f"You do not own the required material for {part}")
+            # Feature flags are mutable too. Read them from this same connection to
+            # avoid nested connections while guaranteeing commit-time policy.
+            feature_rows={row[0]:bool(json.loads(row[1])) for row in conn.execute("SELECT key,value_json FROM luthiery_live_config WHERE key LIKE 'feature:%'")}
+            current_features={k:feature_rows.get(f"feature:{k}",False) for k in ("legendary_shapes","premium_materials","boutique_electronics","metallic_finishes")}
+            self._validate_advanced_features(current_shape,resolved,finish_key,current_features)
             job = conn.execute(
                 "INSERT INTO crafting_jobs(character_id,request_token,status) VALUES (?,?,'pending')",
                 (character_id, request_token),
