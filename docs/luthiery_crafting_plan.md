@@ -318,14 +318,14 @@ Target weighting:
 **Exit:** Luthiery supports a long-term career loop and historic instruments retain provenance.
 
 # Phase 10 — Admin, balancing and live operations
-- [ ] Material/component/shape catalogues.
-- [ ] Unlock-level controls.
-- [ ] Material price/supply controls.
+- [x] Material/component/shape catalogues.
+- [x] Unlock-level controls.
+- [x] Material price/supply controls.
 - [ ] Quality weighting controls.
 - [ ] Trait controls.
-- [ ] Crafted-item lookup by serial.
-- [ ] Ownership/provenance audit.
-- [ ] Economy/craft/material/quality/sales metrics.
+- [x] Crafted-item lookup by serial.
+- [x] Ownership/provenance audit.
+- [x] Economy/craft/material/quality/sales metrics.
 - [ ] Suspicious crafting/trading detection.
 - [ ] Feature flags for advanced content.
 
