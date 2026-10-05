@@ -41,16 +41,16 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
   <header><h2 id="luthier-workshop-title">Luthier Workshop</h2><p>Build a unique instrument one part at a time.</p></header>
   {message&&<p role="status">{message}</p>}
   <div className="grid gap-4 lg:grid-cols-[minmax(280px,1fr)_minmax(320px,1fr)]">
-   <div className="sticky top-2 self-start rounded border p-4 min-h-[420px]" aria-label="Live instrument preview">
-    <div className="flex gap-2"><button onClick={()=>setType('guitar')} aria-pressed={type==='guitar'}>Guitar</button><button onClick={()=>setType('bass')} aria-pressed={type==='bass'}>Bass</button></div>
-    <select value={shape} onChange={e=>setShape(e.target.value)} className="w-full mt-2">{shapes.map(s=><option key={s.key} value={s.key} disabled={s.locked}>{s.name}{s.locked?` — level ${s.required_level}`:''}</option>)}</select>
+   <div className="rounded border p-3 sm:p-4 min-h-[360px] lg:min-h-[420px] lg:sticky lg:top-2 lg:self-start" aria-label="Live instrument preview">
+    <div className="flex flex-wrap gap-2"><button onClick={()=>setType('guitar')} aria-pressed={type==='guitar'}>Guitar</button><button onClick={()=>setType('bass')} aria-pressed={type==='bass'}>Bass</button></div>
+    <select value={shape} onChange={e=>setShape(e.target.value)} className="w-full mt-2 min-h-11">{shapes.map(s=><option key={s.key} value={s.key} disabled={s.locked}>{s.name}{s.locked?` — level ${s.required_level}`:''}</option>)}</select>
     <div className="relative mx-auto mt-4 aspect-[3/4] max-w-sm overflow-hidden rounded border bg-black/5">
       <div className="absolute inset-0 transition-transform flex items-center justify-center" style={{transform:`scale(${zoom}) rotate(${rotation}deg)`}}>
        <InstrumentPreview appearance={{instrument_type:type,shape_key:shape,primary_colour:primary,accent_colour:accent,hardware_colour:hardwareColour,surface_sheen:sheen}} label={selectedShape?.name||'Instrument preview'} />
        {PARTS.map(p=><button type="button" key={p} onClick={()=>setStep(p)} aria-label={`Edit ${p}`} className="absolute text-xs border rounded px-1 bg-white/80" style={{left:`${(anchor[p]?.x||.5)*100}%`,top:`${(anchor[p]?.y||.5)*100}%`,transform:'translate(-50%,-50%)',borderColor:p==='hardware'?hardwareColour:undefined}}>{p}{parts[p]?' ✓':''}</button>)}
       </div>
     </div>
-    <div className="flex gap-2 mt-2"><button onClick={()=>setRotation(r=>r-15)} aria-label="Rotate left">↺</button><button onClick={()=>setRotation(r=>r+15)} aria-label="Rotate right">↻</button><button onClick={()=>setZoom(z=>Math.max(.75,z-.1))} aria-label="Zoom out">−</button><button onClick={()=>setZoom(z=>Math.min(1.6,z+.1))} aria-label="Zoom in">+</button><button onClick={()=>{setZoom(1);setRotation(0)}}>Reset view</button></div>
+    <div className="flex flex-wrap gap-2 mt-2"><button onClick={()=>setRotation(r=>r-15)} aria-label="Rotate left">↺</button><button onClick={()=>setRotation(r=>r+15)} aria-label="Rotate right">↻</button><button onClick={()=>setZoom(z=>Math.max(.75,z-.1))} aria-label="Zoom out">−</button><button onClick={()=>setZoom(z=>Math.min(1.6,z+.1))} aria-label="Zoom in">+</button><button onClick={()=>{setZoom(1);setRotation(0)}}>Reset view</button></div>
     <p className="text-sm">Estimated material potential: {estimated??'—'}/100</p>
     {!!Object.keys(statPreview).length&&<div className="text-sm" aria-label="Predicted characteristic changes">{Object.entries(statPreview).map(([k,v])=><span key={k} className="inline-block mr-2">{k.replaceAll('_',' ')} +{v}</span>)}</div>
    </div>
@@ -58,7 +58,7 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
     <nav className="flex flex-wrap gap-2" aria-label="Build steps">{[...PARTS,'finish'].map(p=><button key={p} onClick={()=>setStep(p as any)} aria-current={step===p?'step':undefined}>{p[0].toUpperCase()+p.slice(1)} {p!=='finish'&&parts[p]?.material_key?'✓':''}</button>)}</nav>
     {step!=='finish'?<div className="mt-4 space-y-3"><h3>{step[0].toUpperCase()+step.slice(1)}</h3>
       <label>Material<select className="w-full" value={parts[step]?.material_key||''} onChange={e=>chooseMaterial(step,e.target.value)}><option value="">Choose material</option>{materialsFor(step).map(m=><option key={m.key} value={m.key} disabled={m.locked||qty(m.key)<1}>{m.name} · {m.rarity} · owned {qty(m.key)} · ${(m.cost_cents/100).toFixed(2)}{m.locked?` · level ${m.required_level}`:''}</option>)}</select></label>
-      <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{materialsFor(step).slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:materialSwatch(m)}} />{m.name}</button>)}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2" aria-label="Material thumbnails">{materialsFor(step).slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:materialSwatch(m)}} />{m.name}</button>)}</div>
       <label>Component<select className="w-full" value={parts[step]?.component_key||''} onChange={e=>chooseComponent(step,e.target.value)}><option value="">Standard / none</option>{cat.components.filter(c=>c.part_type===step).map(c=><option key={c.key} value={c.key} disabled={c.locked}>{c.name}{c.locked?` · level ${c.required_level}`:''}</option>)}</select></label>
     </div>:<div className="mt-4 space-y-3"><label>Instrument name<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} /></label>
       <label>Finish<select value={finish} onChange={e=>setFinish(e.target.value)}><option value="luthier.finish.solid">Solid</option><option value="luthier.finish.natural">Natural</option><option value="luthier.finish.transparent" disabled={finishingLevel<20}>Transparent{finishingLevel<20?' — Instrument Finishing 20':''}</option><option value="luthier.finish.metallic" disabled={finishingLevel<40}>Metallic{finishingLevel<40?' — Instrument Finishing 40':''}</option></select></label>
@@ -67,7 +67,7 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
       <fieldset><legend>Surface sheen</legend>{(['matte','satin','gloss'] as const).map(x=><label key={x} className="mr-3"><input type="radio" checked={sheen===x} onChange={()=>setSheen(x)} /> {x}</label>)}</fieldset>
       {rareSelected&&<label className="block border rounded p-2"><input type="checkbox" checked={rareConfirmed} onChange={e=>setRareConfirmed(e.target.checked)} /> I understand this build will consume epic/legendary material.</label>
       <div className="rounded border p-3"><strong>Final build review</strong><p>{selectedShape?.name} · {PARTS.filter(p=>parts[p]?.material_key).length}/5 parts selected</p><p>Crafting consumes one owned material for each part.</p></div>
-      <button disabled={!ready||busy} onClick={craft}>{busy?'Crafting…':'Craft instrument'}</button>
+      <button className="w-full sm:w-auto min-h-11" disabled={!ready||busy} onClick={craft}>{busy?'Crafting…':'Craft instrument'}</button>
     </div>}
     {result&&<div className="mt-4 rounded border p-3"><h3>{result.name}</h3><p>{result.quality_tier} · quality {result.quality_score}</p><p>Maker serial: {result.serial_number}</p></div>}
    </div>

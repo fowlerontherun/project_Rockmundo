@@ -347,7 +347,7 @@ Target weighting:
 - [x] Equip/rehearsal/gig/recording.
 - [x] Repair/condition.
 - [x] Resale/provenance.
-- [ ] Desktop/mobile workshop.
+- [x] Desktop/mobile workshop.
 - [x] Slow network/retry.
 - [x] Refresh/reload.
 - [x] Character switching.
@@ -363,7 +363,7 @@ Target weighting:
 ## Release gate
 - [ ] Phase 1–8 exit criteria passed.
 - [x] No critical ownership/economy exploit.
-- [ ] Balance telemetry enabled.
+- [x] Balance telemetry enabled.
 - [x] Admin emergency disable available.
 - [x] Production migration tested. *(forward migration now explicitly repairs the legacy listing-history uniqueness constraint while preserving rows)*
 
