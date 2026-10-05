@@ -331,27 +331,27 @@ Target weighting:
 
 # Phase 11 — QA and release gate
 ## Security/integrity
-- [ ] Cross-character access.
-- [ ] Forged owner/band IDs.
-- [ ] Duplicate craft submissions.
-- [ ] Duplicate purchases.
-- [ ] Transaction rollback.
-- [ ] Material duplication.
-- [ ] Stat tampering.
-- [ ] Shop ownership.
+- [x] Cross-character access.
+- [x] Forged owner/band IDs.
+- [x] Duplicate craft submissions.
+- [x] Duplicate purchases.
+- [x] Transaction rollback.
+- [x] Material duplication.
+- [x] Stat tampering.
+- [x] Shop ownership.
 
 ## Gameplay/UX
 - [ ] Novice/intermediate/master progression.
-- [ ] Guitar and bass builds.
-- [ ] Locked materials/shapes.
-- [ ] Equip/rehearsal/gig/recording.
-- [ ] Repair/condition.
-- [ ] Resale/provenance.
+- [x] Guitar and bass builds.
+- [x] Locked materials/shapes.
+- [x] Equip/rehearsal/gig/recording.
+- [x] Repair/condition.
+- [x] Resale/provenance.
 - [ ] Desktop/mobile workshop.
 - [ ] Slow network/retry.
 - [ ] Refresh/reload.
-- [ ] Character switching.
-- [ ] Missing visual fallback.
+- [x] Character switching.
+- [x] Missing visual fallback.
 
 ## Economy
 - [ ] Starter materials affordable.
