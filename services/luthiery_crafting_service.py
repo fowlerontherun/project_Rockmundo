@@ -1,0 +1,156 @@
+"""Server-authoritative persistent Luthiery crafting engine (Phase 4)."""
+from __future__ import annotations
+
+import hashlib
+import json
+import random
+import sqlite3
+from pathlib import Path
+
+from services.luthiery_catalogue_service import LuthieryCatalogueService, DB_PATH
+
+PARTS = ("body", "neck", "fretboard", "electronics", "hardware")
+TIERS = ((30,"Poor"),(45,"Basic"),(60,"Good"),(72,"Excellent"),(84,"Professional"),(94,"Masterwork"),(101,"Legendary"))
+
+
+class LuthieryCraftingService:
+    def __init__(self, db_path: str | None = None):
+        self.db_path = str(db_path or DB_PATH)
+        self.catalogue = LuthieryCatalogueService(self.db_path)
+
+    def ensure_schema(self):
+        self.catalogue.ensure_schema()
+        sql = Path(__file__).resolve().parents[1] / "migrations/sql/172_luthiery_phase4_crafting.sql"
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.executescript(sql.read_text())
+
+    @staticmethod
+    def _tier(score: float) -> str:
+        return next(name for ceiling, name in TIERS if score < ceiling)
+
+    @staticmethod
+    def _variance(character_id: int, token: str) -> float:
+        seed = int(hashlib.sha256(f"{character_id}:{token}".encode()).hexdigest()[:16], 16)
+        return random.Random(seed).uniform(-5.0, 5.0)
+
+    def craft(self, character_id: int, request_token: str, name: str, instrument_type: str,
+              shape_key: str, selections: dict, skills: dict, finish_key: str = "luthier.finish.solid",
+              primary_colour: str = "#202020", accent_colour: str | None = None,
+              workshop_score: float = 50.0) -> dict:
+        if not request_token.strip():
+            raise ValueError("A request token is required")
+        if instrument_type not in ("guitar", "bass"):
+            raise ValueError("Unsupported instrument type")
+        if set(selections) != set(PARTS):
+            raise ValueError("Exactly body, neck, fretboard, electronics and hardware are required")
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute("BEGIN IMMEDIATE")
+            existing = conn.execute(
+                "SELECT crafted_item_id FROM crafting_jobs WHERE character_id=? AND request_token=?",
+                (character_id, request_token),
+            ).fetchone()
+            if existing:
+                item = conn.execute("SELECT * FROM crafted_items WHERE id=?", (existing[0],)).fetchone()
+                if item:
+                    return dict(item)
+                raise ValueError("Craft request is already in progress")
+
+            shape = conn.execute(
+                "SELECT * FROM instrument_shapes WHERE key=? AND enabled=1", (shape_key,)
+            ).fetchone()
+            level = int(skills.get("luthiery", 0))
+            if not shape or shape["instrument_type"] != instrument_type:
+                raise ValueError("Shape is not compatible with this instrument")
+            if level < int(shape["required_level"]):
+                raise ValueError("Shape is locked at your current Luthiery level")
+
+            resolved = []
+            material_scores = []
+            for part in PARTS:
+                choice = selections[part]
+                material_key = choice.get("material_key")
+                component_key = choice.get("component_key")
+                if not material_key:
+                    raise ValueError(f"{part} requires a material")
+                material = conn.execute(
+                    "SELECT * FROM crafting_materials WHERE key=? AND enabled=1", (material_key,)
+                ).fetchone()
+                if not material or level < int(material["required_level"]):
+                    raise ValueError(f"{part} material is unavailable or locked")
+                stock = conn.execute(
+                    """SELECT quantity FROM character_crafting_materials
+                       WHERE character_id=? AND material_id=?""",
+                    (character_id, material["id"]),
+                ).fetchone()
+                if not stock or int(stock[0]) < 1:
+                    raise ValueError(f"You do not own the required material for {part}")
+                component = None
+                if component_key:
+                    component = conn.execute(
+                        "SELECT * FROM crafting_component_designs WHERE key=? AND part_type=? AND enabled=1",
+                        (component_key, part),
+                    ).fetchone()
+                    if not component or level < int(component["required_level"]):
+                        raise ValueError(f"{part} component is unavailable or locked")
+                resolved.append((part, material, component))
+                material_scores.append(float(material["quality"]) * 50.0 + (float(component["quality"]) * 10.0 if component else 0.0))
+
+            specialist = sum(float(skills.get(k, 0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing")) / 4.0
+            material_score = min(100.0, sum(material_scores) / len(material_scores))
+            # Premium inputs help, but the skill term and skill-dependent ceiling stop novices buying mastery.
+            raw = level * .35 + material_score * .35 + specialist * .15 + max(0,min(100,workshop_score)) * .10
+            raw += self._variance(character_id, request_token)
+            floor = max(1.0, level * .35)
+            ceiling = min(100.0, 48.0 + level * .52)
+            score = round(max(floor, min(ceiling, raw)), 2)
+            tier = self._tier(score)
+            serial = "RM-" + hashlib.sha256(f"{character_id}:{request_token}:{shape_key}".encode()).hexdigest()[:12].upper()
+
+            job = conn.execute(
+                "INSERT INTO crafting_jobs(character_id,request_token,status) VALUES (?,?,'pending')",
+                (character_id, request_token),
+            )
+            cur = conn.execute(
+                """INSERT INTO crafted_items
+                   (serial_number,creator_character_id,owner_character_id,instrument_type,shape_key,name,
+                    primary_colour,accent_colour,finish_key,quality_score,quality_tier,skill_snapshot_json,
+                    workshop_snapshot_json,traits_json,stat_modifiers_json)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (serial, character_id, character_id, instrument_type, shape_key, name.strip()[:80] or "Unnamed Instrument",
+                 primary_colour, accent_colour, finish_key, score, tier, json.dumps(skills, sort_keys=True),
+                 json.dumps({"score": workshop_score}), "[]", "{}"),
+            )
+            item_id = cur.lastrowid
+            for part, material, component in resolved:
+                conn.execute(
+                    """INSERT INTO crafted_item_parts(crafted_item_id,part_type,material_key,component_key,quality_contribution)
+                       VALUES (?,?,?,?,?)""",
+                    (item_id, part, material["key"], component["key"] if component else None, float(material["quality"])),
+                )
+                changed = conn.execute(
+                    """UPDATE character_crafting_materials SET quantity=quantity-1
+                       WHERE character_id=? AND material_id=? AND quantity>0""",
+                    (character_id, material["id"]),
+                )
+                if changed.rowcount != 1:
+                    raise ValueError("Material inventory changed during crafting")
+            conn.execute(
+                "UPDATE crafting_jobs SET status='completed',crafted_item_id=?,completed_at=datetime('now') WHERE id=?",
+                (item_id, job.lastrowid),
+            )
+            return dict(conn.execute("SELECT * FROM crafted_items WHERE id=?", (item_id,)).fetchone())
+
+    def inventory(self, character_id: int) -> list[dict]:
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return [dict(r) for r in conn.execute(
+                "SELECT * FROM crafted_items WHERE owner_character_id=? ORDER BY id DESC", (character_id,)
+            )]
+
+
+luthiery_crafting_service = LuthieryCraftingService()
