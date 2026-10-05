@@ -78,32 +78,55 @@ class LuthieryCraftingService:
             if component and component["key"]=="luthier.component.electronics.boutique" and not balance_service.feature_enabled("boutique_electronics"):
                 raise ValueError("Boutique electronics are currently disabled")
 
+    @staticmethod
+    def _quality_result(level:float,material_score:float,specialist:float,workshop_score:float,variance:float)->float:
+        w=balance_service.quality_weights()
+        raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
+        raw+=variance*(w["variance"]/.05 if w["variance"] else 0)
+        floor=max(1.0,level*.35);ceiling=min(100.0,48.0+level*.52)
+        return round(max(floor,min(ceiling,raw)),2)
+
+    @staticmethod
+    def _validate_recipe_choice(part,material,component,instrument_type,level):
+        if not material or level<int(material["required_level"]):raise ValueError(f"{part} material is unavailable or locked")
+        try: material_instruments=json.loads(material["instrument_compatibility_json"] or "[]")
+        except (json.JSONDecodeError,TypeError,ValueError): material_instruments=[]
+        if instrument_type not in material_instruments:raise ValueError(f"{part} material is incompatible with this instrument")
+        if material["material_type"] not in MATERIAL_TYPES_BY_PART[part]:raise ValueError(f"{material['name']} cannot be used for {part}")
+        if component:
+            if level<int(component["required_level"]):raise ValueError(f"{part} component is unavailable or locked")
+            try: component_instruments=json.loads(component["instrument_compatibility_json"] or "[]")
+            except (json.JSONDecodeError,TypeError,ValueError): component_instruments=[]
+            if instrument_type not in component_instruments:raise ValueError(f"{part} component is incompatible with this instrument")
+
     def admin_preview(self,instrument_type:str,shape_key:str,selections:dict,skills:dict,finish_key:str="luthier.finish.solid",workshop_score:float=50.0,seed_token:str="admin-demo")->dict:
         """Run crafting balance/compatibility calculations without inventory/economy writes."""
         self.ensure_schema()
         if instrument_type not in ("guitar","bass"):raise ValueError("Unsupported instrument type")
+        finish_levels={"luthier.finish.solid":1,"luthier.finish.natural":1,"luthier.finish.transparent":20,"luthier.finish.metallic":40}
+        if finish_key not in finish_levels:raise ValueError("Unsupported instrument finish")
+        if set(selections)!=set(PARTS):raise ValueError("Exactly body, neck, fretboard, electronics and hardware are required")
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory=sqlite3.Row
             shape=conn.execute("SELECT * FROM instrument_shapes WHERE key=? AND enabled=1",(shape_key,)).fetchone()
             level=int(skills.get("luthiery",0))
             if not shape or shape["instrument_type"]!=instrument_type:raise ValueError("Shape is not compatible with this instrument")
             if level<int(shape["required_level"]):raise ValueError("Shape is locked at this demo skill level")
+            if int(skills.get("instrument_finishing",0))<finish_levels[finish_key]:raise ValueError(f"Instrument Finishing level {finish_levels[finish_key]} is required for this finish")
             resolved=[];material_scores=[]
             for part in PARTS:
                 choice=selections.get(part) or {};mk=choice.get("material_key");ck=choice.get("component_key")
                 material=conn.execute("SELECT * FROM crafting_materials WHERE key=? AND enabled=1",(mk,)).fetchone()
-                if not material or level<int(material["required_level"]):raise ValueError(f"{part} material is unavailable or locked")
                 component=conn.execute("SELECT * FROM crafting_component_designs WHERE key=? AND part_type=? AND enabled=1",(ck,part)).fetchone() if ck else None
-                if ck and (not component or level<int(component["required_level"])):raise ValueError(f"{part} component is unavailable or locked")
+                if ck and not component:raise ValueError(f"{part} component is unavailable or locked")
+                self._validate_recipe_choice(part,material,component,instrument_type,level)
                 resolved.append((part,material,component))
                 mq=max(0.0,min(100.0,55.0+(float(material["quality"])-0.90)*93.75));cb=max(0.0,min(15.0,(float(component["quality"])-0.90)*46.875+5.0)) if component else 0.0
                 material_scores.append(min(100.0,mq+cb))
             self._validate_advanced_features(shape,resolved,finish_key)
             specialist=sum(float(skills.get(k,0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing"))/4.0
-            material_score=sum(material_scores)/len(material_scores);w=balance_service.quality_weights()
-            raw=level*w["skill"]+material_score*w["materials"]+specialist*w["specialist"]+max(0,min(100,workshop_score))*w["workshop"]
-            raw+=self._variance(0,seed_token)*(w["variance"]/.05 if w["variance"] else 0)
-            score=round(max(max(1.0,level*.35),min(min(100.0,48.0+level*.52),raw)),2);tier=self._tier(score)
+            material_score=sum(material_scores)/len(material_scores)
+            score=self._quality_result(level,material_score,specialist,workshop_score,self._variance(0,seed_token));tier=self._tier(score)
             traits,mods,defect=self._outcome(score,0,seed_token);profile=build_profile(resolved,score,skills)
             traits.extend(x["key"] for x in profile["traits"] if x["key"] not in traits);mods.update(profile["gameplay_modifiers"])
             return {"dry_run":True,"quality_score":score,"quality_tier":tier,"traits":traits,"defect":defect,"characteristics":profile["characteristics"],"gameplay_modifiers":mods,"genre_affinities":profile["genre_affinities"],"material_score":round(material_score,2),"specialist_score":round(specialist,2),"workshop_score":workshop_score}
@@ -165,16 +188,8 @@ class LuthieryCraftingService:
                 material = conn.execute(
                     "SELECT * FROM crafting_materials WHERE key=? AND enabled=1", (material_key,)
                 ).fetchone()
-                if not material or level < int(material["required_level"]):
+                if not material:
                     raise ValueError(f"{part} material is unavailable or locked")
-                try:
-                    material_instruments=json.loads(material["instrument_compatibility_json"] or "[]")
-                except (json.JSONDecodeError,TypeError,ValueError):
-                    material_instruments=[]
-                if instrument_type not in material_instruments:
-                    raise ValueError(f"{part} material is incompatible with this instrument")
-                if material["material_type"] not in MATERIAL_TYPES_BY_PART[part]:
-                    raise ValueError(f"{material['name']} cannot be used for {part}")
                 stock = conn.execute(
                     """SELECT quantity FROM character_crafting_materials
                        WHERE character_id=? AND material_id=?""",
@@ -188,14 +203,9 @@ class LuthieryCraftingService:
                         "SELECT * FROM crafting_component_designs WHERE key=? AND part_type=? AND enabled=1",
                         (component_key, part),
                     ).fetchone()
-                    if not component or level < int(component["required_level"]):
+                    if not component:
                         raise ValueError(f"{part} component is unavailable or locked")
-                    try:
-                        component_instruments=json.loads(component["instrument_compatibility_json"] or "[]")
-                    except (json.JSONDecodeError,TypeError,ValueError):
-                        component_instruments=[]
-                    if instrument_type not in component_instruments:
-                        raise ValueError(f"{part} component is incompatible with this instrument")
+                self._validate_recipe_choice(part,material,component,instrument_type,level)
                 resolved.append((part, material, component))
                 # Catalogue quality is a multiplier centred around 1.0. Normalise it to
                 # a 0-100 crafting contribution: starter woods ~=55, premium woods ~=85.
@@ -206,12 +216,8 @@ class LuthieryCraftingService:
             self._validate_advanced_features(shape,resolved,finish_key)
             specialist = sum(float(skills.get(k, 0)) for k in ("woodworking","fretwork","instrument_electronics","instrument_finishing")) / 4.0
             material_score = min(100.0, sum(material_scores) / len(material_scores))
-            # Premium inputs help, but the skill term and skill-dependent ceiling stop novices buying mastery.
-            raw = level * .35 + material_score * .35 + specialist * .15 + max(0,min(100,workshop_score)) * .10
-            raw += self._variance(character_id, request_token)
-            floor = max(1.0, level * .35)
-            ceiling = min(100.0, 48.0 + level * .52)
-            score = round(max(floor, min(ceiling, raw)), 2)
+            # Live and admin simulations share the same server-authoritative balance calculation.
+            score = self._quality_result(level,material_score,specialist,workshop_score,self._variance(character_id,request_token))
             tier = self._tier(score)
             traits, modifiers, defect = self._outcome(score, character_id, request_token)
             profile = build_profile(resolved, score, skills)
