@@ -143,3 +143,26 @@ def demo_recipe_sweep(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
   if spread<2:warnings.append("Body material choice changes average quality by less than 2 points; material progression may feel insignificant.")
   if spread>20:warnings.append("Body material choice changes average quality by more than 20 points; premium materials may be overly dominant.")
  return {"samples_per_material":samples,"rows":rows,"warnings":warnings}
+
+@router.post("/demo/component-sweep/{part_type}")
+def demo_component_sweep(part_type:str,payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
+ if part_type not in ("body","neck","fretboard","electronics","hardware"):raise HTTPException(status_code=400,detail="Unsupported part type")
+ samples=min(max(payload.samples,1),250);base={k:v.model_dump() for k,v in payload.selections.items()};rows=[]
+ luthiery_crafting_service.ensure_schema()
+ with sqlite3.connect(DB_PATH) as c:
+  c.row_factory=sqlite3.Row
+  components=[dict(x) for x in c.execute("SELECT key,name FROM crafting_component_designs WHERE enabled=1 AND part_type=? ORDER BY required_level,key",(part_type,))]
+ for component in components:
+  scores=[];valid=True;candidate={k:dict(v) for k,v in base.items()};candidate[part_type]["component_key"]=component["key"]
+  try:
+   for i in range(samples):
+    r=luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,candidate,payload.skills,payload.finish_key,payload.workshop_score,f"component:{part_type}:{component['key']}:{i}")
+    scores.append(float(r["quality_score"]))
+  except ValueError:valid=False
+  if valid:rows.append({"component_key":component["key"],"component_name":component["name"],"average":round(sum(scores)/len(scores),2),"min":min(scores),"max":max(scores)})
+ rows.sort(key=lambda x:x["average"],reverse=True);warnings=[]
+ if len(rows)>1:
+  spread=rows[0]["average"]-rows[-1]["average"]
+  if spread<1:warnings.append(f"{part_type.title()} component choice changes average quality by less than 1 point; upgrades may feel insignificant.")
+  if spread>12:warnings.append(f"{part_type.title()} component choice changes average quality by more than 12 points; components may be overly dominant.")
+ return {"part_type":part_type,"samples_per_component":samples,"rows":rows,"warnings":warnings}
