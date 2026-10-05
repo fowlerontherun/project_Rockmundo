@@ -28,7 +28,7 @@ class LuthieryWorkshopService:
    level=int(row["upgrade_level"]) if row else 0
    if level>=5:raise ValueError("Luthiery workshop is already fully upgraded")
    next_level=level+1;cost=UPGRADE_COSTS_CENTS[next_level]
-   account=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=?",(character_id,)).fetchone()
+   account=c.execute("SELECT id,balance_cents FROM accounts WHERE user_id=? AND currency='USD'",(character_id,)).fetchone()
    if not account or int(account["balance_cents"])<cost:raise ValueError("Insufficient funds for workshop upgrade")
    new_balance=int(account["balance_cents"])-cost
    c.execute("UPDATE accounts SET balance_cents=? WHERE id=?",(new_balance,account["id"]))
