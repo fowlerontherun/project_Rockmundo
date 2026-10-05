@@ -327,7 +327,7 @@ Target weighting:
 - [x] Ownership/provenance audit.
 - [x] Economy/craft/material/quality/sales metrics.
 - [x] Suspicious crafting/trading detection.
-- [x] Feature flags for advanced content.\n- [x] Admin crafting demo/dry-run with configurable skills, parts, finish and workshop score.
+- [x] Feature flags for advanced content.\n- [x] Admin crafting demo/dry-run with configurable skills, parts, finish and workshop score.\n- [x] Admin batch balance simulator with quality-tier and trait distributions.
 
 # Phase 11 — QA and release gate
 ## Security/integrity

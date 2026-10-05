@@ -21,6 +21,8 @@ class CraftDemoRequest(BaseModel):
  finish_key:str="luthier.finish.solid"
  workshop_score:float=50
  seed_token:str="admin-demo"
+class CraftBatchRequest(CraftDemoRequest):
+ samples:int=100
 class CatalogueBalanceUpdate(BaseModel):
  required_level:int|None=None
  cost_cents:int|None=None
@@ -81,3 +83,17 @@ def demo_craft(payload:CraftDemoRequest,_admin_id:int=Depends(_admin)):
  try:
   return luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,{k:v.model_dump() for k,v in payload.selections.items()},payload.skills,payload.finish_key,payload.workshop_score,payload.seed_token)
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+
+@router.post("/demo/batch")
+def demo_batch(payload:CraftBatchRequest,_admin_id:int=Depends(_admin)):
+ if payload.samples<1 or payload.samples>1000:raise HTTPException(status_code=400,detail="Samples must be between 1 and 1000")
+ tiers={};traits={};scores=[];examples=[]
+ try:
+  selections={k:v.model_dump() for k,v in payload.selections.items()}
+  for i in range(payload.samples):
+   result=luthiery_crafting_service.admin_preview(payload.instrument_type,payload.shape_key,selections,payload.skills,payload.finish_key,payload.workshop_score,f"{payload.seed_token}:{i}")
+   score=float(result["quality_score"]);scores.append(score);tiers[result["quality_tier"]]=tiers.get(result["quality_tier"],0)+1
+   for trait in result.get("traits",[]):traits[trait]=traits.get(trait,0)+1
+   if i<5:examples.append(result)
+ except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
+ return {"samples":payload.samples,"quality":{"min":min(scores),"max":max(scores),"average":round(sum(scores)/len(scores),2)},"tiers":tiers,"traits":traits,"examples":examples}
