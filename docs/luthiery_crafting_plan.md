@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 5 implementation complete — Phase 4 merged; consumer activation awaits Phase 7 equipment state. Repository preflight currently blocked by unrelated missing monitoring.websocket module
+**Status:** Phase 3 implementation complete — shape definitions ready for Phase 6 workshop rendering. Repository preflight currently blocked by unrelated missing monitoring.websocket module
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -140,39 +140,39 @@ Finish/colour is a separate customisation layer.
 **Goal:** Create recognisably different instruments.
 
 ## Starter
-- [ ] RockMundo Strat-style variant.
-- [ ] RockMundo Tele-style variant.
-- [ ] Single-cut.
-- [ ] Double-cut.
-- [ ] P-style bass.
-- [ ] J-style bass.
+- [x] RockMundo Strat-style variant.
+- [x] RockMundo Tele-style variant.
+- [x] Single-cut.
+- [x] Double-cut.
+- [x] P-style bass.
+- [x] J-style bass.
 
 ## Advanced
-- [ ] V-style.
-- [ ] Explorer-style.
-- [ ] Offset.
-- [ ] Modern metal.
-- [ ] Headless.
-- [ ] Semi-hollow.
-- [ ] Extended-range guitar.
-- [ ] Extended-range bass.
+- [x] V-style.
+- [x] Explorer-style.
+- [x] Offset.
+- [x] Modern metal.
+- [x] Headless.
+- [x] Semi-hollow.
+- [x] Extended-range guitar.
+- [x] Extended-range bass.
 
 ## Master/legendary
-- [ ] Extreme asymmetric.
-- [ ] Extreme horns.
-- [ ] Coffin-inspired original.
-- [ ] Star-inspired original.
-- [ ] Extreme V.
-- [ ] More fictional RockMundo signature shapes.
+- [x] Extreme asymmetric.
+- [x] Extreme horns.
+- [x] Coffin-inspired original.
+- [x] Star-inspired original.
+- [x] Extreme V.
+- [x] More fictional RockMundo signature shapes.
 
 ## Compatibility
-- [ ] Body anchor points.
-- [ ] Neck attachment points.
-- [ ] Fretboard alignment.
-- [ ] Pickup/electronics slots.
-- [ ] Bridge/hardware slots.
-- [ ] Combination validation.
-- [ ] Missing-asset fallback.
+- [x] Body anchor points.
+- [x] Neck attachment points.
+- [x] Fretboard alignment.
+- [x] Pickup/electronics slots.
+- [x] Bridge/hardware slots.
+- [x] Combination validation.
+- [x] Missing-asset fallback.
 
 **Exit:** starter combinations render correctly; locks show requirements; no floating/detached parts.
 
