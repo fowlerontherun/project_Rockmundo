@@ -321,12 +321,12 @@ Target weighting:
 - [x] Material/component/shape catalogues.
 - [x] Unlock-level controls.
 - [x] Material price/supply controls.
-- [ ] Quality weighting controls.
-- [ ] Trait controls.
+- [x] Quality weighting controls.
+- [x] Trait controls.
 - [x] Crafted-item lookup by serial.
 - [x] Ownership/provenance audit.
 - [x] Economy/craft/material/quality/sales metrics.
-- [ ] Suspicious crafting/trading detection.
+- [x] Suspicious crafting/trading detection.
 - [ ] Feature flags for advanced content.
 
 # Phase 11 — QA and release gate
