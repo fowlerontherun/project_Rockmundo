@@ -33,6 +33,35 @@ class CraftedInstrumentEquipmentService:
    r=c.execute("""SELECT i.* FROM character_equipped_crafted_instruments e JOIN crafted_items i ON i.id=e.crafted_item_id
      WHERE e.character_id=? AND i.owner_character_id=e.character_id""",(character_id,)).fetchone()
    return dict(r) if r else None
+ def wear_band(self,band_id:int,amount:int)->int:
+  if amount<=0:return 0
+  equipment=self.band_equipment(band_id)
+  if not equipment:return 0
+  with sqlite3.connect(self.db_path) as c:
+   changed=0
+   for cid,iid in equipment.items():
+    cur=c.execute("""UPDATE crafted_items SET condition_percent=MAX(0,condition_percent-?)
+      WHERE id=? AND owner_character_id=?""",(amount,iid,cid))
+    changed+=cur.rowcount
+   return changed
+
+ def repair(self,character_id:int,item_id:int,amount:int=25)->dict:
+  self.ensure_schema()
+  if amount<=0 or amount>100:raise ValueError("Repair amount must be between 1 and 100")
+  with sqlite3.connect(self.db_path) as c:
+   c.row_factory=sqlite3.Row;c.execute("BEGIN IMMEDIATE")
+   item=c.execute("SELECT * FROM crafted_items WHERE id=? AND owner_character_id=?",(item_id,character_id)).fetchone()
+   if not item:raise ValueError("Crafted instrument not found")
+   current=int(item["condition_percent"])
+   if current>=100:raise ValueError("Instrument does not need maintenance")
+   restored=min(amount,100-current)
+   # Maintenance is intentionally modest and deterministic; economy charging can be layered by shop/workshop later.
+   c.execute("UPDATE crafted_items SET condition_percent=condition_percent+? WHERE id=?",(restored,item_id))
+   try:c.execute("""INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json)
+     VALUES (?,?,'maintained',?)""",(item_id,character_id,'{"condition_restored":%d}'%restored))
+   except sqlite3.OperationalError:pass
+   return dict(c.execute("SELECT * FROM crafted_items WHERE id=?",(item_id,)).fetchone())
+
  def band_equipment(self,band_id:int)->dict[int,int]:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
