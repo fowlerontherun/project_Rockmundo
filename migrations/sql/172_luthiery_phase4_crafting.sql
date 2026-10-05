@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS crafted_items (
     stat_modifiers_json TEXT NOT NULL DEFAULT '{}',
     condition_percent INTEGER NOT NULL DEFAULT 100 CHECK (condition_percent BETWEEN 0 AND 100),
     locked INTEGER NOT NULL DEFAULT 0 CHECK (locked IN (0,1)),
+    rework_count INTEGER NOT NULL DEFAULT 0 CHECK (rework_count >= 0),
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (shape_key) REFERENCES instrument_shapes(key)
 );
@@ -50,3 +51,14 @@ CREATE TABLE IF NOT EXISTS crafting_jobs (
 
 CREATE INDEX IF NOT EXISTS ix_crafted_items_owner ON crafted_items(owner_character_id, created_at);
 CREATE INDEX IF NOT EXISTS ix_crafted_items_creator ON crafted_items(creator_character_id, created_at);
+
+CREATE TABLE IF NOT EXISTS crafted_item_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    crafted_item_id INTEGER NOT NULL,
+    character_id INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (crafted_item_id) REFERENCES crafted_items(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_crafted_item_events_item ON crafted_item_events(crafted_item_id, created_at);

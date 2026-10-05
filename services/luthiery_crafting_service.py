@@ -34,6 +34,25 @@ class LuthieryCraftingService:
         seed = int(hashlib.sha256(f"{character_id}:{token}".encode()).hexdigest()[:16], 16)
         return random.Random(seed).uniform(-5.0, 5.0)
 
+    @staticmethod
+    def _outcome(score: float, character_id: int, token: str) -> tuple[list[str], dict, str | None]:
+        seed = int(hashlib.sha256(f"outcome:{character_id}:{token}".encode()).hexdigest()[:16], 16)
+        rng = random.Random(seed)
+        traits, modifiers, defect = [], {}, None
+        if score >= 80:
+            traits.append("precision_build")
+            modifiers["reliability"] = 2
+        if score >= 92:
+            traits.append("master_craftsmanship")
+            modifiers["playability"] = 3
+        # Imperfections are non-destructive and deterministic: the instrument is still produced.
+        defect_chance = max(0.0, (45.0 - score) / 100.0)
+        if rng.random() < defect_chance:
+            defect = rng.choice(("cosmetic_finish_flaw", "minor_setup_issue", "noisy_electronics"))
+            traits.append(defect)
+            modifiers["reliability"] = modifiers.get("reliability", 0) - 1
+        return traits, modifiers, defect
+
     def craft(self, character_id: int, request_token: str, name: str, instrument_type: str,
               shape_key: str, selections: dict, skills: dict, finish_key: str = "luthier.finish.solid",
               primary_colour: str = "#202020", accent_colour: str | None = None,
@@ -108,6 +127,7 @@ class LuthieryCraftingService:
             ceiling = min(100.0, 48.0 + level * .52)
             score = round(max(floor, min(ceiling, raw)), 2)
             tier = self._tier(score)
+            traits, modifiers, defect = self._outcome(score, character_id, request_token)
             serial = "RM-" + hashlib.sha256(f"{character_id}:{request_token}:{shape_key}".encode()).hexdigest()[:12].upper()
 
             job = conn.execute(
@@ -122,7 +142,7 @@ class LuthieryCraftingService:
                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (serial, character_id, character_id, instrument_type, shape_key, name.strip()[:80] or "Unnamed Instrument",
                  primary_colour, accent_colour, finish_key, score, tier, json.dumps(skills, sort_keys=True),
-                 json.dumps({"score": workshop_score}), "[]", "{}"),
+                 json.dumps({"score": workshop_score}), json.dumps(traits), json.dumps(modifiers)),
             )
             item_id = cur.lastrowid
             for part, material, component in resolved:
@@ -139,8 +159,50 @@ class LuthieryCraftingService:
                 if changed.rowcount != 1:
                     raise ValueError("Material inventory changed during crafting")
             conn.execute(
+                """INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json)
+                   VALUES (?,?,?,?)""",
+                (item_id, character_id, "crafted", json.dumps({"quality": score, "tier": tier, "defect": defect})),
+            )
+            conn.execute(
                 "UPDATE crafting_jobs SET status='completed',crafted_item_id=?,completed_at=datetime('now') WHERE id=?",
                 (item_id, job.lastrowid),
+            )
+            return dict(conn.execute("SELECT * FROM crafted_items WHERE id=?", (item_id,)).fetchone())
+
+    def rework(self, character_id: int, item_id: int, skills: dict) -> dict:
+        """One-way improvement action; never rerolls the original craft."""
+        self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("BEGIN IMMEDIATE")
+            item = conn.execute(
+                "SELECT * FROM crafted_items WHERE id=? AND owner_character_id=?", (item_id, character_id)
+            ).fetchone()
+            if not item:
+                raise ValueError("Crafted instrument not found")
+            if int(item["rework_count"]) >= 1:
+                raise ValueError("This instrument has already been reworked")
+            level = int(skills.get("luthiery", 0))
+            if level < 20:
+                raise ValueError("Luthiery level 20 is required to rework instruments")
+            traits = json.loads(item["traits_json"])
+            defects = {"cosmetic_finish_flaw", "minor_setup_issue", "noisy_electronics"}
+            removed = next((t for t in traits if t in defects), None)
+            if not removed:
+                raise ValueError("This instrument has no repairable crafting imperfection")
+            traits.remove(removed)
+            modifiers = json.loads(item["stat_modifiers_json"])
+            modifiers["reliability"] = modifiers.get("reliability", 0) + 1
+            new_score = min(100.0, float(item["quality_score"]) + 2.0)
+            conn.execute(
+                """UPDATE crafted_items SET traits_json=?,stat_modifiers_json=?,quality_score=?,
+                   quality_tier=?,rework_count=rework_count+1 WHERE id=?""",
+                (json.dumps(traits), json.dumps(modifiers), new_score, self._tier(new_score), item_id),
+            )
+            conn.execute(
+                """INSERT INTO crafted_item_events(crafted_item_id,character_id,event_type,details_json)
+                   VALUES (?,?, 'reworked', ?)""",
+                (item_id, character_id, json.dumps({"removed": removed, "quality_gain": 2.0})),
             )
             return dict(conn.execute("SELECT * FROM crafted_items WHERE id=?", (item_id,)).fetchone())
 
