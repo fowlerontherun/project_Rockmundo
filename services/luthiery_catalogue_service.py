@@ -202,6 +202,40 @@ class LuthieryCatalogueService:
                 "shapes": [dict(row) for row in conn.execute("SELECT * FROM instrument_shapes ORDER BY required_level,id")],
             }
 
+    def _admin_table(self,content_type:str)->str:
+        table={"material":"crafting_materials","component":"crafting_component_designs","shape":"instrument_shapes"}.get(content_type)
+        if not table: raise ValueError("Unsupported catalogue type")
+        return table
+
+    def admin_get(self,content_type:str,content_key:str)->dict:
+        table=self._admin_table(content_type);self.ensure_schema()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory=sqlite3.Row
+            row=conn.execute(f"SELECT * FROM {table} WHERE key=?",(content_key,)).fetchone()
+            if not row: raise ValueError("Catalogue entry not found")
+            return dict(row)
+
+    def admin_update(self,content_type:str,content_key:str,required_level:int|None=None,cost_cents:int|None=None,stock:int|None=None)->dict:
+        table=self._admin_table(content_type);self.ensure_schema()
+        if required_level is not None and not 1<=required_level<=100: raise ValueError("Required level must be 1-100")
+        if cost_cents is not None and cost_cents<0: raise ValueError("Cost cannot be negative")
+        if stock is not None and (content_type!="material" or stock<0): raise ValueError("Stock is only supported for materials and cannot be negative")
+        with sqlite3.connect(self.db_path) as conn:
+            row=conn.execute(f"SELECT id FROM {table} WHERE key=?",(content_key,)).fetchone()
+            if not row: raise ValueError("Catalogue entry not found")
+            if required_level is not None:
+                conn.execute(f"UPDATE {table} SET required_level=? WHERE key=?",(required_level,content_key))
+                conn.execute("""INSERT INTO crafting_unlocks(content_key,content_type,required_skill,required_level,enabled) VALUES(?,?,'luthiery',?,1)
+                  ON CONFLICT(content_key) DO UPDATE SET required_level=excluded.required_level""",(content_key,content_type,required_level))
+            if cost_cents is not None:
+                if content_type=="shape": raise ValueError("Shapes do not have a purchase cost")
+                conn.execute(f"UPDATE {table} SET cost_cents=? WHERE key=?",(cost_cents,content_key))
+            if stock is not None:
+                conn.execute("INSERT INTO luthier_supplier_stock(material_id,quantity) VALUES(?,?) ON CONFLICT(material_id) DO UPDATE SET quantity=excluded.quantity",(row[0],stock))
+        result=self.admin_get(content_type,content_key)
+        if stock is not None: result["stock"]=stock
+        return result
+
     def set_enabled(self, content_type: str, content_key: str, enabled: bool) -> None:
         tables = {
             "material": "crafting_materials",

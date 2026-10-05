@@ -7,6 +7,11 @@ from services.luthiery_catalogue_service import luthiery_catalogue_service,DB_PA
 from services.luthiery_reputation_service import luthiery_reputation\nfrom services.luthiery_balance_service import balance_service\nfrom services.luthiery_crafting_service import luthiery_crafting_service
 
 router=APIRouter(prefix="/admin/luthiery",tags=["Admin Luthiery"])
+def _audit(admin_id:int,action:str,target:str,before=None,after=None):
+ import json
+ with sqlite3.connect(DB_PATH) as c:
+  c.execute("""CREATE TABLE IF NOT EXISTS luthiery_admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,admin_user_id INTEGER NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,before_json TEXT,after_json TEXT,created_at TEXT NOT NULL DEFAULT(datetime('now')))""")
+  c.execute("INSERT INTO luthiery_admin_audit(admin_user_id,action,target,before_json,after_json) VALUES(?,?,?,?,?)",(admin_id,action,target,json.dumps(before,sort_keys=True) if before is not None else None,json.dumps(after,sort_keys=True) if after is not None else None))
 async def _admin(user_id:int=Depends(get_current_user_id))->int:
  await require_permission(["admin"],user_id);return user_id
 class EnabledUpdate(BaseModel): enabled:bool
@@ -32,12 +37,12 @@ class CatalogueBalanceUpdate(BaseModel):
 def catalogue(_admin_id:int=Depends(_admin)):return luthiery_catalogue_service.admin_catalogue()
 @router.put("/catalogue/{content_type}/{content_key}/enabled")
 def set_enabled(content_type:str,content_key:str,payload:EnabledUpdate,_admin_id:int=Depends(_admin)):
- try:luthiery_catalogue_service.set_enabled(content_type,content_key,payload.enabled)
+ try:\n  before=luthiery_catalogue_service.admin_get(content_type,content_key);luthiery_catalogue_service.set_enabled(content_type,content_key,payload.enabled);after=luthiery_catalogue_service.admin_get(content_type,content_key);_audit(_admin_id,"catalogue_enabled",f"{content_type}:{content_key}",before,after)
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
  return {"status":"ok","enabled":payload.enabled}
 @router.patch("/catalogue/{content_type}/{content_key}")
 def update_catalogue(content_type:str,content_key:str,payload:CatalogueBalanceUpdate,_admin_id:int=Depends(_admin)):
- try:return luthiery_catalogue_service.admin_update(content_type,content_key,payload.required_level,payload.cost_cents,payload.stock)
+ try:\n  before=luthiery_catalogue_service.admin_get(content_type,content_key);result=luthiery_catalogue_service.admin_update(content_type,content_key,payload.required_level,payload.cost_cents,payload.stock);_audit(_admin_id,"catalogue_update",f"{content_type}:{content_key}",before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 @router.get("/items/{serial_number}")
 def lookup_serial(serial_number:str,_admin_id:int=Depends(_admin)):
@@ -55,11 +60,11 @@ def lookup_serial(serial_number:str,_admin_id:int=Depends(_admin)):
 def get_quality(_admin_id:int=Depends(_admin)):return balance_service.quality_weights()
 @router.put("/balance/quality")
 def set_quality(payload:QualityWeightsUpdate,_admin_id:int=Depends(_admin)):
- try:return balance_service.set_quality_weights(payload.model_dump())
+ try:\n  before=balance_service.quality_weights();result=balance_service.set_quality_weights(payload.model_dump());_audit(_admin_id,"quality_weights","quality_weights",before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 @router.put("/traits/{trait_key}")
 def set_trait(trait_key:str,payload:TraitUpdate,_admin_id:int=Depends(_admin)):
- balance_service.set_trait(trait_key,payload.enabled);return {"trait_key":trait_key,"enabled":payload.enabled}
+ before={"enabled":balance_service.trait_enabled(trait_key)};balance_service.set_trait(trait_key,payload.enabled);result={"trait_key":trait_key,"enabled":payload.enabled};_audit(_admin_id,"trait",trait_key,before,result);return result
 @router.get("/suspicious")
 def suspicious(_admin_id:int=Depends(_admin)):
  with sqlite3.connect(DB_PATH) as c:
@@ -75,7 +80,7 @@ def features(_admin_id:int=Depends(_admin)):
  return {"legendary_shapes":balance_service.feature_enabled("legendary_shapes"),"premium_materials":balance_service.feature_enabled("premium_materials"),"boutique_electronics":balance_service.feature_enabled("boutique_electronics"),"metallic_finishes":balance_service.feature_enabled("metallic_finishes")}
 @router.put("/features/{feature_key}")
 def set_feature(feature_key:str,payload:FeatureUpdate,_admin_id:int=Depends(_admin)):
- try:return balance_service.set_feature(feature_key,payload.enabled)
+ try:\n  before={"enabled":balance_service.feature_enabled(feature_key)};result=balance_service.set_feature(feature_key,payload.enabled);_audit(_admin_id,"feature",feature_key,before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 
 @router.post("/demo/craft")
@@ -166,3 +171,10 @@ def demo_component_sweep(part_type:str,payload:CraftBatchRequest,_admin_id:int=D
   if spread<1:warnings.append(f"{part_type.title()} component choice changes average quality by less than 1 point; upgrades may feel insignificant.")
   if spread>12:warnings.append(f"{part_type.title()} component choice changes average quality by more than 12 points; components may be overly dominant.")
  return {"part_type":part_type,"samples_per_component":samples,"rows":rows,"warnings":warnings}
+
+@router.get("/audit")
+def audit_log(limit:int=100,_admin_id:int=Depends(_admin)):
+ with sqlite3.connect(DB_PATH) as c:
+  c.row_factory=sqlite3.Row
+  c.execute("""CREATE TABLE IF NOT EXISTS luthiery_admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,admin_user_id INTEGER NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,before_json TEXT,after_json TEXT,created_at TEXT NOT NULL DEFAULT(datetime('now')))""")
+  return {"events":[dict(x) for x in c.execute("SELECT * FROM luthiery_admin_audit ORDER BY id DESC LIMIT ?",(min(max(limit,1),500),))]}
