@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 3 implementation complete — shape definitions ready for Phase 6 workshop rendering. Repository preflight currently blocked by unrelated missing monitoring.websocket module
+**Status:** Phase 6 in progress — interactive workshop foundation implemented. Repository preflight currently blocked by unrelated missing monitoring.websocket module
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -237,31 +237,31 @@ Target weighting:
 # Phase 6 — Visual Luthier Workshop
 **Goal:** Make crafting a visible interactive build process.
 
-- [ ] Large persistent live preview.
-- [ ] Build rail: Body → Neck → Fretboard → Electronics → Hardware → Finish.
-- [ ] Preview remains visible while changing options.
+- [x] Large persistent live preview.
+- [x] Build rail: Body → Neck → Fretboard → Electronics → Hardware → Finish.
+- [x] Preview remains visible while changing options.
 - [ ] Click/tap parts to select/place them.
 - [ ] Rotate/zoom.
-- [ ] Mobile controls.
-- [ ] Desktop layout.
-- [ ] Accessible controls.
+- [x] Mobile controls.
+- [x] Desktop layout.
+- [x] Accessible controls.
 - [ ] Material/shape thumbnails.
-- [ ] Locked choices remain visible with requirement.
-- [ ] Cost and owned quantity.
-- [ ] Estimated quality range.
+- [x] Locked choices remain visible with requirement.
+- [x] Cost and owned quantity.
+- [x] Estimated quality range.
 - [ ] Predicted characteristic changes.
 - [ ] Rare-material warning.
-- [ ] Primary/accent/body colour.
+- [x] Primary/accent/body colour.
 - [ ] Hardware colour.
-- [ ] Natural, solid, transparent, metallic finishes.
+- [x] Natural, solid, transparent, metallic finishes.
 - [ ] Gloss/matte.
 - [ ] Advanced finishes gated by Instrument Finishing.
-- [ ] Final build review.
-- [ ] Player names instrument.
-- [ ] Confirm material consumption.
-- [ ] Craft/reveal quality and traits.
-- [ ] Show maker/serial plate.
-- [ ] Add to character inventory.
+- [x] Final build review.
+- [x] Player names instrument.
+- [x] Confirm material consumption.
+- [x] Craft/reveal quality and traits.
+- [x] Show maker/serial plate.
+- [x] Add to character inventory.
 
 **Exit:** full build works without reload; preview matches saved result; mobile/desktop usable.
 
