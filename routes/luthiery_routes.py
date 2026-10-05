@@ -46,15 +46,23 @@ class CraftInstrument(BaseModel):
     surface_sheen: str = "gloss"
 
 
+CRAFTING_SKILL_NAMES=("luthiery","woodworking","fretwork","instrument_electronics","instrument_finishing")
+_SKILLS_BY_NAME={skill.name:skill for skill in SEED_SKILLS}
+
+def _authoritative_crafting_skills(character_id:int)->dict[str,int]:
+    missing=[name for name in CRAFTING_SKILL_NAMES if name not in _SKILLS_BY_NAME]
+    if missing:raise RuntimeError(f"Missing seeded Luthiery skills: {', '.join(missing)}")
+    return {name:_skill_service.get_skill_level(character_id,_SKILLS_BY_NAME[name]) for name in CRAFTING_SKILL_NAMES}
+
 def _level(character_id: int) -> int:
-    return _skill_service.get_skill_level(character_id, _luthiery_skill)
+    return _authoritative_crafting_skills(character_id)["luthiery"]
 
 
 @router.get("/catalogue")
 def catalogue(character_id: int = Depends(get_current_character_id)):
     data = luthiery_catalogue_service.catalogue(_level(character_id))
-    finishing = next(skill for skill in SEED_SKILLS if skill.name == "instrument_finishing")
-    data["skill_levels"] = {"instrument_finishing": _skill_service.get_skill_level(character_id, finishing)}
+    skills=_authoritative_crafting_skills(character_id)
+    data["skill_levels"] = skills
     return data
 
 
@@ -86,9 +94,7 @@ def crafted_inventory(character_id: int = Depends(get_current_character_id)):
 
 @router.post("/craft")
 def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_current_character_id)):
-    skill_names = ("luthiery", "woodworking", "fretwork", "instrument_electronics", "instrument_finishing")
-    by_name = {skill.name: skill for skill in SEED_SKILLS}
-    skills = {name: _skill_service.get_skill_level(character_id, by_name[name]) for name in skill_names}
+    skills=_authoritative_crafting_skills(character_id)
     try:
         return luthiery_crafting_service.craft(
             character_id=character_id,
@@ -97,7 +103,7 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
             instrument_type=payload.instrument_type,
             shape_key=payload.shape_key,
             selections={key: value.model_dump() for key, value in payload.selections.items()},
-            skills=_authoritative_crafting_skills(character_id),
+            skills=skills,
             finish_key=payload.finish_key,
             primary_colour=payload.primary_colour,
             accent_colour=payload.accent_colour,
@@ -153,8 +159,7 @@ def maintain_instrument(item_id: int, character_id: int = Depends(get_current_ch
 
 @router.post("/crafted/{item_id}/rework")
 def rework_instrument(item_id: int, character_id: int = Depends(get_current_character_id)):
-    by_name = {skill.name: skill for skill in SEED_SKILLS}
-    skills = {"luthiery": _skill_service.get_skill_level(character_id, by_name["luthiery"])}
+    skills=_authoritative_crafting_skills(character_id)
     try:
         return luthiery_crafting_service.rework(character_id, item_id, skills)
     except ValueError as exc:
