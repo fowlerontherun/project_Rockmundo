@@ -2,10 +2,10 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {apiFetch} from '../../utils/api.js';
 
 type Shape={key:string;name:string;instrument_type:'guitar'|'bass';required_level:number;locked:boolean;visual?:any};
-type Material={key:string;name:string;rarity:string;cost_cents:number;required_level:number;locked:boolean;stat_affinities_json?:string};
+type Material={key:string;name:string;rarity:string;cost_cents:number;required_level:number;locked:boolean;material_type:string;stat_affinities_json?:string};
 type Component={key:string;name:string;part_type:string;required_level:number;locked:boolean};
 type Owned={key:string;quantity:number};
-const PARTS=['body','neck','fretboard','electronics','hardware'] as const;
+const PARTS=['body','neck','fretboard','electronics','hardware'] as const;\nconst MATERIAL_TYPES:Record<string,string[]>={body:['body_wood','wood','decorative_wood'],neck:['wood'],fretboard:['fretboard_wood','wood'],electronics:['wood','body_wood','decorative_wood'],hardware:['wood','body_wood','decorative_wood']};
 type Part=typeof PARTS[number];
 
 const LuthieryWorkshop:React.FC=()=>{
@@ -21,7 +21,7 @@ const LuthieryWorkshop:React.FC=()=>{
  }).catch(e=>setMessage(e.message));},[]);
  const shapes=cat.shapes.filter(s=>s.instrument_type===type); const selectedShape=shapes.find(s=>s.key===shape);
  useEffect(()=>{if(!selectedShape&&shapes.length)setShape(shapes.find(s=>!s.locked)?.key||shapes[0].key)},[type,cat.shapes]);
- const qty=(k:string)=>owned.find(x=>x.key===k)?.quantity||0;
+ const qty=(k:string)=>owned.find(x=>x.key===k)?.quantity||0;\n const materialsFor=(p:Part)=>cat.materials.filter(m=>MATERIAL_TYPES[p].includes(m.material_type));\n const refreshOwned=async()=>{const r=await apiFetch('/luthiery/materials/inventory');if(r.ok)setOwned((await r.json()).items)};
  const ready=!!shape&&PARTS.every(p=>parts[p]?.material_key)&&!!name.trim()&&!selectedShape?.locked;
  const estimated=useMemo(()=>{const chosen=PARTS.map(p=>cat.materials.find(m=>m.key===parts[p]?.material_key)).filter(Boolean) as Material[];
    if(!chosen.length)return null; const rarity={common:1,uncommon:2,rare:3,epic:4,legendary:5};return Math.round(chosen.reduce((n,m)=>n+(rarity[m.rarity as keyof typeof rarity]||1),0)/chosen.length*20);
@@ -34,7 +34,7 @@ const LuthieryWorkshop:React.FC=()=>{
    const token=globalThis.crypto?.randomUUID?.()||`craft-${Date.now()}`;
    const r=await apiFetch('/luthiery/craft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     request_token:token,name,instrument_type:type,shape_key:shape,selections:parts,finish_key:finish,primary_colour:primary,accent_colour:accent,hardware_colour:hardwareColour,surface_sheen:sheen})});
-   const d=await r.json();setBusy(false);if(!r.ok){setMessage(d.detail||'Crafting failed');return;}setResult(d);setMessage('Instrument crafted successfully.');
+   const d=await r.json();setBusy(false);if(!r.ok){setMessage(d.detail||'Crafting failed');return;}setResult(d);setMessage('Instrument crafted successfully.');await refreshOwned();
  };
  const anchor=selectedShape?.visual?.anchors||{};
  return <section aria-labelledby="luthier-workshop-title" className="space-y-4">
@@ -57,8 +57,8 @@ const LuthieryWorkshop:React.FC=()=>{
    <div>
     <nav className="flex flex-wrap gap-2" aria-label="Build steps">{[...PARTS,'finish'].map(p=><button key={p} onClick={()=>setStep(p as any)} aria-current={step===p?'step':undefined}>{p[0].toUpperCase()+p.slice(1)} {p!=='finish'&&parts[p]?.material_key?'✓':''}</button>)}</nav>
     {step!=='finish'?<div className="mt-4 space-y-3"><h3>{step[0].toUpperCase()+step.slice(1)}</h3>
-      <label>Material<select className="w-full" value={parts[step]?.material_key||''} onChange={e=>chooseMaterial(step,e.target.value)}><option value="">Choose material</option>{cat.materials.map(m=><option key={m.key} value={m.key} disabled={m.locked||qty(m.key)<1}>{m.name} · {m.rarity} · owned {qty(m.key)} · ${(m.cost_cents/100).toFixed(2)}{m.locked?` · level ${m.required_level}`:''}</option>)}</select></label>
-      <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{cat.materials.slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:`linear-gradient(135deg,#7b5a3a,#d2b48c)`}} />{m.name}</button>)}</div>
+      <label>Material<select className="w-full" value={parts[step]?.material_key||''} onChange={e=>chooseMaterial(step,e.target.value)}><option value="">Choose material</option>{materialsFor(step).map(m=><option key={m.key} value={m.key} disabled={m.locked||qty(m.key)<1}>{m.name} · {m.rarity} · owned {qty(m.key)} · ${(m.cost_cents/100).toFixed(2)}{m.locked?` · level ${m.required_level}`:''}</option>)}</select></label>
+      <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{materialsFor(step).slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:`linear-gradient(135deg,#7b5a3a,#d2b48c)`}} />{m.name}</button>)}</div>
       <label>Component<select className="w-full" value={parts[step]?.component_key||''} onChange={e=>chooseComponent(step,e.target.value)}><option value="">Standard / none</option>{cat.components.filter(c=>c.part_type===step).map(c=><option key={c.key} value={c.key} disabled={c.locked}>{c.name}{c.locked?` · level ${c.required_level}`:''}</option>)}</select></label>
     </div>:<div className="mt-4 space-y-3"><label>Instrument name<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} /></label>
       <label>Finish<select value={finish} onChange={e=>setFinish(e.target.value)}><option value="luthier.finish.solid">Solid</option><option value="luthier.finish.natural">Natural</option><option value="luthier.finish.transparent" disabled={finishingLevel<20}>Transparent{finishingLevel<20?' — Instrument Finishing 20':''}</option><option value="luthier.finish.metallic" disabled={finishingLevel<40}>Metallic{finishingLevel<40?' — Instrument Finishing 40':''}</option></select></label>
