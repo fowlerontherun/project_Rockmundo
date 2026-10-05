@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from auth.character_dependencies import get_current_character_id
 from seeds.skill_seed import SEED_SKILLS
 from services.luthiery_catalogue_service import luthiery_catalogue_service
+from services.luthiery_crafting_service import luthiery_crafting_service
 from services.skill_service import SkillService
 
 router = APIRouter(prefix="/luthiery", tags=["Luthiery"])
@@ -16,6 +17,22 @@ _luthiery_skill = next(skill for skill in SEED_SKILLS if skill.name == "luthiery
 class MaterialPurchase(BaseModel):
     material_key: str
     quantity: int = 1
+
+
+class CraftPart(BaseModel):
+    material_key: str
+    component_key: str | None = None
+
+
+class CraftInstrument(BaseModel):
+    request_token: str
+    name: str
+    instrument_type: str
+    shape_key: str
+    selections: dict[str, CraftPart]
+    finish_key: str = "luthier.finish.solid"
+    primary_colour: str = "#202020"
+    accent_colour: str | None = None
 
 
 def _level(character_id: int) -> int:
@@ -43,6 +60,33 @@ def purchase_material(
             payload.material_key,
             payload.quantity,
             _level(character_id),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/crafted/inventory")
+def crafted_inventory(character_id: int = Depends(get_current_character_id)):
+    return {"items": luthiery_crafting_service.inventory(character_id)}
+
+
+@router.post("/craft")
+def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_current_character_id)):
+    skill_names = ("luthiery", "woodworking", "fretwork", "instrument_electronics", "instrument_finishing")
+    by_name = {skill.name: skill for skill in SEED_SKILLS}
+    skills = {name: _skill_service.get_skill_level(character_id, by_name[name]) for name in skill_names}
+    try:
+        return luthiery_crafting_service.craft(
+            character_id=character_id,
+            request_token=payload.request_token,
+            name=payload.name,
+            instrument_type=payload.instrument_type,
+            shape_key=payload.shape_key,
+            selections={key: value.model_dump() for key, value in payload.selections.items()},
+            skills=skills,
+            finish_key=payload.finish_key,
+            primary_colour=payload.primary_colour,
+            accent_colour=payload.accent_colour,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
