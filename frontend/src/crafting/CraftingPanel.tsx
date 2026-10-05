@@ -3,6 +3,7 @@ import { apiFetch } from '../../utils/api.js';
 import LuthierySkillTree from './LuthierySkillTree';
 import LuthieryMaterials from './LuthieryMaterials';
 import LuthieryWorkshop from './LuthieryWorkshop';
+import LuthieryInventory from './LuthieryInventory';
 
 interface Recipe {
   name: string;
@@ -37,6 +38,7 @@ const CraftingPanel: React.FC = () => {
       <LuthierySkillTree />
       <LuthieryMaterials />
       <LuthieryWorkshop />
+      <LuthieryInventory />
       <select value={selected} onChange={(e) => setSelected(e.target.value)}>
         <option value="">Select recipe</option>
         {recipes.map((r) => (

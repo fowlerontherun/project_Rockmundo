@@ -15,6 +15,10 @@ _skill_service = SkillService()
 _luthiery_skill = next(skill for skill in SEED_SKILLS if skill.name == "luthiery")
 
 
+class InstrumentLock(BaseModel):
+    locked: bool
+
+
 class EquipInstrument(BaseModel):
     role: str | None = None
 
@@ -102,6 +106,22 @@ def craft_instrument(payload: CraftInstrument, character_id: int = Depends(get_c
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/crafted/{item_id}")
+def crafted_detail(item_id: int, character_id: int = Depends(get_current_character_id)):
+    try:
+        return luthiery_crafting_service.detail(character_id, item_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.patch("/crafted/{item_id}/lock")
+def lock_instrument(payload: InstrumentLock, item_id: int, character_id: int = Depends(get_current_character_id)):
+    try:
+        return luthiery_crafting_service.set_locked(character_id, item_id, payload.locked)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/crafted/equipped")
