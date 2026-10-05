@@ -99,7 +99,7 @@ class RecordingService:
                 session.environment_quality *= 1 + (avg - 50) / 100
         session.chemistry_avg = avg
         self.sessions[session.id] = session
-        crafted_instrument_equipment.wear_band(band_id, 1)
+        # Recording personnel are assigned after scheduling; wear is applied when a track is actually recorded.
         self._id_seq += 1
         return session
 
@@ -114,7 +114,7 @@ class RecordingService:
         session = self.sessions.get(session_id)
         if not session:
             raise KeyError("session_not_found")
-        session.track_statuses[track_id] = status
+        previous_status = session.track_statuses.get(track_id)\n        session.track_statuses[track_id] = status\n        if status == "recorded" and previous_status != "recorded":\n            crafted_instrument_equipment.wear_band(session.band_id, 1, list(session.personnel))
 
         if session.personnel:
             scores = []
