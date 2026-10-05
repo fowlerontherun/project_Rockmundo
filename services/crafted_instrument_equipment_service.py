@@ -17,9 +17,18 @@ class CraftedInstrumentEquipmentService:
    c.row_factory=sqlite3.Row;c.execute("BEGIN IMMEDIATE")
    item=c.execute("SELECT id,instrument_type,name,serial_number FROM crafted_items WHERE id=? AND owner_character_id=?",(item_id,character_id)).fetchone()
    if not item: raise ValueError("Crafted instrument not found or not owned by this character")
-   if role:
-    expected=ROLE_TYPES.get(role.strip().lower())
-    if expected and expected!=item["instrument_type"]: raise ValueError("Instrument is incompatible with this band role")
+   # Never trust a browser-supplied role as the source of compatibility.
+   actual_role=None
+   try:
+    row=c.execute("SELECT role FROM band_members WHERE character_id=? ORDER BY band_id LIMIT 1",(character_id,)).fetchone()
+    actual_role=row[0] if row else None
+   except sqlite3.OperationalError:
+    actual_role=None
+   role_to_check=actual_role or role
+   if role_to_check:
+    expected=ROLE_TYPES.get(str(role_to_check).strip().lower())
+    if expected is None: raise ValueError("Your current band role cannot equip a crafted guitar or bass")
+    if expected!=item["instrument_type"]: raise ValueError("Instrument is incompatible with this band role")
    c.execute("""INSERT INTO character_equipped_crafted_instruments(character_id,crafted_item_id)
      VALUES (?,?) ON CONFLICT(character_id) DO UPDATE SET crafted_item_id=excluded.crafted_item_id,equipped_at=datetime('now')""",(character_id,item_id))
    return dict(item)

@@ -38,6 +38,9 @@ def build_profile(resolved_parts, quality:float, skills:dict)->dict:
         traits.append({"key":key,"name":name,"effects":effects})
         if genre: genres[genre]=round(min(0.05,(stats[driver]-65)/700),3)
         if len(traits)>=3: break
+    for t in traits:
+        for k,v in t["effects"].items(): stats[k]=round(max(1,min(100,stats[k]+v)),2)
+    # Gameplay modifiers are derived from the final post-trait characteristics.
     mods={
       "performance_quality":round((stats["tone"]+stats["playability"])/2000,4),
       "instrument_effectiveness":round(sum(stats.values())/len(stats)/1800,4),
@@ -47,6 +50,4 @@ def build_profile(resolved_parts, quality:float, skills:dict)->dict:
       "audience_reaction":round((stats["stage_impact"]+stats["output"])/2400,4),
       "reliability":round((stats["reliability"]+stats["durability"])/2000,4),
     }
-    for t in traits:
-        for k,v in t["effects"].items(): stats[k]=round(max(1,min(100,stats[k]+v)),2)
     return {"characteristics":stats,"traits":traits,"gameplay_modifiers":mods,"genre_affinities":genres}
