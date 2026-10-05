@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {apiFetch} from '../../utils/api.js';\nimport InstrumentPreview from './InstrumentPreview';
 
 type Shape={key:string;name:string;instrument_type:'guitar'|'bass';required_level:number;locked:boolean;visual?:any};
@@ -15,7 +15,7 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
  const [step,setStep]=useState<Part|'finish'>('body'),[parts,setParts]=useState<Record<string,{material_key:string;component_key?:string}>>({});
  const [name,setName]=useState(''),[primary,setPrimary]=useState('#202020'),[accent,setAccent]=useState('#d0d0d0'),[hardwareColour,setHardwareColour]=useState('#c0c0c0'),[finish,setFinish]=useState('luthier.finish.solid');
  const [sheen,setSheen]=useState<'matte'|'satin'|'gloss'>('gloss'),[zoom,setZoom]=useState(1),[rotation,setRotation]=useState(0),[rareConfirmed,setRareConfirmed]=useState(false);
- const [message,setMessage]=useState(''),[result,setResult]=useState<any>(null),[busy,setBusy]=useState(false);
+ const [message,setMessage]=useState(''),[result,setResult]=useState<any>(null),[busy,setBusy]=useState(false);\n const craftToken=useRef<string>('');
  useEffect(()=>{Promise.all([apiFetch('/luthiery/catalogue'),apiFetch('/luthiery/materials/inventory')]).then(async([a,b])=>{
    if(!a.ok||!b.ok)throw new Error('Unable to load Luthier workshop');const catalogue=await a.json();setCat(catalogue);setFinishingLevel(Number(catalogue.skill_levels?.instrument_finishing||0));setOwned((await b.json()).items);
  }).catch(e=>setMessage(e.message));},[]);
@@ -31,10 +31,10 @@ const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('
  const chooseMaterial=(p:Part,key:string)=>{setRareConfirmed(false);setParts(v=>({...v,[p]:{...v[p],material_key:key}}));};
  const chooseComponent=(p:Part,key:string)=>setParts(v=>({...v,[p]:{...v[p],component_key:key||undefined}}));
  const craft=async()=>{if(!ready)return;if(rareSelected&&!rareConfirmed){setMessage('Confirm use of rare materials before crafting.');return;}setBusy(true);setMessage('');setResult(null);
-   const token=globalThis.crypto?.randomUUID?.()||`craft-${Date.now()}`;
+   const token=craftToken.current||(craftToken.current=globalThis.crypto?.randomUUID?.()||`craft-${Date.now()}`);
    const r=await apiFetch('/luthiery/craft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     request_token:token,name,instrument_type:type,shape_key:shape,selections:parts,finish_key:finish,primary_colour:primary,accent_colour:accent,hardware_colour:hardwareColour,surface_sheen:sheen})});
-   const d=await r.json();setBusy(false);if(!r.ok){setMessage(d.detail||'Crafting failed');return;}setResult(d);setMessage('Instrument crafted successfully.');await refreshOwned();
+   const d=await r.json();setBusy(false);if(!r.ok){setMessage(d.detail||'Crafting failed');return;}setResult(d);setMessage('Instrument crafted successfully.');craftToken.current='';await refreshOwned();
  };
  const anchor=selectedShape?.visual?.anchors||{};
  return <section aria-labelledby="luthier-workshop-title" className="space-y-4">
