@@ -230,6 +230,19 @@ class LuthieryCraftingService:
             if not item:
                 raise ValueError("Crafted instrument not found")
             result = dict(item)
+            try:
+                workshop = json.loads(result.get("workshop_snapshot_json") or "{}")
+            except (json.JSONDecodeError, TypeError, ValueError):
+                workshop = {}
+            result["appearance"] = {
+                "instrument_type": result["instrument_type"],
+                "shape_key": result["shape_key"],
+                "primary_colour": result["primary_colour"],
+                "accent_colour": result["accent_colour"],
+                "finish_key": result["finish_key"],
+                "hardware_colour": workshop.get("hardware_colour", "#c0c0c0"),
+                "surface_sheen": workshop.get("surface_sheen", "gloss"),
+            }
             result["parts"] = [dict(r) for r in conn.execute(
                 """SELECT p.part_type,p.material_key,m.name material_name,p.component_key,c.name component_name,p.quality_contribution
                    FROM crafted_item_parts p
