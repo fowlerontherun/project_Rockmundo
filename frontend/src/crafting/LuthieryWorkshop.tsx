@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import {apiFetch} from '../../utils/api.js';
+import {apiFetch} from '../../utils/api.js';\nimport InstrumentPreview from './InstrumentPreview';
 
 type Shape={key:string;name:string;instrument_type:'guitar'|'bass';required_level:number;locked:boolean;visual?:any};
 type Material={key:string;name:string;rarity:string;cost_cents:number;required_level:number;locked:boolean;material_type:string;stat_affinities_json?:string};
@@ -8,7 +8,7 @@ type Owned={key:string;quantity:number};
 const PARTS=['body','neck','fretboard','electronics','hardware'] as const;\nconst MATERIAL_TYPES:Record<string,string[]>={body:['body_wood','wood','decorative_wood'],neck:['wood'],fretboard:['fretboard_wood','wood'],electronics:['wood','body_wood','decorative_wood'],hardware:['wood','body_wood','decorative_wood']};
 type Part=typeof PARTS[number];
 
-const LuthieryWorkshop:React.FC=()=>{
+const materialSwatch=(m:Material)=>{const n=m.name.toLowerCase();if(n.includes('maple'))return 'repeating-linear-gradient(100deg,#d9bd82 0 8px,#cba96d 9px 11px)';if(n.includes('rosewood'))return 'repeating-linear-gradient(100deg,#4b281c 0 7px,#6b3b27 8px 10px)';if(n.includes('mahogany'))return 'repeating-linear-gradient(100deg,#713c2c 0 8px,#8a4b36 9px 11px)';if(n.includes('ebony'))return 'repeating-linear-gradient(100deg,#171513 0 8px,#302b27 9px 10px)';return 'repeating-linear-gradient(100deg,#9b744b 0 8px,#c29a68 9px 11px)'};\nconst LuthieryWorkshop:React.FC=()=>{
  const [cat,setCat]=useState<{shapes:Shape[];materials:Material[];components:Component[]}>({shapes:[],materials:[],components:[]});
  const [finishingLevel,setFinishingLevel]=useState(0);
  const [owned,setOwned]=useState<Owned[]>([]),[type,setType]=useState<'guitar'|'bass'>('guitar'),[shape,setShape]=useState('');
@@ -44,10 +44,10 @@ const LuthieryWorkshop:React.FC=()=>{
    <div className="sticky top-2 self-start rounded border p-4 min-h-[420px]" aria-label="Live instrument preview">
     <div className="flex gap-2"><button onClick={()=>setType('guitar')} aria-pressed={type==='guitar'}>Guitar</button><button onClick={()=>setType('bass')} aria-pressed={type==='bass'}>Bass</button></div>
     <select value={shape} onChange={e=>setShape(e.target.value)} className="w-full mt-2">{shapes.map(s=><option key={s.key} value={s.key} disabled={s.locked}>{s.name}{s.locked?` — level ${s.required_level}`:''}</option>)}</select>
-    <div className="relative mx-auto mt-4 aspect-[3/4] max-w-sm overflow-hidden rounded border" style={{background:`linear-gradient(145deg,${primary},${accent})`}}>
-      <div className="absolute inset-0 transition-transform" style={{transform:`scale(${zoom}) rotate(${rotation}deg)`}}>
-       <div className="absolute inset-0 flex items-center justify-center text-center p-8"><strong>{selectedShape?.name||'Select a shape'}</strong></div>
-       {PARTS.map(p=><button type="button" key={p} onClick={()=>setStep(p)} aria-label={`Edit ${p}`} className="absolute text-xs border rounded px-1" style={{left:`${(anchor[p]?.x||.5)*100}%`,top:`${(anchor[p]?.y||.5)*100}%`,transform:'translate(-50%,-50%)',borderColor:p==='hardware'?hardwareColour:undefined}}>{p}{parts[p]?' ✓':''}</button>)}
+    <div className="relative mx-auto mt-4 aspect-[3/4] max-w-sm overflow-hidden rounded border bg-black/5">
+      <div className="absolute inset-0 transition-transform flex items-center justify-center" style={{transform:`scale(${zoom}) rotate(${rotation}deg)`}}>
+       <InstrumentPreview appearance={{instrument_type:type,shape_key:shape,primary_colour:primary,accent_colour:accent,hardware_colour:hardwareColour,surface_sheen:sheen}} label={selectedShape?.name||'Instrument preview'} />
+       {PARTS.map(p=><button type="button" key={p} onClick={()=>setStep(p)} aria-label={`Edit ${p}`} className="absolute text-xs border rounded px-1 bg-white/80" style={{left:`${(anchor[p]?.x||.5)*100}%`,top:`${(anchor[p]?.y||.5)*100}%`,transform:'translate(-50%,-50%)',borderColor:p==='hardware'?hardwareColour:undefined}}>{p}{parts[p]?' ✓':''}</button>)}
       </div>
     </div>
     <div className="flex gap-2 mt-2"><button onClick={()=>setRotation(r=>r-15)} aria-label="Rotate left">↺</button><button onClick={()=>setRotation(r=>r+15)} aria-label="Rotate right">↻</button><button onClick={()=>setZoom(z=>Math.max(.75,z-.1))} aria-label="Zoom out">−</button><button onClick={()=>setZoom(z=>Math.min(1.6,z+.1))} aria-label="Zoom in">+</button><button onClick={()=>{setZoom(1);setRotation(0)}}>Reset view</button></div>
@@ -58,7 +58,7 @@ const LuthieryWorkshop:React.FC=()=>{
     <nav className="flex flex-wrap gap-2" aria-label="Build steps">{[...PARTS,'finish'].map(p=><button key={p} onClick={()=>setStep(p as any)} aria-current={step===p?'step':undefined}>{p[0].toUpperCase()+p.slice(1)} {p!=='finish'&&parts[p]?.material_key?'✓':''}</button>)}</nav>
     {step!=='finish'?<div className="mt-4 space-y-3"><h3>{step[0].toUpperCase()+step.slice(1)}</h3>
       <label>Material<select className="w-full" value={parts[step]?.material_key||''} onChange={e=>chooseMaterial(step,e.target.value)}><option value="">Choose material</option>{materialsFor(step).map(m=><option key={m.key} value={m.key} disabled={m.locked||qty(m.key)<1}>{m.name} · {m.rarity} · owned {qty(m.key)} · ${(m.cost_cents/100).toFixed(2)}{m.locked?` · level ${m.required_level}`:''}</option>)}</select></label>
-      <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{materialsFor(step).slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:`linear-gradient(135deg,#7b5a3a,#d2b48c)`}} />{m.name}</button>)}</div>
+      <div className="grid grid-cols-3 gap-2" aria-label="Material thumbnails">{materialsFor(step).slice(0,9).map(m=><button key={m.key} disabled={m.locked||qty(m.key)<1} onClick={()=>chooseMaterial(step,m.key)} className="border rounded p-2 text-xs" aria-pressed={parts[step]?.material_key===m.key}><span className="block aspect-square rounded border mb-1" aria-hidden="true" style={{background:materialSwatch(m)}} />{m.name}</button>)}</div>
       <label>Component<select className="w-full" value={parts[step]?.component_key||''} onChange={e=>chooseComponent(step,e.target.value)}><option value="">Standard / none</option>{cat.components.filter(c=>c.part_type===step).map(c=><option key={c.key} value={c.key} disabled={c.locked}>{c.name}{c.locked?` · level ${c.required_level}`:''}</option>)}</select></label>
     </div>:<div className="mt-4 space-y-3"><label>Instrument name<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} /></label>
       <label>Finish<select value={finish} onChange={e=>setFinish(e.target.value)}><option value="luthier.finish.solid">Solid</option><option value="luthier.finish.natural">Natural</option><option value="luthier.finish.transparent" disabled={finishingLevel<20}>Transparent{finishingLevel<20?' — Instrument Finishing 20':''}</option><option value="luthier.finish.metallic" disabled={finishingLevel<40}>Metallic{finishingLevel<40?' — Instrument Finishing 40':''}</option></select></label>
