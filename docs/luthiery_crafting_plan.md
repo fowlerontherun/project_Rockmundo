@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 8 substantially complete — shop configuration, serialized listing/delisting, exact previews/specification, purchases, provenance, sales history and duplicate-purchase protection implemented. Shipping/location and broader marketplace discovery remain optional integration work.
+**Status:** Phase 8 substantially complete — shop configuration, serialized listing/delisting, exact previews/specification, purchases, provenance, sales history and duplicate-purchase protection implemented. Shipping/location and tax/fee integration remain optional integration work.
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -295,7 +295,7 @@ Target weighting:
 - [ ] Existing taxes/fees where appropriate.
 - [x] Sales history and revenue reporting.
 - [ ] Shipping/location integration where required.
-- [ ] Marketplace discovery/search.
+- [x] Marketplace discovery/search.
 - [x] Race-condition tests for duplicate purchase.
 
 **Exit:** one player can craft/list/sell and another receives the exact serialized item; provenance survives resale.

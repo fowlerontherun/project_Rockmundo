@@ -45,7 +45,9 @@ class LuthierShopService:
    shop=c.execute("SELECT * FROM luthier_shops WHERE owner_character_id=?",(seller,)).fetchone()
    listings=[dict(r) for r in c.execute("""SELECT l.*,i.name instrument_name,i.serial_number,i.quality_tier
     FROM luthier_shop_listings l JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.seller_character_id=? ORDER BY l.id DESC""",(seller,))]
-   return {"shop":dict(shop) if shop else None,"listings":listings}
+   sold=[x for x in listings if x["status"]=="sold"]
+   revenue=sum(int(x["price_cents"]) for x in sold)
+   return {"shop":dict(shop) if shop else None,"listings":listings,"summary":{"sold_count":len(sold),"gross_revenue_cents":revenue,"active_count":sum(1 for x in listings if x["status"]=="active")}}
  def listing_detail(self,listing_id:int)->dict:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
@@ -58,13 +60,22 @@ class LuthierShopService:
     FROM crafted_item_parts p LEFT JOIN crafting_materials m ON m.key=p.material_key LEFT JOIN crafting_component_designs co ON co.key=p.component_key
     WHERE p.crafted_item_id=? ORDER BY p.id""",(row["crafted_item_id"],))]
    return result
- def browse(self)->list[dict]:
+ def browse(self,query:str|None=None,instrument_type:str|None=None,min_price:int|None=None,max_price:int|None=None)->list[dict]:
   self.ensure_schema()
   with sqlite3.connect(self.db_path) as c:
    c.row_factory=sqlite3.Row
-   return [dict(r) for r in c.execute("""SELECT l.*,s.name shop_name,i.name instrument_name,i.serial_number,i.instrument_type,i.quality_tier,i.quality_score,i.condition_percent,i.shape_key,i.primary_colour,i.accent_colour,i.finish_key,i.workshop_snapshot_json
+   sql="""SELECT l.*,s.name shop_name,s.city_id,i.name instrument_name,i.serial_number,i.instrument_type,i.quality_tier,i.quality_score,i.condition_percent,i.shape_key,i.primary_colour,i.accent_colour,i.finish_key,i.workshop_snapshot_json
     FROM luthier_shop_listings l JOIN luthier_shops s ON s.id=l.shop_id JOIN crafted_items i ON i.id=l.crafted_item_id
-    WHERE l.status='active' AND s.active=1 AND i.owner_character_id=l.seller_character_id ORDER BY l.id DESC""")]
+    WHERE l.status='active' AND s.active=1 AND i.owner_character_id=l.seller_character_id"""
+   params=[]
+   if query:
+    sql+=" AND (LOWER(i.name) LIKE ? OR LOWER(s.name) LIKE ? OR LOWER(i.serial_number) LIKE ?)"
+    term="%"+query.strip().lower()+"%";params.extend([term,term,term])
+   if instrument_type in ("guitar","bass"):sql+=" AND i.instrument_type=?";params.append(instrument_type)
+   if min_price is not None:sql+=" AND l.price_cents>=?";params.append(max(0,int(min_price)))
+   if max_price is not None:sql+=" AND l.price_cents<=?";params.append(max(0,int(max_price)))
+   sql+=" ORDER BY l.id DESC"
+   return [dict(r) for r in c.execute(sql,params)]
  def purchase(self,buyer:int,listing_id:int)->dict:
   """Atomically transfer payment, serialized ownership, listing state and provenance."""
   self.ensure_schema()
