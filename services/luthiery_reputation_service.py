@@ -79,6 +79,8 @@ class LuthieryReputationService:
    row=c.execute("SELECT creator_character_id FROM crafted_items WHERE id=?",(item_id,)).fetchone()
    if not row:return 0
    payload=json.dumps({"fame":int(fame)},sort_keys=True,separators=(",",":"))
+   existing=c.execute("SELECT 1 FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='famous_owner' AND character_id=? LIMIT 1",(item_id,character_id)).fetchone()
+   if existing:return 0
    try:c.execute("INSERT INTO crafted_item_notable_history(crafted_item_id,event_type,character_id,details_json) VALUES(?,'famous_owner',?,?)",(item_id,character_id,payload))
    except sqlite3.IntegrityError:return 0
    c.execute("INSERT INTO luthier_reputation_events(luthier_character_id,crafted_item_id,event_type,points,source_character_id,details_json) VALUES(?,?,'famous_owner',5,?,?)",(int(row[0]),item_id,character_id,payload))
