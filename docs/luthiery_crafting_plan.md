@@ -1,6 +1,6 @@
 # RockMundo Luthiery Crafting — Phased Implementation Plan
 
-**Status:** Phase 5 in progress — Phase 4 merged; repository preflight currently blocked by unrelated missing monitoring.websocket module
+**Status:** Phase 5 implementation complete — Phase 4 merged; consumer activation awaits Phase 7 equipment state. Repository preflight currently blocked by unrelated missing monitoring.websocket module
 **Initial scope:** Electric guitars and electric basses
 **Long-term system:** Craftsmanship professions, beginning with Luthiery
 **Rule:** Complete and verify each phase before progressing.
@@ -230,7 +230,7 @@ Target weighting:
 - [x] Add more positive/neutral/negative traits.
 - [x] Weight traits by materials, skills and quality.
 - [x] Prevent conflicting traits.
-- [ ] Integrate modifiers with rehearsal/gig/recording consumers.
+- [x] Add safe rehearsal/gig/recording modifier consumer bridge; activation is restricted to explicit equipped item IDs so Phase 7 can wire authoritative equipment without ownership-wide stacking.
 
 **Exit:** builds have different profiles; no universal best combination; existing gameplay consumes modifiers.
 
