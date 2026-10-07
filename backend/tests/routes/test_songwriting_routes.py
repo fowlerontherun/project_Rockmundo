@@ -184,3 +184,95 @@ def test_accepted_co_writer_can_fetch_draft(client_factory):
     assert resp.status_code == 200
     assert resp.json()["id"] == draft.id
 
+def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypatch):
+    class StubBandService:
+        def get_band_info(self, band_id):
+            return {
+                "id": band_id,
+                "members": [{"user_id": 1, "role": "founder"}],
+            }
+
+    class StubSongService:
+        def __init__(self):
+            self.created = []
+            self.metadata_by_draft = {}
+
+        def get_songwriting_metadata_by_draft(self, draft_id):
+            return self.metadata_by_draft.get(draft_id)
+
+        def create_song(self, data):
+            song_id = len(self.created) + 100
+            self.created.append(data)
+            meta = dict(data["songwriting_metadata"])
+            meta["song_id"] = song_id
+            self.metadata_by_draft[meta["draft_id"]] = meta
+            return {"status": "ok", "song_id": song_id}
+
+    class RecordingNotifications:
+        def __init__(self):
+            self.sent = []
+
+        def create(self, **kwargs):
+            self.sent.append(kwargs)
+            return len(self.sent)
+
+    song_store = StubSongService()
+    svc = SongwritingService(
+        llm_client=FakeLLM(),
+        originality=OriginalityService(),
+        band_service=StubBandService(),
+        song_service=song_store,
+    )
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Catalogue Song",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    svc.complete_song(draft.id, user_id=1)
+    svc.skip_polish(draft.id, user_id=1)
+
+    recorder = RecordingNotifications()
+    monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
+    monkeypatch.setattr(songwriting_routes, "notifications", recorder)
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+
+    first = client.post(
+        f"/songwriting/drafts/{draft.id}/finalize",
+        json={
+            "band_id": 7,
+            "duration_sec": 205,
+            "distribution_channels": ["digital", "streaming"],
+        },
+    )
+    assert first.status_code == 200
+    assert first.json()["already_finalized"] is False
+    assert len(song_store.created) == 1
+    assert song_store.created[0]["songwriting_metadata"]["quality_score"] == 50
+    assert song_store.created[0]["songwriting_metadata"]["polish_skipped"] is True
+    assert song_store.created[0]["songwriting_metadata"]["distribution_channels"] == [
+        "digital",
+        "streaming",
+    ]
+    assert len(recorder.sent) == 1
+    assert recorder.sent[0]["type_"] == "songwriting_finalized"
+
+    retry = client.post(
+        f"/songwriting/drafts/{draft.id}/finalize",
+        json={
+            "band_id": 7,
+            "duration_sec": 205,
+            "distribution_channels": ["digital"],
+        },
+    )
+    assert retry.status_code == 200
+    assert retry.json()["already_finalized"] is True
+    assert retry.json()["song_id"] == first.json()["song_id"]
+    assert len(song_store.created) == 1
+    assert len(recorder.sent) == 1
+
