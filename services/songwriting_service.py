@@ -836,6 +836,37 @@ class SongwritingService:
     def get_pending_invitees(self, draft_id: int) -> Set[int]:
         return set(self._co_writer_invites.get(draft_id, {}).keys())
 
+    def list_sent_invites(self, inviter_id: int) -> List[dict]:
+        sent: List[dict] = []
+        for draft_id, invitees in self._co_writer_invites.items():
+            draft = self._drafts.get(draft_id)
+            if not draft:
+                continue
+            for invitee_id, stored_inviter_id in invitees.items():
+                if stored_inviter_id != inviter_id:
+                    continue
+                sent.append(
+                    {
+                        "draft_id": draft_id,
+                        "title": draft.title,
+                        "genre": draft.genre,
+                        "invitee_id": invitee_id,
+                    }
+                )
+        return sent
+
+    def withdraw_co_writer_invite(self, draft_id: int, inviter_id: int, invitee_id: int) -> None:
+        draft = self._drafts.get(draft_id)
+        if not draft:
+            raise KeyError("draft_not_found")
+        invites = self._co_writer_invites.get(draft_id)
+        if not invites or invites.get(invitee_id) != inviter_id:
+            raise KeyError("invite_not_found")
+        invites.pop(invitee_id, None)
+        if not invites:
+            self._co_writer_invites.pop(draft_id, None)
+        self._remove_invite(draft_id, invitee_id)
+
     def accept_co_writer_invite(self, draft_id: int, user_id: int) -> None:
         invites = self._co_writer_invites.get(draft_id)
         if not invites or user_id not in invites:
