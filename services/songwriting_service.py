@@ -244,6 +244,7 @@ class SongwritingService:
                 "attempted": draft.polish_attempted,
                 "success_chance": draft.polish_success_chance,
                 "succeeded": draft.polish_succeeded,
+                "skipped": draft.polish_skipped,
                 "quality_bonus": draft.polish_bonus,
             },
         }
@@ -295,6 +296,17 @@ class SongwritingService:
         summary = self.completion_summary(draft_id)
         summary["roll"] = roll
         return summary
+
+    def skip_polish(self, draft_id: int, user_id: int) -> dict:
+        """Decline the optional polish session and keep the completed quality."""
+        draft = self._require_writer(draft_id, user_id)
+        if draft.completed_at is None:
+            raise ValueError("song_not_completed")
+        if draft.polish_attempted or draft.polish_skipped or not draft.polish_available:
+            raise ValueError("polish_already_resolved")
+        draft.polish_available = False
+        draft.polish_skipped = True
+        return self.completion_summary(draft_id)
 
     def get_draft(self, draft_id: int) -> Optional[LyricDraft]:
         return self._drafts.get(draft_id)
