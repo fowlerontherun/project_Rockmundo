@@ -15,6 +15,7 @@
       <option value="title">Title</option>
       <option value="duration">Duration</option>
       <option value="plays">Plays</option>
+      <option value="quality">Songwriting Quality</option>
     </select>
     <select id="playlistSelect"></select>
   </div>
@@ -41,7 +42,8 @@
   }
   </script>
   <script>
-  const BAND_ID = 1;
+  const params = new URLSearchParams(window.location.search);
+  const BAND_ID = Number(params.get('band_id') || 0);
   const playlistSelect = document.getElementById('playlistSelect');
 
   async function loadPlaylists() {
@@ -67,6 +69,11 @@
   }
 
   async function loadSongs(search = '', sort = 'title') {
+    if (!BAND_ID) {
+      document.getElementById('songList').innerHTML =
+        '<li>Open the music library from a band to view its songs.</li>';
+      return;
+    }
     try {
       const res = await apiFetch(`/api/songs/band/${BAND_ID}?search=${encodeURIComponent(search)}&sort=${sort}`);
       if (!res.ok) {
@@ -79,7 +86,13 @@
       list.innerHTML = '';
       data.forEach(song => {
         const li = document.createElement('li');
-        li.textContent = `${song.title} (${song.genre})`;
+        const quality = song.quality_score == null
+          ? ''
+          : ` — quality ${song.quality_score}/100`;
+        const writingTime = song.writing_minutes == null
+          ? ''
+          : ` — writing ${Math.floor(song.writing_minutes / 60)}h ${song.writing_minutes % 60}m`;
+        li.textContent = `${song.title} (${song.genre})${quality}${writingTime}`;
         const addBtn = document.createElement('button');
         addBtn.textContent = 'Add';
         addBtn.onclick = () => addToPlaylist(song.id);
