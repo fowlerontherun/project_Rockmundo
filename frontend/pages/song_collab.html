@@ -4,38 +4,149 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Song Collaboration</title>
-  <script>
-    async function loadVersions(draftId) {
-      const res = await apiFetch(`/api/songwriting/drafts/${draftId}/versions`);
-      const versions = await res.json();
-      const list = document.getElementById('versions');
-      list.innerHTML = '';
-      const contributors = new Set();
-      versions.forEach(v => {
-        const li = document.createElement('li');
-        const ts = new Date(v.timestamp).toLocaleString();
-        li.textContent = `${ts} - Author ${v.author_id}`;
-        list.appendChild(li);
-        contributors.add(v.author_id);
-      });
-      const clist = document.getElementById('contributors');
-      clist.innerHTML = '';
-      contributors.forEach(id => {
-        const li = document.createElement('li');
-        li.textContent = `User ${id}`;
-        clist.appendChild(li);
-      });
-    }
-    window.onload = () => loadVersions(1);
-  </script>
 </head>
 <body>
 <script src="../utils/api.js"></script>
   <h1>Collaborative Song Editor</h1>
-  <textarea id="lyrics" rows="10" cols="60"></textarea>
+
+  <div id="message" aria-live="polite"></div>
+  <div id="draftStatus">Loading songwriting session…</div>
+
+  <label for="lyrics">Lyrics</label>
+  <textarea id="lyrics" rows="14" cols="70"></textarea>
+
+  <label for="chords">Chord Progression</label>
+  <input id="chords" type="text" />
+
+  <button type="button" id="saveDraft">Save Changes</button>
+
   <h3>Version History</h3>
   <ul id="versions"></ul>
+
   <h3>Contributors</h3>
   <ul id="contributors"></ul>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const draftId = Number(params.get('draft_id') || 0);
+    let currentDraft = null;
+
+    function setMessage(text, isError = false) {
+      const el = document.getElementById('message');
+      el.textContent = text;
+      el.setAttribute('data-error', isError ? 'true' : 'false');
+    }
+
+    function setLocked(locked) {
+      document.getElementById('lyrics').readOnly = locked;
+      document.getElementById('chords').readOnly = locked;
+      document.getElementById('saveDraft').disabled = locked;
+    }
+
+    async function loadDraft() {
+      if (!draftId) {
+        setMessage('Open this page from a songwriting invitation or shared draft.', true);
+        document.getElementById('draftStatus').textContent = 'No draft selected.';
+        setLocked(true);
+        return;
+      }
+
+      try {
+        const res = await apiFetch(`/api/songwriting/drafts/${draftId}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setMessage(data.detail || 'Unable to load the shared draft.', true);
+          setLocked(true);
+          return;
+        }
+
+        currentDraft = data;
+        document.getElementById('lyrics').value = data.lyrics || '';
+        document.getElementById('chords').value = data.chord_progression || '';
+
+        if (data.status === 'completed') {
+          const quality = data.quality_score == null ? '' : ` — quality ${data.quality_score}/100`;
+          document.getElementById('draftStatus').textContent =
+            `${data.title} — writing complete${quality}. The creator has locked further edits.`;
+          setLocked(true);
+        } else {
+          document.getElementById('draftStatus').textContent =
+            `${data.title} — active songwriting session`;
+          setLocked(false);
+        }
+      } catch {
+        setMessage('Network error while loading the songwriting session.', true);
+        setLocked(true);
+      }
+    }
+
+    async function loadVersions() {
+      if (!draftId) return;
+      try {
+        const res = await apiFetch(`/api/songwriting/drafts/${draftId}/versions`);
+        if (!res.ok) return;
+        const versions = await res.json();
+        const list = document.getElementById('versions');
+        list.innerHTML = '';
+        const contributors = new Set();
+
+        versions.forEach(v => {
+          const li = document.createElement('li');
+          const ts = new Date(v.timestamp).toLocaleString();
+          li.textContent = `${ts} — Author ${v.author_id}`;
+          list.appendChild(li);
+          contributors.add(v.author_id);
+        });
+
+        const clist = document.getElementById('contributors');
+        clist.innerHTML = '';
+        contributors.forEach(id => {
+          const li = document.createElement('li');
+          li.textContent = `User ${id}`;
+          clist.appendChild(li);
+        });
+      } catch {
+        setMessage('Unable to refresh version history.', true);
+      }
+    }
+
+    document.getElementById('saveDraft').addEventListener('click', async () => {
+      if (!draftId || !currentDraft || currentDraft.status === 'completed') return;
+
+      const payload = {
+        lyrics: document.getElementById('lyrics').value,
+        chord_progression: document.getElementById('chords').value
+      };
+
+      try {
+        const res = await apiFetch(`/api/songwriting/drafts/${draftId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 409 && data.detail === 'song_already_completed') {
+            await loadDraft();
+            setMessage('The creator completed this song before your save. The draft is now locked.', true);
+            return;
+          }
+          setMessage(data.detail || 'Unable to save changes.', true);
+          return;
+        }
+
+        currentDraft = data;
+        setMessage('Changes saved.');
+        await loadVersions();
+      } catch {
+        setMessage('Network error while saving the draft.', true);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadDraft();
+      await loadVersions();
+    });
+  </script>
 </body>
 </html>
