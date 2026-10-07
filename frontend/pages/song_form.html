@@ -58,6 +58,10 @@
   <div id="pendingInvites">No pending invitations.</div>
 </div>
 <div>
+  <h3>Invitations You've Sent</h3>
+  <div id="sentInvites">No outstanding invitations.</div>
+</div>
+<div>
   <h3>Current Collaborators</h3>
   <ul id="collaborators"></ul>
 </div>
@@ -107,7 +111,7 @@
       invites.forEach(invite => {
         const row = document.createElement('div');
         const label = document.createElement('span');
-        label.textContent = `${invite.title} (${invite.genre}) — invited by player ${invite.inviter_id} `;
+        label.textContent = `${invite.title} (${invite.genre}) — invited by ${invite.inviter_name || `Player ${invite.inviter_id}`} `;
         const accept = document.createElement('button');
         accept.type = 'button';
         accept.textContent = 'Accept';
@@ -138,6 +142,7 @@
         'success'
       );
       await loadPendingInvites();
+      await loadSentInvites();
       if (action === 'accept') {
         window.location.href = `song_collab.html?draft_id=${draftId}`;
       }
@@ -146,7 +151,52 @@
     }
   }
 
+  async function loadSentInvites() {
+    const container = document.getElementById('sentInvites');
+    try {
+      const res = await apiFetch('/api/songwriting/invites/sent');
+      if (!res.ok) return;
+      const data = await res.json();
+      const invites = data.invites || [];
+      if (!invites.length) {
+        container.textContent = 'No outstanding invitations.';
+        return;
+      }
+
+      container.innerHTML = '';
+      invites.forEach(invite => {
+        const row = document.createElement('div');
+        const label = document.createElement('span');
+        label.textContent = `${invite.title} — waiting for ${invite.invitee_name || `Player ${invite.invitee_id}`} `;
+        const withdraw = document.createElement('button');
+        withdraw.type = 'button';
+        withdraw.textContent = 'Withdraw';
+        withdraw.addEventListener('click', async () => {
+          try {
+            const response = await apiFetch(
+              `/api/songwriting/drafts/${invite.draft_id}/co_writers/${invite.invitee_id}/invite`,
+              { method: 'DELETE' }
+            );
+            if (!response.ok) {
+              showNotification('Unable to withdraw invitation', 'error');
+              return;
+            }
+            showNotification('Songwriting invitation withdrawn', 'success');
+            await loadSentInvites();
+          } catch {
+            showNotification('Network error', 'error');
+          }
+        });
+        row.append(label, withdraw);
+        container.appendChild(row);
+      });
+    } catch {
+      container.textContent = 'Unable to load sent invitations.';
+    }
+  }
+
   loadPendingInvites();
+  loadSentInvites();
 
   function loadBandMembers() {
     const bandId = new URLSearchParams(window.location.search).get('band_id');
@@ -301,7 +351,8 @@
         const data = await res.json();
         if (res.ok) {
           list = data.co_writers;
-          showNotification(`Invitation sent to ${id}; they must accept before joining the session`, 'success');
+          showNotification('Songwriting invitation sent; they must accept before joining the session', 'success');
+          await loadSentInvites();
         } else {
           showNotification(data.message || data.error || `Failed to invite ${id}`, 'error');
         }
@@ -317,7 +368,7 @@
     ul.innerHTML = '';
     list.forEach(id => {
       const li = document.createElement('li');
-      li.textContent = id;
+      li.textContent = `Player ${id}`;
       ul.appendChild(li);
     });
     lastCollaborators = list.slice();
