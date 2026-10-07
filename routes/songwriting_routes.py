@@ -11,9 +11,11 @@ from backend.models.theme import THEMES
 from services.skill_service import skill_service
 from services.songwriting_service import songwriting_service
 from services.notifications_service import NotificationsService
+from services.mail_service import MailService
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 notifications = NotificationsService()
+mail_service = MailService(notifications=notifications)
 
 
 class PromptPayload(BaseModel):
@@ -160,21 +162,33 @@ def _completion_body(summary: dict) -> str:
 
 
 def _notify_songwriters(draft_id: int, title: str, body: str, type_: str) -> None:
+    """Deliver a real inbox item and its unread notification to all writers."""
     draft = songwriting_service.get_draft(draft_id)
     if not draft:
         return
     recipients = {draft.creator_id, *songwriting_service.get_co_writers(draft_id)}
     for recipient in recipients:
         try:
-            notifications.create(
-                user_id=recipient,
-                title=title,
+            # One thread per recipient avoids exposing collaborator recipient lists
+            # and uses the same mail model as the in-game inbox/unread badge.
+            mail_service.compose(
+                sender_id=0,
+                recipient_ids=[recipient],
+                subject=title,
                 body=body,
-                type_=type_,
             )
         except Exception:
-            # Completion state should never be rolled back by an inbox outage.
-            pass
+            # Mail should not roll back songwriting completion. Fall back to a
+            # plain notification so the player still receives the result.
+            try:
+                notifications.create(
+                    user_id=recipient,
+                    title=title,
+                    body=body,
+                    type_=type_,
+                )
+            except Exception:
+                pass
 
 
 @router.post("/drafts/{draft_id}/complete")
