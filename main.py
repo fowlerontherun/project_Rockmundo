@@ -49,6 +49,7 @@ from routes import (
     shipping_routes,
     social_routes,
     songwriting_routes,
+    song_catalogue_routes,
     song_forecast_routes,
     sponsorship,
     live_album_routes,
@@ -155,6 +156,7 @@ app.include_router(
 app.include_router(sales.router, prefix="/api", tags=["Sales"])
 app.include_router(social_routes.router, prefix="/api/social", tags=["Social"])
 app.include_router(songwriting_routes.router, prefix="/api", tags=["Songwriting"])
+app.include_router(song_catalogue_routes.router, prefix="/api", tags=["Songs"])
 app.include_router(media_routes.router, prefix="/api", tags=["Media & Publicity"])
 app.include_router(video_routes.router, tags=["Videos"])
 app.include_router(legacy_routes.router, prefix="/api", tags=["Legacy"])
