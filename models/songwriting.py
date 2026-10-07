@@ -31,3 +31,14 @@ class LyricDraft:
     plagiarism_warning: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     metadata: GenerationMetadata = field(default_factory=GenerationMetadata)
+    status: str = "draft"
+    completed_at: Optional[datetime] = None
+    writing_minutes: int = 60
+    revision_sessions: int = 0
+    quality_score: Optional[int] = None
+    polish_available: bool = False
+    polish_attempted: bool = False
+    polish_success_chance: Optional[int] = None
+    polish_succeeded: Optional[bool] = None
+    polish_skipped: bool = False
+    polish_bonus: int = 0

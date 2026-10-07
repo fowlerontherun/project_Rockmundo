@@ -4,16 +4,18 @@ from __future__ import annotations
 from typing import Dict, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 from auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
 from services.skill_service import skill_service
 from services.songwriting_service import songwriting_service
 from services.notifications_service import NotificationsService
+from services.mail_service import MailService
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 notifications = NotificationsService()
+mail_service = MailService(notifications=notifications)
 
 
 class PromptPayload(BaseModel):
@@ -50,6 +52,18 @@ class DraftUpdate(BaseModel):
 
 class CoWriterPayload(BaseModel):
     co_writer_id: int
+
+
+class FinalizePayload(BaseModel):
+    band_id: int
+    duration_sec: int
+    distribution_channels: list[str] = Field(default_factory=list)
+
+    @validator("band_id", "duration_sec")
+    def validate_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("must_be_positive")
+        return value
 
 
 class LyricsPayload(BaseModel):
@@ -91,8 +105,10 @@ def list_drafts(user_id: int = Depends(get_current_user_id)):
 @router.get("/drafts/{draft_id}")
 def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
     draft = songwriting_service.get_draft(draft_id)
-    if not draft or draft.creator_id != user_id:
+    if not draft:
         raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
     return draft
 
 
@@ -103,17 +119,197 @@ def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_c
         raise HTTPException(status_code=404, detail="draft_not_found")
     if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
         raise HTTPException(status_code=403, detail="forbidden")
-    draft = songwriting_service.update_draft(
-        draft_id,
-        user_id,
-        lyrics=updates.lyrics,
-        themes=updates.themes,
-        chord_progression=updates.chord_progression,
-        album_art_url=updates.album_art_url,
-
-    )
+    try:
+        draft = songwriting_service.update_draft(
+            draft_id,
+            user_id,
+            lyrics=updates.lyrics,
+            themes=updates.themes,
+            chord_progression=updates.chord_progression,
+            album_art_url=updates.album_art_url,
+        )
+    except ValueError as exc:
+        if str(exc) == "song_already_completed":
+            raise HTTPException(status_code=409, detail=str(exc))
+        raise
     return draft
 
+
+
+def _format_minutes(total: int) -> str:
+    hours, minutes = divmod(total, 60)
+    if hours and minutes:
+        return f"{hours}h {minutes}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"
+
+
+def _completion_body(summary: dict) -> str:
+    time = summary["writing_time"]
+    polish = summary["polish"]
+    parts = [
+        f"Writing time: {_format_minutes(time['total_minutes'])}",
+        f"initial {_format_minutes(time['initial_minutes'])}",
+        f"{time['revision_sessions']} revision session(s) / {_format_minutes(time['revision_minutes'])}",
+    ]
+    if time["polish_minutes"]:
+        parts.append(f"polish {_format_minutes(time['polish_minutes'])}")
+    body = f"{summary['title']} is complete. " + "; ".join(parts) + f". Song quality: {summary['quality_score']}/100."
+    if polish["available"]:
+        body += f" You can do one final polish session with a {polish['success_chance']}% chance of improving it."
+    return body
+
+
+def _send_private_inbox(
+    recipient: int,
+    title: str,
+    body: str,
+    type_: str,
+) -> None:
+    """Send one private inbox thread with a notification fallback."""
+    try:
+        mail_service.compose(
+            sender_id=0,
+            recipient_ids=[recipient],
+            subject=title,
+            body=body,
+        )
+    except Exception:
+        try:
+            notifications.create(
+                user_id=recipient,
+                title=title,
+                body=body,
+                type_=type_,
+            )
+        except Exception:
+            pass
+
+
+def _notify_songwriters(draft_id: int, title: str, body: str, type_: str) -> None:
+    """Deliver a private inbox item to the creator and accepted co-writers."""
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        return
+    recipients = {draft.creator_id, *songwriting_service.get_co_writers(draft_id)}
+    for recipient in recipients:
+        _send_private_inbox(recipient, title, body, type_)
+
+
+@router.post("/drafts/{draft_id}/complete")
+def complete_songwriting(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        summary = songwriting_service.complete_song(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    if summary["newly_completed"]:
+        _notify_songwriters(
+            draft_id,
+            title=f"Song complete: {summary['title']}",
+            body=_completion_body(summary),
+            type_="songwriting_complete",
+        )
+    return summary
+
+
+@router.post("/drafts/{draft_id}/polish")
+def polish_songwriting(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        summary = songwriting_service.polish_song(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {"song_not_completed", "polish_already_attempted", "polish_already_resolved"}:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
+
+    polish = summary["polish"]
+    if polish["succeeded"]:
+        title = f"Polish worked: {summary['title']}"
+        result = f"The extra session added {polish['quality_bonus']} quality points."
+    else:
+        title = f"Polish finished: {summary['title']}"
+        result = "The extra session did not improve the song this time."
+    _notify_songwriters(
+        draft_id,
+        title=title,
+        body=f"{result} Final song quality: {summary['quality_score']}/100. Total writing time: {_format_minutes(summary['writing_time']['total_minutes'])}.",
+        type_="songwriting_polish",
+    )
+    return summary
+
+
+@router.post("/drafts/{draft_id}/skip-polish")
+def skip_songwriting_polish(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        return songwriting_service.skip_polish(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {"song_not_completed", "polish_already_resolved"}:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
+
+
+@router.post("/drafts/{draft_id}/finalize")
+def finalize_songwriting(
+    draft_id: int,
+    payload: FinalizePayload,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        result = songwriting_service.finalize_song(
+            draft_id,
+            user_id,
+            band_id=payload.band_id,
+            duration_sec=payload.duration_sec,
+            distribution_channels=payload.distribution_channels,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {
+            "song_not_completed",
+            "polish_choice_required",
+            "invalid_duration",
+        }:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
+
+    if not result["already_finalized"]:
+        _notify_songwriters(
+            draft_id,
+            title=f"Song ready: {songwriting_service.get_draft(draft_id).title}",
+            body=(
+                f"The completed song is now in your music catalogue. "
+                f"Writing quality: {result['quality_score']}/100. "
+                f"Total writing time: {_format_minutes(result['writing_minutes'])}."
+            ),
+            type_="songwriting_finalized",
+        )
+    return result
 
 
 @router.get("/drafts/{draft_id}/versions")
@@ -156,17 +352,16 @@ def add_co_writer(
         raise HTTPException(status_code=400, detail=str(exc))
 
     draft = songwriting_service.get_draft(draft_id)
-    try:
-        notifications.create(
-            user_id=payload.co_writer_id,
-            title="Songwriting session invitation",
-            body=f"You have been invited to co-write '{draft.title}'. Open Songwriting to accept or decline.",
-            type_="songwriting_invite",
-        )
-    except Exception:
-        # The invite itself remains valid even if realtime/notification delivery
-        # is temporarily unavailable; it will still appear in pending invites.
-        pass
+    _send_private_inbox(
+        payload.co_writer_id,
+        title="Songwriting session invitation",
+        body=(
+            f"You have been invited to co-write '{draft.title}'. "
+            "Open Songwriting and use Pending Songwriting Invitations to accept or decline. "
+            f"After accepting, open /frontend/song_collab.html?draft_id={draft_id}."
+        ),
+        type_="songwriting_invite",
+    )
 
     return {
         "co_writers": list(songwriting_service.get_co_writers(draft_id)),
@@ -189,15 +384,12 @@ def accept_songwriting_invite(
 
     draft = songwriting_service.get_draft(draft_id)
     if draft:
-        try:
-            notifications.create(
-                user_id=draft.creator_id,
-                title="Songwriting invitation accepted",
-                body=f"A player accepted the invitation to co-write '{draft.title}'.",
-                type_="songwriting_invite",
-            )
-        except Exception:
-            pass
+        _send_private_inbox(
+            draft.creator_id,
+            title="Songwriting invitation accepted",
+            body=f"A player accepted the invitation to co-write '{draft.title}'.",
+            type_="songwriting_invite",
+        )
     return {"ok": True, "draft_id": draft_id}
 
 
@@ -206,11 +398,37 @@ def decline_songwriting_invite(
     draft_id: int,
     user_id: int = Depends(get_current_user_id),
 ):
+    draft = songwriting_service.get_draft(draft_id)
     try:
         songwriting_service.decline_co_writer_invite(draft_id, user_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="invite_not_found")
+    if draft:
+        _send_private_inbox(
+            draft.creator_id,
+            title="Songwriting invitation declined",
+            body=f"A player declined the invitation to co-write '{draft.title}'.",
+            type_="songwriting_invite",
+        )
     return {"ok": True, "draft_id": draft_id}
+
+
+@router.get("/me")
+def songwriting_me(user_id: int = Depends(get_current_user_id)):
+    return {"user_id": user_id}
+
+
+@router.get("/drafts/{draft_id}/completion")
+def get_completion_summary(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return songwriting_service.completion_summary(draft_id)
 
 
 @router.get("/themes")

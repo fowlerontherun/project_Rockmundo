@@ -2,6 +2,7 @@
 import pytest
 from utils.db import aget_conn
 from backend.services.mail_service import MailService
+from backend.services import mailbox_service
 from backend.services.notifications_service import NotificationsService
 
 MAIL_DDL = """
@@ -57,3 +58,26 @@ async def test_compose_and_unread_badge(tmp_path):
     badge = mail.unread_badge(user_id=2)
     assert badge["mail"] >= 1
     assert badge["notifications"] >= 1
+
+@pytest.mark.asyncio
+async def test_thread_mail_is_visible_in_live_inbox(tmp_path, monkeypatch):
+    db = str(tmp_path / "test_mail_inbox.db")
+    await setup_db(db)
+    notif = NotificationsService(db_path=db)
+    mail = MailService(db_path=db, notifications=notif)
+    monkeypatch.setattr(mailbox_service, "DB_PATH", db)
+
+    sent = mail.compose(
+        sender_id=0,
+        recipient_ids=[2],
+        subject="Song complete: Test",
+        body="Writing time: 1h. Song quality: 70/100.",
+    )
+    inbox = await mailbox_service.get_inbox(2)
+
+    assert len(inbox) == 1
+    assert inbox[0]["message_id"] == sent["message_id"]
+    assert inbox[0]["subject"] == "Song complete: Test"
+    assert inbox[0]["body"] == "Writing time: 1h. Song quality: 70/100."
+    assert inbox[0]["read"] == 0
+

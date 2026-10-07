@@ -6,7 +6,7 @@ Routes for AI-assisted songwriting collaboration.
 Generate an initial draft from a title, genre and exactly three themes.
 
 ## GET /songwriting/drafts/{draft_id}
-Retrieve a draft created by the current user.
+Retrieve a draft when the current user is its creator or an accepted co-writer.
 
 ## PUT /songwriting/drafts/{draft_id}
 Update a draft's lyrics, chords, themes, chord progression or album art.  Accessible to the creator and any co-writers.
@@ -19,4 +19,64 @@ Return the list of co-writer user IDs for a draft.  Only the creator and existin
 
 ## POST /songwriting/drafts/{draft_id}/co_writers
 Add a co-writer to a draft.  The user making the request must share a band with the new co-writer.  Returns the updated co-writer list.
+
+
+
+## POST /songwriting/drafts/{draft_id}/complete
+Finish the songwriting phase. The response contains a 1-100 song quality score,
+a writing-time breakdown, and a one-time random polish success chance. The first
+completion also creates a private in-game inbox thread for the creator and each
+accepted co-writer. Mail delivery raises the normal unread-mail notification; if
+mail storage is unavailable, the system falls back to a
+`songwriting_complete` notification so the result is not silently lost.
+
+## POST /songwriting/drafts/{draft_id}/polish
+Run the single optional post-completion writing session. The session always adds
+60 minutes to the writing-time breakdown. It can improve quality by 2-8 points
+when the previously displayed random chance succeeds; failure never reduces
+quality. The outcome is delivered as another private inbox item.
+
+
+## POST /songwriting/drafts/{draft_id}/skip-polish
+Decline the optional final polish session and lock in the current songwriting
+quality without adding any extra writing time. This lets the player make an
+explicit choice between attempting polish and keeping the completed song as-is.
+
+## POST /songwriting/drafts/{draft_id}/finalize
+Create the canonical catalogue song from a completed draft after the polish choice
+has been resolved. Requires `band_id`, `duration_sec`, and optional
+`distribution_channels`. Only the draft creator can finalize, and they must be
+a member of the target band.
+
+Finalization persists the completed lyrics, chord progression, themes, quality
+score, writing-time breakdown, and polish result in
+`songwriting_song_metadata`. It is idempotent by draft ID: retrying returns the
+existing song rather than creating a duplicate or sending another
+`songwriting_finalized` inbox item.
+
+## Draft persistence
+The live songwriting service persists active drafts in SQLite rather than keeping
+them only in process memory. Draft content, completion/polish state, accepted
+co-writers, pending invitations, and version history are restored when the
+service restarts. Unit-test service instances remain in-memory unless a
+`draft_db_path` is explicitly supplied.
+
+Schema: `179_songwriting_draft_persistence.sql`.
+
+## GET /songwriting/me
+Return the authenticated user ID for the lightweight songwriting UI. This is
+used to distinguish creator-owned drafts from drafts where the player is an
+accepted co-writer.
+
+## GET /songwriting/drafts/{draft_id}/completion
+Return the current completion/quality/polish summary for a draft the player can
+access. This allows completed drafts to restore their finish/polish state after
+a page reload or service restart.
+
+## Writing-time accounting
+There is currently no draft-linked scheduler record that tracks real elapsed
+songwriting minutes. Until that exists, songwriting uses deterministic gameplay
+session values: 60 minutes for the initial writing session, 30 minutes for each
+saved revision session, and 60 minutes for the optional final polish session.
+These values drive the completion breakdown shown in the UI and inbox.
 

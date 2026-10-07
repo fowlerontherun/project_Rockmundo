@@ -154,3 +154,54 @@ async def test_update_song_allows_permitted_field(tmp_path):
         row = await cur.fetchone()
 
     assert row["title"] == "New"
+
+@pytest.mark.asyncio
+async def test_songwriting_metadata_persists_with_song(tmp_path):
+    db_path = tmp_path / "songs.db"
+    await setup_db(db_path)
+    service = SongService(db=str(db_path))
+
+    result = service.create_song(
+        {
+            "band_id": 7,
+            "title": "Polished",
+            "duration_sec": 210,
+            "genre": "rock",
+            "royalties_split": {1: 100},
+            "songwriting_metadata": {
+                "draft_id": 42,
+                "creator_id": 1,
+                "lyrics": "finished lyrics",
+                "chord_progression": "Am F C G",
+                "themes": ["love", "hope", "loss"],
+                "quality_score": 73,
+                "writing_minutes": 180,
+                "initial_minutes": 60,
+                "revision_sessions": 2,
+                "revision_minutes": 60,
+                "polish_minutes": 60,
+                "polish_attempted": True,
+                "polish_skipped": False,
+                "polish_succeeded": True,
+                "polish_success_chance": 55,
+                "polish_bonus": 6,
+                "distribution_channels": ["digital", "streaming"],
+                "songwriting_completed_at": "2026-10-07T12:00:00",
+            },
+        }
+    )
+
+    metadata = service.get_songwriting_metadata(result["song_id"])
+    assert metadata["draft_id"] == 42
+    assert metadata["quality_score"] == 73
+    assert metadata["lyrics"] == "finished lyrics"
+    assert metadata["chord_progression"] == "Am F C G"
+    assert metadata["themes"] == ["love", "hope", "loss"]
+    assert metadata["writing_minutes"] == 180
+    assert metadata["polish_attempted"] is True
+    assert metadata["polish_succeeded"] is True
+    assert metadata["distribution_channels"] == ["digital", "streaming"]
+
+    by_draft = service.get_songwriting_metadata_by_draft(42)
+    assert by_draft["song_id"] == result["song_id"]
+

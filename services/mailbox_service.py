@@ -43,40 +43,48 @@ async def send_message(
 
 
 async def get_inbox(user_id: int) -> List[Dict[str, object]]:
+    """Return the user's thread-based inbox.
+
+    The current RockMundo mail schema stores subjects on `mail_threads` and
+    bodies on `mail_messages`. Older code queried a removed `messages`
+    table, which meant MailService-created system inbox items were invisible.
+    """
     async with aget_conn(DB_PATH) as conn:
         cur = await conn.execute(
             """
-            SELECT id, sender_id, subject, body, sent_at, read
-            FROM messages
-            WHERE receiver_id = ? AND deleted = 0
-            ORDER BY sent_at DESC
+            SELECT
+                mm.id AS message_id,
+                mt.id AS thread_id,
+                mm.sender_id,
+                mt.subject,
+                mm.body,
+                mm.created_at,
+                mp.last_read_message_id
+            FROM mail_participants mp
+            JOIN mail_threads mt ON mt.id = mp.thread_id
+            JOIN mail_messages mm ON mm.thread_id = mt.id
+            WHERE mp.user_id = ?
+              AND mm.id = (
+                  SELECT MAX(mm2.id)
+                  FROM mail_messages mm2
+                  WHERE mm2.thread_id = mt.id
+              )
+            ORDER BY mm.created_at DESC
             """,
             (user_id,),
         )
         rows = await cur.fetchall()
 
-        attachments_map: Dict[int, List[Dict[str, str]]] = {}
-        check = await conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='mail_attachments'"
-        )
-        if await check.fetchone():
-            cur = await conn.execute(
-                "SELECT message_id, filename, url FROM mail_attachments WHERE message_id IN ({seq})".format(
-                    seq=",".join(str(r[0]) for r in rows) or "0"
-                )
-            )
-            for msg_id, filename, url in await cur.fetchall():
-                attachments_map.setdefault(msg_id, []).append({"filename": filename, "url": url})
-
     return [
         {
-            "message_id": row[0],
-            "sender_id": row[1],
-            "subject": row[2],
-            "body": row[3],
-            "sent_at": row[4],
-            "read": row[5],
-            "attachments": attachments_map.get(row[0], []),
+            "message_id": row["message_id"],
+            "thread_id": row["thread_id"],
+            "sender_id": row["sender_id"],
+            "subject": row["subject"],
+            "body": row["body"],
+            "sent_at": row["created_at"],
+            "read": int(row["message_id"] <= (row["last_read_message_id"] or 0)),
+            "attachments": [],
         }
         for row in rows
     ]
