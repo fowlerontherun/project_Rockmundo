@@ -3,7 +3,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 from services.luthiery_catalogue_service import DB_PATH
-from services.economy_service import EconomyService,EconomyError\nfrom services.luthiery_reputation_service import LuthieryReputationService
+from services.economy_service import EconomyService,EconomyError
+from services.luthiery_reputation_service import LuthieryReputationService
 class LuthierShopService:
  def __init__(self,db_path:str|None=None):self.db_path=str(db_path or DB_PATH);self.economy=EconomyService(db_path=self.db_path);self.reputation=LuthieryReputationService(self.db_path)
  def ensure_schema(self):
@@ -62,7 +63,10 @@ class LuthierShopService:
     JOIN crafted_items i ON i.id=l.crafted_item_id WHERE l.id=? AND l.status='active' AND i.owner_character_id=l.seller_character_id""",(listing_id,)).fetchone()
    if not row:raise ValueError("Listing is not available")
    result=dict(row)
-   result["maker_reputation"]=self.reputation.profile(int(row["creator_character_id"]))["reputation"]\n   result["history"]=self.reputation.item_history(int(row["crafted_item_id"]))\n   result["desirability"]=self.reputation.desirability(int(row["crafted_item_id"]))\n   result["parts"]=[dict(x) for x in c.execute("""SELECT p.part_type,p.material_key,m.name material_name,p.component_key,co.name component_name,p.quality_contribution
+   result["maker_reputation"]=self.reputation.profile(int(row["creator_character_id"]))["reputation"]
+   result["history"]=self.reputation.item_history(int(row["crafted_item_id"]))
+   result["desirability"]=self.reputation.desirability(int(row["crafted_item_id"]))
+   result["parts"]=[dict(x) for x in c.execute("""SELECT p.part_type,p.material_key,m.name material_name,p.component_key,co.name component_name,p.quality_contribution
     FROM crafted_item_parts p LEFT JOIN crafting_materials m ON m.key=p.material_key LEFT JOIN crafting_component_designs co ON co.key=p.component_key
     WHERE p.crafted_item_id=? ORDER BY p.id""",(row["crafted_item_id"],))]
    return result
