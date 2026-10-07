@@ -115,3 +115,50 @@ def test_edit_draft_invalid_themes_route(client_factory):
     )
     assert resp2.status_code == 422
     assert resp2.json()["detail"][0]["msg"].endswith("unknown_theme")
+
+def test_complete_route_notifies_all_songwriters_once(client_factory, monkeypatch):
+    class StubRandom:
+        def randint(self, low, high):
+            return 55
+
+    class RecordingNotifications:
+        def __init__(self):
+            self.sent = []
+
+        def create(self, **kwargs):
+            self.sent.append(kwargs)
+            return len(self.sent)
+
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    svc.rng = StubRandom()
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Finished Song",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+    recorder = RecordingNotifications()
+    monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
+    monkeypatch.setattr(songwriting_routes, "notifications", recorder)
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+
+    first = client.post(f"/songwriting/drafts/{draft.id}/complete")
+    assert first.status_code == 200
+    payload = first.json()
+    assert payload["quality_score"] == 50
+    assert payload["polish"]["success_chance"] == 55
+    assert {item["user_id"] for item in recorder.sent} == {1, 2}
+    assert all(item["type_"] == "songwriting_complete" for item in recorder.sent)
+    assert all("Song quality: 50/100" in item["body"] for item in recorder.sent)
+    assert all("Writing time: 1h" in item["body"] for item in recorder.sent)
+
+    second = client.post(f"/songwriting/drafts/{draft.id}/complete")
+    assert second.status_code == 200
+    assert second.json()["newly_completed"] is False
+    assert len(recorder.sent) == 2
