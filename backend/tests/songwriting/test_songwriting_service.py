@@ -1,4 +1,5 @@
 import asyncio
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ from backend.services.band_service import BandService, Base  # noqa: E402
 from backend.services.originality_service import OriginalityService  # noqa: E402
 from backend.services.skill_service import SONGWRITING_SKILL, SkillService  # noqa: E402
 from backend.services.songwriting_service import SongwritingService  # noqa: E402
+from backend.services.song_service import SongService  # noqa: E402
 
 
 class FakeLLM:
@@ -534,6 +536,67 @@ def test_polish_can_be_explicitly_skipped_without_extra_time():
 
         with pytest.raises(ValueError, match="polish_already_resolved"):
             svc.polish_song(draft.id, user_id=1)
+
+    asyncio.run(run())
+
+def test_finalize_persists_completed_draft_once(tmp_path):
+    class StubBandService:
+        def get_band_info(self, band_id):
+            return {
+                "id": band_id,
+                "members": [{"user_id": 1, "role": "founder"}],
+            }
+
+    async def run():
+        db_path = tmp_path / "songs.db"
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                "CREATE TABLE songs (id INTEGER PRIMARY KEY AUTOINCREMENT, band_id INTEGER, title TEXT, duration_sec INTEGER, genre TEXT, play_count INTEGER, original_song_id INTEGER, license_fee INTEGER DEFAULT 0, royalty_rate REAL DEFAULT 0.0, legacy_state TEXT DEFAULT 'new', original_release_date TEXT)"
+            )
+            conn.execute(
+                "CREATE TABLE royalties (id INTEGER PRIMARY KEY AUTOINCREMENT, song_id INTEGER, user_id INTEGER, percent INTEGER)"
+            )
+
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            band_service=StubBandService(),
+            song_service=SongService(db=str(db_path)),
+        )
+        draft = await _generate(svc)
+        svc.complete_song(draft.id, user_id=1)
+        svc.skip_polish(draft.id, user_id=1)
+
+        first = svc.finalize_song(
+            draft.id,
+            user_id=1,
+            band_id=7,
+            duration_sec=205,
+            distribution_channels=["digital", "streaming"],
+        )
+        assert first["already_finalized"] is False
+        assert first["quality_score"] == 50
+
+        metadata = svc.song_service.get_songwriting_metadata(first["song_id"])
+        assert metadata["draft_id"] == draft.id
+        assert metadata["lyrics"] == draft.lyrics
+        assert metadata["quality_score"] == 50
+        assert metadata["writing_minutes"] == 60
+        assert metadata["polish_skipped"] is True
+        assert metadata["distribution_channels"] == ["digital", "streaming"]
+
+        second = svc.finalize_song(
+            draft.id,
+            user_id=1,
+            band_id=7,
+            duration_sec=205,
+            distribution_channels=["digital"],
+        )
+        assert second["already_finalized"] is True
+        assert second["song_id"] == first["song_id"]
+
+        with sqlite3.connect(db_path) as conn:
+            assert conn.execute("SELECT COUNT(*) FROM songs").fetchone()[0] == 1
 
     asyncio.run(run())
 
