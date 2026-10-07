@@ -510,3 +510,30 @@ def test_completion_tracks_time_quality_and_single_polish_session():
             svc.update_draft(draft.id, user_id=1, lyrics="too late")
 
     asyncio.run(run())
+
+def test_polish_can_be_explicitly_skipped_without_extra_time():
+    class StubRandom:
+        def randint(self, low, high):
+            return 35
+
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        svc.rng = StubRandom()
+        draft = await _generate(svc)
+
+        completed = svc.complete_song(draft.id, user_id=1)
+        assert completed["writing_time"]["total_minutes"] == 60
+        assert completed["polish"]["available"] is True
+
+        skipped = svc.skip_polish(draft.id, user_id=1)
+        assert skipped["polish"]["available"] is False
+        assert skipped["polish"]["skipped"] is True
+        assert skipped["polish"]["attempted"] is False
+        assert skipped["quality_score"] == 50
+        assert skipped["writing_time"]["total_minutes"] == 60
+
+        with pytest.raises(ValueError, match="polish_already_resolved"):
+            svc.polish_song(draft.id, user_id=1)
+
+    asyncio.run(run())
+
