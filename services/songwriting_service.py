@@ -648,12 +648,22 @@ class SongwritingService:
         summary = self.completion_summary(draft_id)
         time = summary["writing_time"]
         polish = summary["polish"]
+
+        songwriters = [draft.creator_id] + sorted(self.get_co_writers(draft_id))
+        base_share = 100 // len(songwriters)
+        remainder = 100 - (base_share * len(songwriters))
+        royalties_split = {
+            writer_id: base_share + (remainder if index == 0 else 0)
+            for index, writer_id in enumerate(songwriters)
+        }
+
         result = self.song_service.create_song(
             {
                 "band_id": band_id,
                 "title": draft.title,
                 "duration_sec": duration_sec,
                 "genre": draft.genre,
+                "royalties_split": royalties_split,
                 "songwriting_metadata": {
                     "draft_id": draft.id,
                     "creator_id": draft.creator_id,
@@ -715,25 +725,35 @@ class SongwritingService:
         if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
             if not (self.band_service and self.band_service.share_band(draft.creator_id, user_id)):
                 raise PermissionError("forbidden")
-        if lyrics is not None:
+        changed = False
+        if lyrics is not None and lyrics != draft.lyrics:
             draft.lyrics = lyrics
             self._songs[draft_id].lyrics = lyrics
+            changed = True
         if themes is not None:
             if len(themes) != 3:
                 raise ValueError("exactly_three_themes_required")
             if any(t not in THEMES for t in themes):
                 raise ValueError("unknown_theme")
-            draft.themes = themes
-            self._songs[draft_id].themes = themes
+            if themes != draft.themes:
+                draft.themes = themes
+                self._songs[draft_id].themes = themes
+                changed = True
 
-        if chord_progression is not None:
+        if chord_progression is not None and chord_progression != draft.chord_progression:
             draft.chord_progression = chord_progression
             self._songs[draft_id].chord_progression = chord_progression
-        if album_art_url is not None:
+            changed = True
+        if album_art_url is not None and album_art_url != draft.album_art_url:
             draft.album_art_url = album_art_url
             self._songs[draft_id].album_art_url = album_art_url
+            changed = True
 
-        # save snapshot of updated state
+        if not changed:
+            return draft
+
+        # A real saved change is one revision session; no-op saves do not award
+        # XP, add writing time, or create duplicate history snapshots.
         self.save_version(
             draft_id, user_id, draft.lyrics, draft.chord_progression, draft.themes
         )
