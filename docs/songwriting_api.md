@@ -6,7 +6,7 @@ Routes for AI-assisted songwriting collaboration.
 Generate an initial draft from a title, genre and exactly three themes.
 
 ## GET /songwriting/drafts/{draft_id}
-Retrieve a draft created by the current user.
+Retrieve a draft when the current user is its creator or an accepted co-writer.
 
 ## PUT /songwriting/drafts/{draft_id}
 Update a draft's lyrics, chords, themes, chord progression or album art.  Accessible to the creator and any co-writers.
@@ -39,3 +39,16 @@ quality. A `songwriting_polish` inbox notification records the outcome.
 Decline the optional final polish session and lock in the current songwriting
 quality without adding any extra writing time. This lets the player make an
 explicit choice between attempting polish and keeping the completed song as-is.
+
+## POST /songwriting/drafts/{draft_id}/finalize
+Create the canonical catalogue song from a completed draft after the polish choice
+has been resolved. Requires `band_id`, `duration_sec`, and optional
+`distribution_channels`. Only the draft creator can finalize, and they must be
+a member of the target band.
+
+Finalization persists the completed lyrics, chord progression, themes, quality
+score, writing-time breakdown, and polish result in
+`songwriting_song_metadata`. It is idempotent by draft ID: retrying returns the
+existing song rather than creating a duplicate or sending another
+`songwriting_finalized` inbox item.
+
