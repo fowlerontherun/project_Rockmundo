@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Dict, Set
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 
 from auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
@@ -50,6 +50,18 @@ class DraftUpdate(BaseModel):
 
 class CoWriterPayload(BaseModel):
     co_writer_id: int
+
+
+class FinalizePayload(BaseModel):
+    band_id: int
+    duration_sec: int
+    distribution_channels: list[str] = Field(default_factory=list)
+
+    @validator("band_id", "duration_sec")
+    def validate_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("must_be_positive")
+        return value
 
 
 class LyricsPayload(BaseModel):
@@ -236,6 +248,48 @@ def skip_songwriting_polish(
         if detail in {"song_not_completed", "polish_already_resolved"}:
             raise HTTPException(status_code=409, detail=detail)
         raise
+
+
+@router.post("/drafts/{draft_id}/finalize")
+def finalize_songwriting(
+    draft_id: int,
+    payload: FinalizePayload,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        result = songwriting_service.finalize_song(
+            draft_id,
+            user_id,
+            band_id=payload.band_id,
+            duration_sec=payload.duration_sec,
+            distribution_channels=payload.distribution_channels,
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {
+            "song_not_completed",
+            "polish_choice_required",
+            "invalid_duration",
+        }:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
+
+    if not result["already_finalized"]:
+        _notify_songwriters(
+            draft_id,
+            title=f"Song ready: {songwriting_service.get_draft(draft_id).title}",
+            body=(
+                f"The completed song is now in your music catalogue. "
+                f"Writing quality: {result['quality_score']}/100. "
+                f"Total writing time: {_format_minutes(result['writing_minutes'])}."
+            ),
+            type_="songwriting_finalized",
+        )
+    return result
 
 
 @router.get("/drafts/{draft_id}/versions")
