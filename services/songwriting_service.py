@@ -259,6 +259,8 @@ class SongwritingService:
         summary without generating duplicate state changes.
         """
         draft = self._require_writer(draft_id, user_id)
+        if draft.creator_id != user_id:
+            raise PermissionError("creator_only")
         newly_completed = draft.completed_at is None
         if newly_completed:
             draft.status = "completed"
@@ -278,6 +280,8 @@ class SongwritingService:
         choice. A failed polish never reduces song quality.
         """
         draft = self._require_writer(draft_id, user_id)
+        if draft.creator_id != user_id:
+            raise PermissionError("creator_only")
         if draft.completed_at is None:
             raise ValueError("song_not_completed")
         if draft.polish_attempted:
@@ -305,6 +309,8 @@ class SongwritingService:
     def skip_polish(self, draft_id: int, user_id: int) -> dict:
         """Decline the optional polish session and keep the completed quality."""
         draft = self._require_writer(draft_id, user_id)
+        if draft.creator_id != user_id:
+            raise PermissionError("creator_only")
         if draft.completed_at is None:
             raise ValueError("song_not_completed")
         if draft.polish_attempted or draft.polish_skipped or not draft.polish_available:
