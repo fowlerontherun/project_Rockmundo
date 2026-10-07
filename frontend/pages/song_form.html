@@ -132,6 +132,9 @@
         'success'
       );
       await loadPendingInvites();
+      if (action === 'accept') {
+        window.location.href = `song_collab.html?draft_id=${draftId}`;
+      }
     } catch {
       showNotification('Network error', 'error');
     }
