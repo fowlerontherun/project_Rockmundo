@@ -357,7 +357,8 @@ def add_co_writer(
         title="Songwriting session invitation",
         body=(
             f"You have been invited to co-write '{draft.title}'. "
-            "Open Songwriting and use Pending Songwriting Invitations to accept or decline."
+            "Open Songwriting and use Pending Songwriting Invitations to accept or decline. "
+            f"After accepting, open /frontend/song_collab.html?draft_id={draft_id}."
         ),
         type_="songwriting_invite",
     )
