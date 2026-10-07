@@ -54,3 +54,12 @@ score, writing-time breakdown, and polish result in
 existing song rather than creating a duplicate or sending another
 `songwriting_finalized` inbox item.
 
+## Draft persistence
+The live songwriting service persists active drafts in SQLite rather than keeping
+them only in process memory. Draft content, completion/polish state, accepted
+co-writers, pending invitations, and version history are restored when the
+service restarts. Unit-test service instances remain in-memory unless a
+`draft_db_path` is explicitly supplied.
+
+Schema: `179_songwriting_draft_persistence.sql`.
+
