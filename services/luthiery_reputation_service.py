@@ -15,7 +15,9 @@ class LuthieryReputationService:
     CREATE TABLE IF NOT EXISTS crafted_item_notable_history(
     id INTEGER PRIMARY KEY AUTOINCREMENT,crafted_item_id INTEGER NOT NULL,event_type TEXT NOT NULL,
     character_id INTEGER,details_json TEXT NOT NULL DEFAULT '{}',created_at TEXT NOT NULL DEFAULT(datetime('now')));
-    CREATE INDEX IF NOT EXISTS ix_luthier_notable_item ON crafted_item_notable_history(crafted_item_id,created_at);\n    CREATE UNIQUE INDEX IF NOT EXISTS ux_luthier_notable_event ON crafted_item_notable_history(crafted_item_id,event_type,details_json);\n    CREATE TABLE IF NOT EXISTS luthier_achievements(id INTEGER PRIMARY KEY AUTOINCREMENT,character_id INTEGER NOT NULL,achievement_key TEXT NOT NULL,crafted_item_id INTEGER,details_json TEXT NOT NULL DEFAULT '{}',unlocked_at TEXT NOT NULL DEFAULT(datetime('now')),UNIQUE(character_id,achievement_key));""")
+    CREATE INDEX IF NOT EXISTS ix_luthier_notable_item ON crafted_item_notable_history(crafted_item_id,created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_luthier_notable_event ON crafted_item_notable_history(crafted_item_id,event_type,details_json);
+    CREATE TABLE IF NOT EXISTS luthier_achievements(id INTEGER PRIMARY KEY AUTOINCREMENT,character_id INTEGER NOT NULL,achievement_key TEXT NOT NULL,crafted_item_id INTEGER,details_json TEXT NOT NULL DEFAULT '{}',unlocked_at TEXT NOT NULL DEFAULT(datetime('now')),UNIQUE(character_id,achievement_key));""")
  def award_sale(self,conn,item_id:int,buyer:int,price:int)->int:
   row=conn.execute("SELECT creator_character_id,quality_score FROM crafted_items WHERE id=?",(item_id,)).fetchone()
   if not row:return 0
@@ -68,7 +70,8 @@ class LuthieryReputationService:
    if not row:return {"score":0,"tier":"ordinary"}
    rep=c.execute("SELECT COALESCE(SUM(points),0) FROM luthier_reputation_events WHERE luthier_character_id=?",(int(row[0]),)).fetchone()[0]
    owners=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='owner'",(item_id,)).fetchone()[0]
-   notable=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type IN ('notable_gig','notable_recording')",(item_id,)).fetchone()[0]\n   famous=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='famous_owner'",(item_id,)).fetchone()[0]
+   notable=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type IN ('notable_gig','notable_recording')",(item_id,)).fetchone()[0]
+   famous=c.execute("SELECT COUNT(*) FROM crafted_item_notable_history WHERE crafted_item_id=? AND event_type='famous_owner'",(item_id,)).fetchone()[0]
    score=min(100,round(float(row[1] or 0)*.55+min(20,int(rep)*.2)+min(10,int(owners)*2)+min(15,int(notable)*5)+min(10,int(famous)*5)))
    tier="iconic" if score>=90 else "collectible" if score>=75 else "notable" if score>=60 else "ordinary"
    return {"score":score,"tier":tier}
