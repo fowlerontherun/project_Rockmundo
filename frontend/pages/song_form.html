@@ -57,12 +57,19 @@
   <h3>Current Collaborators</h3>
   <ul id="collaborators"></ul>
 </div>
+<div id="completionPanel" hidden>
+  <h3>Finish Songwriting</h3>
+  <p id="completionStatus">When the song is ready, finish the writing phase to see its quality.</p>
+  <button type="button" id="completeSong">Finish Writing</button>
+  <button type="button" id="polishSong" hidden>Do Final Polish Session</button>
+</div>
 <script src="../components/globalSearch.js"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script type="module" src="../dist/index.js"></script>
 <script>
   let currentDraftId = null;
+  let currentDraftSnapshot = null;
   let lastCollaborators = [];
 
   function loadSkill() {
@@ -220,6 +227,120 @@
     }, 5000);
   }
 
+  function formatMinutes(total) {
+    const hours = Math.floor(total / 60);
+    const minutes = total % 60;
+    if (hours && minutes) return `${hours}h ${minutes}m`;
+    if (hours) return `${hours}h`;
+    return `${minutes}m`;
+  }
+
+  function renderCompletion(summary) {
+    const panel = document.getElementById('completionPanel');
+    const status = document.getElementById('completionStatus');
+    const complete = document.getElementById('completeSong');
+    const polish = document.getElementById('polishSong');
+    panel.hidden = false;
+
+    if (!summary || summary.status !== 'completed') {
+      status.textContent = 'When the song is ready, finish the writing phase to see its quality.';
+      complete.hidden = false;
+      polish.hidden = true;
+      return;
+    }
+
+    const time = summary.writing_time;
+    const details = [
+      `initial ${formatMinutes(time.initial_minutes)}`,
+      `${time.revision_sessions} revision session(s) / ${formatMinutes(time.revision_minutes)}`
+    ];
+    if (time.polish_minutes) details.push(`polish ${formatMinutes(time.polish_minutes)}`);
+    status.textContent =
+      `Song complete — quality ${summary.quality_score}/100. Writing time: ${formatMinutes(time.total_minutes)} (${details.join(', ')}).`;
+
+    complete.hidden = true;
+    document.getElementById('lyrics').readOnly = true;
+    document.getElementById('chord_progression').readOnly = true;
+
+    if (summary.polish.available && !summary.polish.attempted) {
+      polish.hidden = false;
+      polish.textContent = `Do Final Polish Session (${summary.polish.success_chance}% chance)`;
+    } else {
+      polish.hidden = true;
+      if (summary.polish.attempted) {
+        status.textContent += summary.polish.succeeded
+          ? ` Polish worked (+${summary.polish.quality_bonus} quality).`
+          : ' Polish did not improve the song this time.';
+      }
+    }
+  }
+
+  async function syncDraftBeforeCompletion() {
+    if (!currentDraftId || !currentDraftSnapshot) return true;
+    const lyrics = document.getElementById('lyrics').value;
+    const chord = document.getElementById('chord_progression').value;
+    const updates = {};
+    if (lyrics !== currentDraftSnapshot.lyrics) updates.lyrics = lyrics;
+    if (chord !== currentDraftSnapshot.chord_progression) updates.chord_progression = chord;
+    if (!Object.keys(updates).length) return true;
+
+    const res = await apiFetch(`/api/songwriting/drafts/${currentDraftId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) return false;
+    currentDraftSnapshot = await res.json();
+    return true;
+  }
+
+  document.getElementById('completeSong').addEventListener('click', async function() {
+    if (!currentDraftId) return;
+    try {
+      const synced = await syncDraftBeforeCompletion();
+      if (!synced) {
+        showNotification('Unable to save the final songwriting changes', 'error');
+        return;
+      }
+      const res = await apiFetch(`/api/songwriting/drafts/${currentDraftId}/complete`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showNotification(data.detail || 'Unable to complete the song', 'error');
+        return;
+      }
+      renderCompletion(data);
+      showNotification(`Song complete — quality ${data.quality_score}/100`, 'success');
+    } catch {
+      showNotification('Network error', 'error');
+    }
+  });
+
+  document.getElementById('polishSong').addEventListener('click', async function() {
+    if (!currentDraftId) return;
+    try {
+      const res = await apiFetch(`/api/songwriting/drafts/${currentDraftId}/polish`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showNotification(data.detail || 'Unable to run the polish session', 'error');
+        return;
+      }
+      renderCompletion(data);
+      showNotification(
+        data.polish.succeeded
+          ? `Polish worked! +${data.polish.quality_bonus} quality`
+          : 'Polish session finished, but the song did not improve this time',
+        data.polish.succeeded ? 'success' : 'info'
+      );
+      loadSkill();
+    } catch {
+      showNotification('Network error', 'error');
+    }
+  });
+
   document.getElementById('generateDraft').addEventListener('click', async function() {
     const form = document.getElementById('songForm');
     const themes = Array.from(document.getElementById('themes').selectedOptions).map(o => o.value);
@@ -241,6 +362,12 @@
       const data = await res.json();
       if (res.ok) {
         currentDraftId = data.id;
+        currentDraftSnapshot = data;
+        document.getElementById('lyrics').value = data.lyrics || '';
+        document.getElementById('chord_progression').value = data.chord_progression || '';
+        document.getElementById('lyrics').readOnly = false;
+        document.getElementById('chord_progression').readOnly = false;
+        renderCompletion(null);
         showNotification('Draft generated', 'success');
         renderCollaborators([]);
         await inviteCowriters(currentDraftId);
