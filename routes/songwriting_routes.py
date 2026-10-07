@@ -161,34 +161,40 @@ def _completion_body(summary: dict) -> str:
     return body
 
 
+def _send_private_inbox(
+    recipient: int,
+    title: str,
+    body: str,
+    type_: str,
+) -> None:
+    """Send one private inbox thread with a notification fallback."""
+    try:
+        mail_service.compose(
+            sender_id=0,
+            recipient_ids=[recipient],
+            subject=title,
+            body=body,
+        )
+    except Exception:
+        try:
+            notifications.create(
+                user_id=recipient,
+                title=title,
+                body=body,
+                type_=type_,
+            )
+        except Exception:
+            pass
+
+
 def _notify_songwriters(draft_id: int, title: str, body: str, type_: str) -> None:
-    """Deliver a real inbox item and its unread notification to all writers."""
+    """Deliver a private inbox item to the creator and accepted co-writers."""
     draft = songwriting_service.get_draft(draft_id)
     if not draft:
         return
     recipients = {draft.creator_id, *songwriting_service.get_co_writers(draft_id)}
     for recipient in recipients:
-        try:
-            # One thread per recipient avoids exposing collaborator recipient lists
-            # and uses the same mail model as the in-game inbox/unread badge.
-            mail_service.compose(
-                sender_id=0,
-                recipient_ids=[recipient],
-                subject=title,
-                body=body,
-            )
-        except Exception:
-            # Mail should not roll back songwriting completion. Fall back to a
-            # plain notification so the player still receives the result.
-            try:
-                notifications.create(
-                    user_id=recipient,
-                    title=title,
-                    body=body,
-                    type_=type_,
-                )
-            except Exception:
-                pass
+        _send_private_inbox(recipient, title, body, type_)
 
 
 @router.post("/drafts/{draft_id}/complete")
@@ -346,17 +352,15 @@ def add_co_writer(
         raise HTTPException(status_code=400, detail=str(exc))
 
     draft = songwriting_service.get_draft(draft_id)
-    try:
-        notifications.create(
-            user_id=payload.co_writer_id,
-            title="Songwriting session invitation",
-            body=f"You have been invited to co-write '{draft.title}'. Open Songwriting to accept or decline.",
-            type_="songwriting_invite",
-        )
-    except Exception:
-        # The invite itself remains valid even if realtime/notification delivery
-        # is temporarily unavailable; it will still appear in pending invites.
-        pass
+    _send_private_inbox(
+        payload.co_writer_id,
+        title="Songwriting session invitation",
+        body=(
+            f"You have been invited to co-write '{draft.title}'. "
+            "Open Songwriting and use Pending Songwriting Invitations to accept or decline."
+        ),
+        type_="songwriting_invite",
+    )
 
     return {
         "co_writers": list(songwriting_service.get_co_writers(draft_id)),
@@ -379,15 +383,12 @@ def accept_songwriting_invite(
 
     draft = songwriting_service.get_draft(draft_id)
     if draft:
-        try:
-            notifications.create(
-                user_id=draft.creator_id,
-                title="Songwriting invitation accepted",
-                body=f"A player accepted the invitation to co-write '{draft.title}'.",
-                type_="songwriting_invite",
-            )
-        except Exception:
-            pass
+        _send_private_inbox(
+            draft.creator_id,
+            title="Songwriting invitation accepted",
+            body=f"A player accepted the invitation to co-write '{draft.title}'.",
+            type_="songwriting_invite",
+        )
     return {"ok": True, "draft_id": draft_id}
 
 
@@ -396,10 +397,18 @@ def decline_songwriting_invite(
     draft_id: int,
     user_id: int = Depends(get_current_user_id),
 ):
+    draft = songwriting_service.get_draft(draft_id)
     try:
         songwriting_service.decline_co_writer_invite(draft_id, user_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="invite_not_found")
+    if draft:
+        _send_private_inbox(
+            draft.creator_id,
+            title="Songwriting invitation declined",
+            body=f"A player declined the invitation to co-write '{draft.title}'.",
+            type_="songwriting_invite",
+        )
     return {"ok": True, "draft_id": draft_id}
 
 
