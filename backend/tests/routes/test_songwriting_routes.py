@@ -162,3 +162,25 @@ def test_complete_route_notifies_all_songwriters_once(client_factory, monkeypatc
     assert second.status_code == 200
     assert second.json()["newly_completed"] is False
     assert len(recorder.sent) == 2
+
+def test_accepted_co_writer_can_fetch_draft(client_factory):
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Shared Draft",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+    songwriting_routes.songwriting_service = svc
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 2})
+
+    resp = client.get(f"/songwriting/drafts/{draft.id}")
+    assert resp.status_code == 200
+    assert resp.json()["id"] == draft.id
+
