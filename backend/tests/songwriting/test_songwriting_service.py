@@ -600,3 +600,24 @@ def test_finalize_persists_completed_draft_once(tmp_path):
 
     asyncio.run(run())
 
+def test_co_writer_cannot_complete_or_spend_final_polish_choice():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+        svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
+
+        # Co-writers may contribute to the draft.
+        svc.update_draft(draft.id, user_id=2, lyrics="collaborative edit")
+
+        with pytest.raises(PermissionError, match="creator_only"):
+            svc.complete_song(draft.id, user_id=2)
+
+        svc.complete_song(draft.id, user_id=1)
+
+        with pytest.raises(PermissionError, match="creator_only"):
+            svc.polish_song(draft.id, user_id=2)
+        with pytest.raises(PermissionError, match="creator_only"):
+            svc.skip_polish(draft.id, user_id=2)
+
+    asyncio.run(run())
+
