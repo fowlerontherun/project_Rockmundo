@@ -10,8 +10,10 @@ from auth.dependencies import get_current_user_id
 from backend.models.theme import THEMES
 from services.skill_service import skill_service
 from services.songwriting_service import songwriting_service
+from services.notifications_service import NotificationsService
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
+notifications = NotificationsService()
 
 
 class PromptPayload(BaseModel):
@@ -141,7 +143,7 @@ def add_co_writer(
     user_id: int = Depends(get_current_user_id),
 ):
     try:
-        songwriting_service.add_co_writer(draft_id, user_id, payload.co_writer_id)
+        songwriting_service.invite_co_writer(draft_id, user_id, payload.co_writer_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="draft_not_found")
     except PermissionError:
@@ -149,10 +151,68 @@ def add_co_writer(
     except ValueError as exc:
         if str(exc) == "cannot_invite_self":
             raise HTTPException(status_code=400, detail=str(exc))
-        if str(exc) == "already_invited":
+        if str(exc) in {"already_invited", "already_collaborating"}:
             raise HTTPException(status_code=409, detail=str(exc))
         raise HTTPException(status_code=400, detail=str(exc))
-    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
+
+    draft = songwriting_service.get_draft(draft_id)
+    try:
+        notifications.create(
+            user_id=payload.co_writer_id,
+            title="Songwriting session invitation",
+            body=f"You have been invited to co-write '{draft.title}'. Open Songwriting to accept or decline.",
+            type_="songwriting_invite",
+        )
+    except Exception:
+        # The invite itself remains valid even if realtime/notification delivery
+        # is temporarily unavailable; it will still appear in pending invites.
+        pass
+
+    return {
+        "co_writers": list(songwriting_service.get_co_writers(draft_id)),
+        "pending_invitees": list(songwriting_service.get_pending_invitees(draft_id)),
+    }
+@router.get("/invites")
+def list_songwriting_invites(user_id: int = Depends(get_current_user_id)):
+    return {"invites": songwriting_service.list_pending_invites(user_id)}
+
+
+@router.post("/invites/{draft_id}/accept")
+def accept_songwriting_invite(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        songwriting_service.accept_co_writer_invite(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="invite_not_found")
+
+    draft = songwriting_service.get_draft(draft_id)
+    if draft:
+        try:
+            notifications.create(
+                user_id=draft.creator_id,
+                title="Songwriting invitation accepted",
+                body=f"A player accepted the invitation to co-write '{draft.title}'.",
+                type_="songwriting_invite",
+            )
+        except Exception:
+            pass
+    return {"ok": True, "draft_id": draft_id}
+
+
+@router.post("/invites/{draft_id}/decline")
+def decline_songwriting_invite(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        songwriting_service.decline_co_writer_invite(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="invite_not_found")
+    return {"ok": True, "draft_id": draft_id}
+
+
 @router.get("/themes")
 def list_themes():
     return THEMES

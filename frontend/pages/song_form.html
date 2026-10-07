@@ -50,6 +50,10 @@
   <button type="submit">Create Song</button>
 </form>
 <div>
+  <h3>Pending Songwriting Invitations</h3>
+  <div id="pendingInvites">No pending invitations.</div>
+</div>
+<div>
   <h3>Current Collaborators</h3>
   <ul id="collaborators"></ul>
 </div>
@@ -71,6 +75,60 @@
   }
 
   loadSkill();
+
+  async function loadPendingInvites() {
+    const container = document.getElementById('pendingInvites');
+    try {
+      const res = await apiFetch('/api/songwriting/invites');
+      if (!res.ok) return;
+      const data = await res.json();
+      const invites = data.invites || [];
+      if (!invites.length) {
+        container.textContent = 'No pending invitations.';
+        return;
+      }
+
+      container.innerHTML = '';
+      invites.forEach(invite => {
+        const row = document.createElement('div');
+        const label = document.createElement('span');
+        label.textContent = `${invite.title} (${invite.genre}) — invited by player ${invite.inviter_id} `;
+        const accept = document.createElement('button');
+        accept.type = 'button';
+        accept.textContent = 'Accept';
+        accept.addEventListener('click', () => respondToInvite(invite.draft_id, 'accept'));
+        const decline = document.createElement('button');
+        decline.type = 'button';
+        decline.textContent = 'Decline';
+        decline.addEventListener('click', () => respondToInvite(invite.draft_id, 'decline'));
+        row.append(label, accept, decline);
+        container.appendChild(row);
+      });
+    } catch {
+      container.textContent = 'Unable to load songwriting invitations.';
+    }
+  }
+
+  async function respondToInvite(draftId, action) {
+    try {
+      const res = await apiFetch(`/api/songwriting/invites/${draftId}/${action}`, {
+        method: 'POST'
+      });
+      if (!res.ok) {
+        showNotification(`Unable to ${action} invitation`, 'error');
+        return;
+      }
+      showNotification(
+        action === 'accept' ? 'Songwriting invitation accepted' : 'Songwriting invitation declined',
+        'success'
+      );
+      await loadPendingInvites();
+    } catch {
+      showNotification('Network error', 'error');
+    }
+  }
+
+  loadPendingInvites();
 
   function loadBandMembers() {
     const bandId = new URLSearchParams(window.location.search).get('band_id');
@@ -122,7 +180,7 @@
         const data = await res.json();
         if (res.ok) {
           list = data.co_writers;
-          showNotification(`Invitation sent to ${id}`, 'success');
+          showNotification(`Invitation sent to ${id}; they must accept before joining the session`, 'success');
         } else {
           showNotification(data.message || data.error || `Failed to invite ${id}`, 'error');
         }

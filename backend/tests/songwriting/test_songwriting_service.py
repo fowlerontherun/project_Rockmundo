@@ -402,3 +402,62 @@ def test_creativity_boosts_quality():
         assert draft.metadata.quality_modifier == pytest.approx(1.3, rel=1e-2)
 
     asyncio.run(run())
+
+
+
+def test_co_writer_invite_requires_acceptance_before_access():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+
+        svc.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+
+        assert svc.get_co_writers(draft.id) == set()
+        assert svc.get_pending_invitees(draft.id) == {2}
+        assert svc.list_pending_invites(2) == [
+            {
+                "draft_id": draft.id,
+                "title": draft.title,
+                "genre": draft.genre,
+                "inviter_id": 1,
+            }
+        ]
+
+        with pytest.raises(PermissionError):
+            svc.update_draft(draft.id, user_id=2, lyrics="too early")
+
+        svc.accept_co_writer_invite(draft.id, user_id=2)
+        assert svc.get_pending_invitees(draft.id) == set()
+        assert svc.get_co_writers(draft.id) == {2}
+
+        svc.update_draft(draft.id, user_id=2, lyrics="accepted")
+        assert svc.get_draft(draft.id).lyrics == "accepted"
+
+    asyncio.run(run())
+
+
+def test_co_writer_invite_can_be_declined_and_reinvited():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+
+        svc.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+        with pytest.raises(ValueError, match="already_invited"):
+            svc.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+
+        svc.decline_co_writer_invite(draft.id, user_id=2)
+        assert svc.list_pending_invites(2) == []
+        assert svc.get_co_writers(draft.id) == set()
+
+        svc.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+        assert svc.get_pending_invitees(draft.id) == {2}
+
+    asyncio.run(run())
+
+
+def test_accept_or_decline_missing_invite_fails():
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    with pytest.raises(KeyError, match="invite_not_found"):
+        svc.accept_co_writer_invite(999, user_id=2)
+    with pytest.raises(KeyError, match="invite_not_found"):
+        svc.decline_co_writer_invite(999, user_id=2)

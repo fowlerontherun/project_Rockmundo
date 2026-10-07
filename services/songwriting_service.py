@@ -73,6 +73,7 @@ class SongwritingService:
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
+        self._co_writer_invites: Dict[int, Dict[int, int]] = {}
         self._versions: Dict[int, List[SongDraftVersion]] = {}
         self._counter = 1
 
@@ -254,6 +255,67 @@ class SongwritingService:
         self.skill_service.add_songwriting_xp(user_id, revised=True)
 
         return draft
+
+    def invite_co_writer(self, draft_id: int, user_id: int, co_writer_id: int) -> None:
+        """Create a pending co-writer invitation.
+
+        Invitations are deliberately separate from accepted co-writers so an
+        invited player does not gain edit access until they explicitly accept.
+        """
+        draft = self._drafts.get(draft_id)
+        if not draft:
+            raise KeyError("draft_not_found")
+        if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
+            raise PermissionError("forbidden")
+        if self.band_service and not self.band_service.share_band(user_id, co_writer_id):
+            raise PermissionError("forbidden")
+        if co_writer_id == user_id:
+            raise ValueError("cannot_invite_self")
+        if co_writer_id in self._co_writers.get(draft_id, set()):
+            raise ValueError("already_collaborating")
+        invites = self._co_writer_invites.setdefault(draft_id, {})
+        if co_writer_id in invites:
+            raise ValueError("already_invited")
+        invites[co_writer_id] = user_id
+
+    def list_pending_invites(self, user_id: int) -> List[dict]:
+        pending: List[dict] = []
+        for draft_id, invitees in self._co_writer_invites.items():
+            inviter_id = invitees.get(user_id)
+            if inviter_id is None:
+                continue
+            draft = self._drafts.get(draft_id)
+            if not draft:
+                continue
+            pending.append(
+                {
+                    "draft_id": draft_id,
+                    "title": draft.title,
+                    "genre": draft.genre,
+                    "inviter_id": inviter_id,
+                }
+            )
+        return pending
+
+    def get_pending_invitees(self, draft_id: int) -> Set[int]:
+        return set(self._co_writer_invites.get(draft_id, {}).keys())
+
+    def accept_co_writer_invite(self, draft_id: int, user_id: int) -> None:
+        invites = self._co_writer_invites.get(draft_id)
+        if not invites or user_id not in invites:
+            raise KeyError("invite_not_found")
+        invites.pop(user_id, None)
+        if not invites:
+            self._co_writer_invites.pop(draft_id, None)
+        self._co_writers.setdefault(draft_id, set()).add(user_id)
+
+    def decline_co_writer_invite(self, draft_id: int, user_id: int) -> None:
+        invites = self._co_writer_invites.get(draft_id)
+        if not invites or user_id not in invites:
+            raise KeyError("invite_not_found")
+        invites.pop(user_id, None)
+        if not invites:
+            self._co_writer_invites.pop(draft_id, None)
 
     def add_co_writer(self, draft_id: int, user_id: int, co_writer_id: int) -> None:
         draft = self._drafts.get(draft_id)
