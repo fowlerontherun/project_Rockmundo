@@ -200,7 +200,7 @@ def polish_songwriting(
         raise HTTPException(status_code=403, detail="forbidden")
     except ValueError as exc:
         detail = str(exc)
-        if detail in {"song_not_completed", "polish_already_attempted"}:
+        if detail in {"song_not_completed", "polish_already_attempted", "polish_already_resolved"}:
             raise HTTPException(status_code=409, detail=detail)
         raise
 
