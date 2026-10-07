@@ -413,6 +413,24 @@ def decline_songwriting_invite(
     return {"ok": True, "draft_id": draft_id}
 
 
+@router.get("/me")
+def songwriting_me(user_id: int = Depends(get_current_user_id)):
+    return {"user_id": user_id}
+
+
+@router.get("/drafts/{draft_id}/completion")
+def get_completion_summary(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
+    return songwriting_service.completion_summary(draft_id)
+
+
 @router.get("/themes")
 def list_themes():
     return THEMES
