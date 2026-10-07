@@ -544,8 +544,14 @@ def test_finalize_persists_completed_draft_once(tmp_path):
         def get_band_info(self, band_id):
             return {
                 "id": band_id,
-                "members": [{"user_id": 1, "role": "founder"}],
+                "members": [
+                    {"user_id": 1, "role": "founder"},
+                    {"user_id": 2, "role": "member"},
+                ],
             }
+
+        def share_band(self, user_a, user_b):
+            return True
 
     async def run():
         db_path = tmp_path / "songs.db"
@@ -564,6 +570,7 @@ def test_finalize_persists_completed_draft_once(tmp_path):
             song_service=SongService(db=str(db_path)),
         )
         draft = await _generate(svc)
+        svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
         svc.complete_song(draft.id, user_id=1)
         svc.skip_polish(draft.id, user_id=1)
 
@@ -597,6 +604,11 @@ def test_finalize_persists_completed_draft_once(tmp_path):
 
         with sqlite3.connect(db_path) as conn:
             assert conn.execute("SELECT COUNT(*) FROM songs").fetchone()[0] == 1
+            royalty_rows = conn.execute(
+                "SELECT user_id, percent FROM royalties WHERE song_id = ? ORDER BY user_id",
+                (first["song_id"],),
+            ).fetchall()
+            assert royalty_rows == [(1, 50), (2, 50)]
 
     asyncio.run(run())
 
@@ -666,6 +678,33 @@ def test_persistent_songwriting_state_survives_service_restart(tmp_path):
             themes=["love", "hope", "loss"],
         )
         assert next_draft.id == draft.id + 1
+
+    asyncio.run(run())
+
+def test_noop_draft_save_does_not_add_revision_time_or_xp_history():
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        draft = await _generate(svc)
+
+        versions_before = len(svc.list_versions(draft.id))
+        revisions_before = draft.revision_sessions
+        minutes_before = draft.writing_minutes
+        skill_before = svc.skill_service.get_songwriting_skill(1).xp
+
+        same = svc.update_draft(
+            draft.id,
+            user_id=1,
+            lyrics=draft.lyrics,
+            chord_progression=draft.chord_progression,
+            themes=list(draft.themes),
+            album_art_url=draft.album_art_url,
+        )
+
+        assert same is draft
+        assert len(svc.list_versions(draft.id)) == versions_before
+        assert draft.revision_sessions == revisions_before
+        assert draft.writing_minutes == minutes_before
+        assert svc.skill_service.get_songwriting_skill(1).xp == skill_before
 
     asyncio.run(run())
 
