@@ -103,17 +103,119 @@ def edit_draft(draft_id: int, updates: DraftUpdate, user_id: int = Depends(get_c
         raise HTTPException(status_code=404, detail="draft_not_found")
     if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
         raise HTTPException(status_code=403, detail="forbidden")
-    draft = songwriting_service.update_draft(
-        draft_id,
-        user_id,
-        lyrics=updates.lyrics,
-        themes=updates.themes,
-        chord_progression=updates.chord_progression,
-        album_art_url=updates.album_art_url,
-
-    )
+    try:
+        draft = songwriting_service.update_draft(
+            draft_id,
+            user_id,
+            lyrics=updates.lyrics,
+            themes=updates.themes,
+            chord_progression=updates.chord_progression,
+            album_art_url=updates.album_art_url,
+        )
+    except ValueError as exc:
+        if str(exc) == "song_already_completed":
+            raise HTTPException(status_code=409, detail=str(exc))
+        raise
     return draft
 
+
+
+def _format_minutes(total: int) -> str:
+    hours, minutes = divmod(total, 60)
+    if hours and minutes:
+        return f"{hours}h {minutes}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"
+
+
+def _completion_body(summary: dict) -> str:
+    time = summary["writing_time"]
+    polish = summary["polish"]
+    parts = [
+        f"Writing time: {_format_minutes(time['total_minutes'])}",
+        f"initial {_format_minutes(time['initial_minutes'])}",
+        f"{time['revision_sessions']} revision session(s) / {_format_minutes(time['revision_minutes'])}",
+    ]
+    if time["polish_minutes"]:
+        parts.append(f"polish {_format_minutes(time['polish_minutes'])}")
+    body = f"{summary['title']} is complete. " + "; ".join(parts) + f". Song quality: {summary['quality_score']}/100."
+    if polish["available"]:
+        body += f" You can do one final polish session with a {polish['success_chance']}% chance of improving it."
+    return body
+
+
+def _notify_songwriters(draft_id: int, title: str, body: str, type_: str) -> None:
+    draft = songwriting_service.get_draft(draft_id)
+    if not draft:
+        return
+    recipients = {draft.creator_id, *songwriting_service.get_co_writers(draft_id)}
+    for recipient in recipients:
+        try:
+            notifications.create(
+                user_id=recipient,
+                title=title,
+                body=body,
+                type_=type_,
+            )
+        except Exception:
+            # Completion state should never be rolled back by an inbox outage.
+            pass
+
+
+@router.post("/drafts/{draft_id}/complete")
+def complete_songwriting(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        summary = songwriting_service.complete_song(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    if summary["newly_completed"]:
+        _notify_songwriters(
+            draft_id,
+            title=f"Song complete: {summary['title']}",
+            body=_completion_body(summary),
+            type_="songwriting_complete",
+        )
+    return summary
+
+
+@router.post("/drafts/{draft_id}/polish")
+def polish_songwriting(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        summary = songwriting_service.polish_song(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {"song_not_completed", "polish_already_attempted"}:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
+
+    polish = summary["polish"]
+    if polish["succeeded"]:
+        title = f"Polish worked: {summary['title']}"
+        result = f"The extra session added {polish['quality_bonus']} quality points."
+    else:
+        title = f"Polish finished: {summary['title']}"
+        result = "The extra session did not improve the song this time."
+    _notify_songwriters(
+        draft_id,
+        title=title,
+        body=f"{result} Final song quality: {summary['quality_score']}/100. Total writing time: {_format_minutes(summary['writing_time']['total_minutes'])}.",
+        type_="songwriting_polish",
+    )
+    return summary
 
 
 @router.get("/drafts/{draft_id}/versions")
