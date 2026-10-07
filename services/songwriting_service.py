@@ -20,6 +20,7 @@ from backend.services.originality_service import (
     OriginalityService,
     originality_service,
 )
+from services.song_service import SongService
 from services.skill_service import (
     SkillService,
 )
@@ -63,6 +64,7 @@ class SongwritingService:
         band_service: BandService | None = None,
         chemistry_service: ChemistryService | None = None,
         avatar_service: AvatarService | None = None,
+        song_service: SongService | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
         self.art_service = art_service or ai_art_service
@@ -72,6 +74,7 @@ class SongwritingService:
         self.band_service = band_service
         self.chemistry_service = chemistry_service or ChemistryService()
         self.avatar_service = avatar_service or AvatarService()
+        self.song_service = song_service or SongService()
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
@@ -309,6 +312,83 @@ class SongwritingService:
         draft.polish_available = False
         draft.polish_skipped = True
         return self.completion_summary(draft_id)
+
+    def finalize_song(
+        self,
+        draft_id: int,
+        user_id: int,
+        *,
+        band_id: int,
+        duration_sec: int,
+        distribution_channels: Optional[List[str]] = None,
+    ) -> dict:
+        """Create the canonical song and persist the completed writing result."""
+        draft = self._require_writer(draft_id, user_id)
+        if draft.creator_id != user_id:
+            raise PermissionError("creator_only")
+        if draft.completed_at is None:
+            raise ValueError("song_not_completed")
+        if draft.polish_available:
+            raise ValueError("polish_choice_required")
+        if duration_sec <= 0:
+            raise ValueError("invalid_duration")
+
+        if self.band_service:
+            band = self.band_service.get_band_info(band_id)
+            members = band.get("members", []) if band else []
+            if not band or user_id not in {m.get("user_id") for m in members}:
+                raise PermissionError("band_membership_required")
+
+        existing = self.song_service.get_songwriting_metadata_by_draft(draft_id)
+        if existing:
+            return {
+                "song_id": existing["song_id"],
+                "draft_id": draft_id,
+                "quality_score": existing["quality_score"],
+                "writing_minutes": existing["writing_minutes"],
+                "already_finalized": True,
+            }
+
+        summary = self.completion_summary(draft_id)
+        time = summary["writing_time"]
+        polish = summary["polish"]
+        result = self.song_service.create_song(
+            {
+                "band_id": band_id,
+                "title": draft.title,
+                "duration_sec": duration_sec,
+                "genre": draft.genre,
+                "songwriting_metadata": {
+                    "draft_id": draft.id,
+                    "creator_id": draft.creator_id,
+                    "lyrics": draft.lyrics,
+                    "chord_progression": draft.chord_progression,
+                    "themes": list(draft.themes),
+                    "quality_score": draft.quality_score or 1,
+                    "writing_minutes": time["total_minutes"],
+                    "initial_minutes": time["initial_minutes"],
+                    "revision_sessions": time["revision_sessions"],
+                    "revision_minutes": time["revision_minutes"],
+                    "polish_minutes": time["polish_minutes"],
+                    "polish_attempted": polish["attempted"],
+                    "polish_skipped": polish["skipped"],
+                    "polish_succeeded": polish["succeeded"],
+                    "polish_success_chance": polish["success_chance"],
+                    "polish_bonus": polish["quality_bonus"],
+                    "distribution_channels": distribution_channels or [],
+                    "songwriting_completed_at": (
+                        draft.completed_at.isoformat() if draft.completed_at else None
+                    ),
+                },
+            }
+        )
+        return {
+            "song_id": result["song_id"],
+            "draft_id": draft_id,
+            "quality_score": draft.quality_score,
+            "writing_minutes": draft.writing_minutes,
+            "already_finalized": False,
+        }
 
     def get_draft(self, draft_id: int) -> Optional[LyricDraft]:
         return self._drafts.get(draft_id)
