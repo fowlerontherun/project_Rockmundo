@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import random
+import sqlite3
 from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
 
@@ -11,6 +13,7 @@ from models.song import Song
 from models.song_draft_version import SongDraftVersion
 from models.songwriting import GenerationMetadata, LyricDraft
 from models.theme import THEMES
+from database import DB_PATH
 from backend.services.ai_art_service import AIArtService, ai_art_service
 from backend.services.band_service import BandService
 from backend.services.chemistry_service import ChemistryService
@@ -65,6 +68,7 @@ class SongwritingService:
         chemistry_service: ChemistryService | None = None,
         avatar_service: AvatarService | None = None,
         song_service: SongService | None = None,
+        draft_db_path: str | None = None,
     ) -> None:
         self.llm = llm_client or EchoLLM()
         self.art_service = art_service or ai_art_service
@@ -75,6 +79,7 @@ class SongwritingService:
         self.chemistry_service = chemistry_service or ChemistryService()
         self.avatar_service = avatar_service or AvatarService()
         self.song_service = song_service or SongService()
+        self.draft_db_path = draft_db_path
         self._drafts: Dict[int, LyricDraft] = {}
         self._songs: Dict[int, Song] = {}
         self._co_writers: Dict[int, Set[int]] = {}
@@ -82,6 +87,287 @@ class SongwritingService:
         self._versions: Dict[int, List[SongDraftVersion]] = {}
         self._counter = 1
         self.rng = random.Random()
+        if self.draft_db_path:
+            self._ensure_persistence_schema()
+            self._load_persisted_state()
+
+    def _ensure_persistence_schema(self) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS songwriting_drafts (
+                  id INTEGER PRIMARY KEY,
+                  creator_id INTEGER NOT NULL,
+                  title TEXT NOT NULL,
+                  genre TEXT NOT NULL,
+                  themes_json TEXT NOT NULL DEFAULT '[]',
+                  lyrics TEXT NOT NULL DEFAULT '',
+                  chord_progression TEXT NOT NULL DEFAULT '',
+                  album_art_url TEXT,
+                  plagiarism_warning TEXT,
+                  created_at TEXT NOT NULL,
+                  quality_modifier REAL NOT NULL DEFAULT 1.0,
+                  chemistry REAL,
+                  status TEXT NOT NULL DEFAULT 'draft',
+                  completed_at TEXT,
+                  writing_minutes INTEGER NOT NULL DEFAULT 60,
+                  revision_sessions INTEGER NOT NULL DEFAULT 0,
+                  quality_score INTEGER,
+                  polish_available INTEGER NOT NULL DEFAULT 0,
+                  polish_attempted INTEGER NOT NULL DEFAULT 0,
+                  polish_success_chance INTEGER,
+                  polish_succeeded INTEGER,
+                  polish_skipped INTEGER NOT NULL DEFAULT 0,
+                  polish_bonus INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE IF NOT EXISTS songwriting_co_writers (
+                  draft_id INTEGER NOT NULL,
+                  user_id INTEGER NOT NULL,
+                  PRIMARY KEY (draft_id, user_id)
+                );
+                CREATE TABLE IF NOT EXISTS songwriting_co_writer_invites (
+                  draft_id INTEGER NOT NULL,
+                  user_id INTEGER NOT NULL,
+                  inviter_id INTEGER NOT NULL,
+                  PRIMARY KEY (draft_id, user_id)
+                );
+                CREATE TABLE IF NOT EXISTS songwriting_draft_versions (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  draft_id INTEGER NOT NULL,
+                  author_id INTEGER NOT NULL,
+                  lyrics TEXT NOT NULL,
+                  chord_progression TEXT,
+                  themes_json TEXT NOT NULL DEFAULT '[]',
+                  created_at TEXT NOT NULL
+                );
+                """
+            )
+
+    @staticmethod
+    def _parse_datetime(value: str | None) -> datetime | None:
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def _load_persisted_state(self) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            draft_rows = conn.execute(
+                "SELECT * FROM songwriting_drafts ORDER BY id"
+            ).fetchall()
+            for row in draft_rows:
+                draft = LyricDraft(
+                    id=int(row["id"]),
+                    creator_id=int(row["creator_id"]),
+                    title=row["title"],
+                    genre=row["genre"],
+                    themes=json.loads(row["themes_json"] or "[]"),
+                    lyrics=row["lyrics"] or "",
+                    chord_progression=row["chord_progression"] or "",
+                    album_art_url=row["album_art_url"],
+                    plagiarism_warning=row["plagiarism_warning"],
+                    created_at=self._parse_datetime(row["created_at"]) or datetime.utcnow(),
+                    metadata=GenerationMetadata(
+                        quality_modifier=float(row["quality_modifier"] or 1.0),
+                        chemistry=row["chemistry"],
+                    ),
+                    status=row["status"] or "draft",
+                    completed_at=self._parse_datetime(row["completed_at"]),
+                    writing_minutes=int(row["writing_minutes"] or 60),
+                    revision_sessions=int(row["revision_sessions"] or 0),
+                    quality_score=row["quality_score"],
+                    polish_available=bool(row["polish_available"]),
+                    polish_attempted=bool(row["polish_attempted"]),
+                    polish_success_chance=row["polish_success_chance"],
+                    polish_succeeded=(
+                        None
+                        if row["polish_succeeded"] is None
+                        else bool(row["polish_succeeded"])
+                    ),
+                    polish_skipped=bool(row["polish_skipped"]),
+                    polish_bonus=int(row["polish_bonus"] or 0),
+                )
+                self._drafts[draft.id] = draft
+                self._songs[draft.id] = Song(
+                    draft.id,
+                    draft.title,
+                    0,
+                    None,
+                    draft.lyrics,
+                    draft.creator_id,
+                    themes=list(draft.themes),
+                    chord_progression=draft.chord_progression,
+                    album_art_url=draft.album_art_url,
+                    plagiarism_warning=draft.plagiarism_warning,
+                )
+
+            for row in conn.execute(
+                "SELECT draft_id, user_id FROM songwriting_co_writers"
+            ).fetchall():
+                self._co_writers.setdefault(int(row["draft_id"]), set()).add(
+                    int(row["user_id"])
+                )
+
+            for row in conn.execute(
+                "SELECT draft_id, user_id, inviter_id FROM songwriting_co_writer_invites"
+            ).fetchall():
+                self._co_writer_invites.setdefault(int(row["draft_id"]), {})[
+                    int(row["user_id"])
+                ] = int(row["inviter_id"])
+
+            for row in conn.execute(
+                """
+                SELECT draft_id, author_id, lyrics, chord_progression,
+                       themes_json, created_at
+                FROM songwriting_draft_versions
+                ORDER BY id
+                """
+            ).fetchall():
+                self._versions.setdefault(int(row["draft_id"]), []).append(
+                    SongDraftVersion(
+                        author_id=int(row["author_id"]),
+                        lyrics=row["lyrics"] or "",
+                        chord_progression=row["chord_progression"],
+                        themes=json.loads(row["themes_json"] or "[]"),
+                        timestamp=self._parse_datetime(row["created_at"]) or datetime.utcnow(),
+                    )
+                )
+
+        if self._drafts:
+            self._counter = max(self._drafts) + 1
+
+    def _persist_draft(self, draft: LyricDraft) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO songwriting_drafts (
+                    id, creator_id, title, genre, themes_json, lyrics,
+                    chord_progression, album_art_url, plagiarism_warning,
+                    created_at, quality_modifier, chemistry, status, completed_at,
+                    writing_minutes, revision_sessions, quality_score,
+                    polish_available, polish_attempted, polish_success_chance,
+                    polish_succeeded, polish_skipped, polish_bonus
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    creator_id=excluded.creator_id,
+                    title=excluded.title,
+                    genre=excluded.genre,
+                    themes_json=excluded.themes_json,
+                    lyrics=excluded.lyrics,
+                    chord_progression=excluded.chord_progression,
+                    album_art_url=excluded.album_art_url,
+                    plagiarism_warning=excluded.plagiarism_warning,
+                    created_at=excluded.created_at,
+                    quality_modifier=excluded.quality_modifier,
+                    chemistry=excluded.chemistry,
+                    status=excluded.status,
+                    completed_at=excluded.completed_at,
+                    writing_minutes=excluded.writing_minutes,
+                    revision_sessions=excluded.revision_sessions,
+                    quality_score=excluded.quality_score,
+                    polish_available=excluded.polish_available,
+                    polish_attempted=excluded.polish_attempted,
+                    polish_success_chance=excluded.polish_success_chance,
+                    polish_succeeded=excluded.polish_succeeded,
+                    polish_skipped=excluded.polish_skipped,
+                    polish_bonus=excluded.polish_bonus
+                """,
+                (
+                    draft.id,
+                    draft.creator_id,
+                    draft.title,
+                    draft.genre,
+                    json.dumps(list(draft.themes)),
+                    draft.lyrics,
+                    draft.chord_progression,
+                    draft.album_art_url,
+                    draft.plagiarism_warning,
+                    draft.created_at.isoformat(),
+                    draft.metadata.quality_modifier,
+                    draft.metadata.chemistry,
+                    draft.status,
+                    draft.completed_at.isoformat() if draft.completed_at else None,
+                    draft.writing_minutes,
+                    draft.revision_sessions,
+                    draft.quality_score,
+                    int(draft.polish_available),
+                    int(draft.polish_attempted),
+                    draft.polish_success_chance,
+                    None if draft.polish_succeeded is None else int(draft.polish_succeeded),
+                    int(draft.polish_skipped),
+                    draft.polish_bonus,
+                ),
+            )
+
+    def _persist_co_writer(self, draft_id: int, user_id: int) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO songwriting_co_writers (draft_id, user_id)
+                VALUES (?, ?)
+                """,
+                (draft_id, user_id),
+            )
+
+    def _persist_invite(self, draft_id: int, user_id: int, inviter_id: int) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO songwriting_co_writer_invites (draft_id, user_id, inviter_id)
+                VALUES (?, ?, ?)
+                ON CONFLICT(draft_id, user_id) DO UPDATE SET
+                    inviter_id=excluded.inviter_id
+                """,
+                (draft_id, user_id, inviter_id),
+            )
+
+    def _remove_invite(self, draft_id: int, user_id: int) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.execute(
+                """
+                DELETE FROM songwriting_co_writer_invites
+                WHERE draft_id = ? AND user_id = ?
+                """,
+                (draft_id, user_id),
+            )
+
+    def _persist_version(self, draft_id: int, version: SongDraftVersion) -> None:
+        if not self.draft_db_path:
+            return
+        with sqlite3.connect(self.draft_db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO songwriting_draft_versions (
+                    draft_id, author_id, lyrics, chord_progression,
+                    themes_json, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    draft_id,
+                    version.author_id,
+                    version.lyrics,
+                    version.chord_progression,
+                    json.dumps(list(version.themes)),
+                    version.timestamp.isoformat(),
+                ),
+            )
 
     def generate_lyrics(self, themes: List[str], *, lines: int = 4) -> str:
         """Generate simple placeholder lyrics referencing the provided themes.
