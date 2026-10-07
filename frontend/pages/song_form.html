@@ -62,6 +62,7 @@
   <p id="completionStatus">When the song is ready, finish the writing phase to see its quality.</p>
   <button type="button" id="completeSong">Finish Writing</button>
   <button type="button" id="polishSong" hidden>Do Final Polish Session</button>
+  <button type="button" id="skipPolish" hidden>Keep Song As-Is</button>
 </div>
 <script src="../components/globalSearch.js"></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -70,6 +71,7 @@
 <script>
   let currentDraftId = null;
   let currentDraftSnapshot = null;
+  let currentCompletionSummary = null;
   let lastCollaborators = [];
 
   function loadSkill() {
@@ -240,15 +242,19 @@
     const status = document.getElementById('completionStatus');
     const complete = document.getElementById('completeSong');
     const polish = document.getElementById('polishSong');
+    const skip = document.getElementById('skipPolish');
     panel.hidden = false;
 
     if (!summary || summary.status !== 'completed') {
       status.textContent = 'When the song is ready, finish the writing phase to see its quality.';
+      currentCompletionSummary = null;
       complete.hidden = false;
       polish.hidden = true;
+      skip.hidden = true;
       return;
     }
 
+    currentCompletionSummary = summary;
     const time = summary.writing_time;
     const details = [
       `initial ${formatMinutes(time.initial_minutes)}`,
@@ -264,9 +270,11 @@
 
     if (summary.polish.available && !summary.polish.attempted) {
       polish.hidden = false;
+      skip.hidden = false;
       polish.textContent = `Do Final Polish Session (${summary.polish.success_chance}% chance)`;
     } else {
       polish.hidden = true;
+      skip.hidden = true;
       if (summary.polish.attempted) {
         status.textContent += summary.polish.succeeded
           ? ` Polish worked (+${summary.polish.quality_bonus} quality).`
@@ -341,6 +349,24 @@
     }
   });
 
+  document.getElementById('skipPolish').addEventListener('click', async function() {
+    if (!currentDraftId) return;
+    try {
+      const res = await apiFetch(`/api/songwriting/drafts/${currentDraftId}/skip-polish`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showNotification(data.detail || 'Unable to keep the song as-is', 'error');
+        return;
+      }
+      renderCompletion(data);
+      showNotification('Song kept at its current quality', 'success');
+    } catch {
+      showNotification('Network error', 'error');
+    }
+  });
+
   document.getElementById('generateDraft').addEventListener('click', async function() {
     const form = document.getElementById('songForm');
     const themes = Array.from(document.getElementById('themes').selectedOptions).map(o => o.value);
@@ -398,7 +424,19 @@
       showNotification('Duration must be positive', 'error');
       return;
     }
+    if (currentDraftId) {
+      if (!currentCompletionSummary) {
+        showNotification('Finish the songwriting phase before creating this song', 'error');
+        return;
+      }
+      if (currentCompletionSummary.polish.available) {
+        showNotification('Choose the final polish session or keep the song as-is first', 'error');
+        return;
+      }
+    }
+    const bandId = new URLSearchParams(window.location.search).get('band_id');
     const payload = {
+      band_id: bandId ? Number(bandId) : undefined,
       title: form.title.value.trim(),
       duration_sec,
       genre: form.genre.value.trim(),
@@ -417,6 +455,10 @@
       if (res.ok) {
         showNotification('Song created successfully', 'success');
         form.reset();
+        currentDraftId = null;
+        currentDraftSnapshot = null;
+        currentCompletionSummary = null;
+        document.getElementById('completionPanel').hidden = true;
       } else {
         showNotification(data.message || data.error || 'Failed to create song', 'error');
       }
