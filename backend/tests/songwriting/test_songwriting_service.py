@@ -708,3 +708,44 @@ def test_noop_draft_save_does_not_add_revision_time_or_xp_history():
 
     asyncio.run(run())
 
+def test_accepted_co_writer_chemistry_affects_completion_quality():
+    class StubChem:
+        def __init__(self, score):
+            self.score = score
+
+        def initialize_pair(self, a, b):
+            return type("P", (), {"score": self.score})()
+
+        def adjust_pair(self, a, b, d):
+            return self.initialize_pair(a, b)
+
+    async def run():
+        high = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            chemistry_service=StubChem(90),
+        )
+        low = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            chemistry_service=StubChem(10),
+        )
+
+        high_draft = await _generate(high)
+        low_draft = await _generate(low)
+        assert high_draft.metadata.quality_modifier == pytest.approx(1.0)
+        assert low_draft.metadata.quality_modifier == pytest.approx(1.0)
+
+        high.add_co_writer(high_draft.id, user_id=1, co_writer_id=2)
+        low.add_co_writer(low_draft.id, user_id=1, co_writer_id=2)
+
+        high_summary = high.complete_song(high_draft.id, user_id=1)
+        low_summary = low.complete_song(low_draft.id, user_id=1)
+
+        assert high_summary["quality_score"] == 70
+        assert low_summary["quality_score"] == 30
+        assert high_draft.metadata.chemistry == 90
+        assert low_draft.metadata.chemistry == 10
+
+    asyncio.run(run())
+
