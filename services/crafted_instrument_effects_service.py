@@ -29,9 +29,17 @@ class CraftedInstrumentEffectsService:
         except sqlite3.OperationalError:
             return 0.0
         if not row: return 0.0
-        try:\n            mods=json.loads(row[0] or "{}")\n            if not isinstance(mods,dict): return 0.0\n        except (json.JSONDecodeError,TypeError,ValueError):\n            return 0.0
-        try: condition=max(0,min(100,int(row[1])))/100\n        except (TypeError,ValueError): return 0.0
-        value=sum(max(-0.10,min(0.10,float(mods.get(k,0)))) for k in CONTEXT_KEYS[context])\n        # Crafted instruments are an incremental gear layer, not a replacement for\n        # ordinary gear. Keep one instrument below the whole-band context cap.\n        value=max(-0.08,min(0.08,value))
+        try:
+            mods=json.loads(row[0] or "{}")
+            if not isinstance(mods,dict): return 0.0
+        except (json.JSONDecodeError,TypeError,ValueError):
+            return 0.0
+        try: condition=max(0,min(100,int(row[1])))/100
+        except (TypeError,ValueError): return 0.0
+        value=sum(max(-0.10,min(0.10,float(mods.get(k,0)))) for k in CONTEXT_KEYS[context])
+        # Crafted instruments are an incremental gear layer, not a replacement for
+        # ordinary gear. Keep one instrument below the whole-band context cap.
+        value=max(-0.08,min(0.08,value))
         return round(max(-MAX_CONTEXT_BONUS[context],min(MAX_CONTEXT_BONUS[context],value*condition)),4)
 
     def band_effects(self,band_id:int,context:str)->float:
