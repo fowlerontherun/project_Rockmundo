@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Set
 
 
@@ -76,6 +78,7 @@ class SongwritingService:
         self._co_writer_invites: Dict[int, Dict[int, int]] = {}
         self._versions: Dict[int, List[SongDraftVersion]] = {}
         self._counter = 1
+        self.rng = random.Random()
 
     def generate_lyrics(self, themes: List[str], *, lines: int = 4) -> str:
         """Generate simple placeholder lyrics referencing the provided themes.
@@ -203,6 +206,98 @@ class SongwritingService:
                 self.chemistry_service.adjust_pair(a, b, 1)
         return draft
 
+    def _require_writer(self, draft_id: int, user_id: int) -> LyricDraft:
+        draft = self._drafts.get(draft_id)
+        if not draft:
+            raise KeyError("draft_not_found")
+        if draft.completed_at is not None:
+            raise ValueError("song_already_completed")
+        if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
+            raise PermissionError("forbidden")
+        return draft
+
+    @staticmethod
+    def _quality_from_modifier(draft: LyricDraft) -> int:
+        """Turn the existing songwriting quality modifier into a 1-100 score."""
+        return max(1, min(100, round(50 * draft.metadata.quality_modifier)))
+
+    def completion_summary(self, draft_id: int) -> dict:
+        draft = self._drafts.get(draft_id)
+        if not draft:
+            raise KeyError("draft_not_found")
+        revision_minutes = draft.revision_sessions * 30
+        polish_minutes = 60 if draft.polish_attempted else 0
+        initial_minutes = max(0, draft.writing_minutes - revision_minutes - polish_minutes)
+        return {
+            "draft_id": draft.id,
+            "title": draft.title,
+            "status": draft.status,
+            "completed_at": draft.completed_at,
+            "quality_score": draft.quality_score,
+            "writing_time": {
+                "initial_minutes": initial_minutes,
+                "revision_sessions": draft.revision_sessions,
+                "revision_minutes": revision_minutes,
+                "polish_minutes": polish_minutes,
+                "total_minutes": draft.writing_minutes,
+            },
+            "polish": {
+                "available": draft.polish_available,
+                "attempted": draft.polish_attempted,
+                "success_chance": draft.polish_success_chance,
+                "succeeded": draft.polish_succeeded,
+                "quality_bonus": draft.polish_bonus,
+            },
+        }
+
+    def complete_song(self, draft_id: int, user_id: int) -> dict:
+        """Finish a draft and expose one optional polish session.
+
+        Completion is idempotent: callers can safely re-fetch the completion
+        summary without generating duplicate state changes.
+        """
+        draft = self._require_writer(draft_id, user_id)
+        newly_completed = draft.completed_at is None
+        if newly_completed:
+            draft.status = "completed"
+            draft.completed_at = datetime.utcnow()
+            draft.quality_score = self._quality_from_modifier(draft)
+            draft.polish_available = True
+            draft.polish_success_chance = self.rng.randint(25, 75)
+
+        summary = self.completion_summary(draft_id)
+        summary["newly_completed"] = newly_completed
+        return summary
+
+    def polish_song(self, draft_id: int, user_id: int) -> dict:
+        """Consume the one post-completion polish session.
+
+        The chance is rolled at completion so the player can make an informed
+        choice. A failed polish never reduces song quality.
+        """
+        draft = self._require_writer(draft_id, user_id)
+        if draft.completed_at is None:
+            raise ValueError("song_not_completed")
+        if draft.polish_attempted or not draft.polish_available:
+            raise ValueError("polish_already_attempted")
+
+        chance = draft.polish_success_chance or 0
+        roll = self.rng.randint(1, 100)
+        succeeded = roll <= chance
+        bonus = self.rng.randint(2, 8) if succeeded else 0
+
+        draft.polish_attempted = True
+        draft.polish_available = False
+        draft.polish_succeeded = succeeded
+        draft.polish_bonus = bonus
+        draft.writing_minutes += 60
+        draft.quality_score = min(100, (draft.quality_score or self._quality_from_modifier(draft)) + bonus)
+        self.skill_service.add_songwriting_xp(user_id, revised=True)
+
+        summary = self.completion_summary(draft_id)
+        summary["roll"] = roll
+        return summary
+
     def get_draft(self, draft_id: int) -> Optional[LyricDraft]:
         return self._drafts.get(draft_id)
 
@@ -253,6 +348,8 @@ class SongwritingService:
             draft_id, user_id, draft.lyrics, draft.chord_progression, draft.themes
         )
         self.skill_service.add_songwriting_xp(user_id, revised=True)
+        draft.revision_sessions += 1
+        draft.writing_minutes += 30
 
         return draft
 
