@@ -340,3 +340,40 @@ def test_completion_falls_back_to_notification_when_inbox_fails(client_factory, 
     assert recorder.sent[0]["user_id"] == 1
     assert recorder.sent[0]["type_"] == "songwriting_complete"
 
+def test_songwriting_invite_is_delivered_to_real_inbox(client_factory, monkeypatch):
+    class RecordingMail:
+        def __init__(self):
+            self.sent = []
+
+        def compose(self, **kwargs):
+            self.sent.append(kwargs)
+            return {"thread_id": 1, "message_id": 1}
+
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Invite Song",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    inbox = RecordingMail()
+    monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
+    monkeypatch.setattr(songwriting_routes, "mail_service", inbox)
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+
+    response = client.post(
+        f"/songwriting/drafts/{draft.id}/co_writers",
+        json={"co_writer_id": 2},
+    )
+    assert response.status_code == 200
+    assert response.json()["pending_invitees"] == [2]
+    assert len(inbox.sent) == 1
+    assert inbox.sent[0]["recipient_ids"] == [2]
+    assert inbox.sent[0]["subject"] == "Songwriting session invitation"
+    assert "Invite Song" in inbox.sent[0]["body"]
+
