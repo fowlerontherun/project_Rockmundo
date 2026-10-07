@@ -63,3 +63,20 @@ service restarts. Unit-test service instances remain in-memory unless a
 
 Schema: `179_songwriting_draft_persistence.sql`.
 
+## GET /songwriting/me
+Return the authenticated user ID for the lightweight songwriting UI. This is
+used to distinguish creator-owned drafts from drafts where the player is an
+accepted co-writer.
+
+## GET /songwriting/drafts/{draft_id}/completion
+Return the current completion/quality/polish summary for a draft the player can
+access. This allows completed drafts to restore their finish/polish state after
+a page reload or service restart.
+
+## Writing-time accounting
+There is currently no draft-linked scheduler record that tracks real elapsed
+songwriting minutes. Until that exists, songwriting uses deterministic gameplay
+session values: 60 minutes for the initial writing session, 30 minutes for each
+saved revision session, and 60 minutes for the optional final polish session.
+These values drive the completion breakdown shown in the UI and inbox.
+
