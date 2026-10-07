@@ -435,25 +435,48 @@
       }
     }
     const bandId = new URLSearchParams(window.location.search).get('band_id');
-    const payload = {
-      band_id: bandId ? Number(bandId) : undefined,
-      title: form.title.value.trim(),
-      duration_sec,
-      genre: form.genre.value.trim(),
-      themes: Array.from(document.getElementById('themes').selectedOptions).map(o => o.value),
-      lyrics: form.lyrics.value,
-      chord_progression: form.chord_progression.value,
-      distribution_channels: Array.from(form.distribution_channels.selectedOptions).map(o => o.value)
-    };
+    if (currentDraftId && !bandId) {
+      showNotification('Open Songwriting from a band so the finished song has an owner', 'error');
+      return;
+    }
+
+    const distributionChannels = Array.from(
+      form.distribution_channels.selectedOptions
+    ).map(o => o.value);
+
+    const endpoint = currentDraftId
+      ? `/api/songwriting/drafts/${currentDraftId}/finalize`
+      : '/api/songs';
+    const payload = currentDraftId
+      ? {
+          band_id: Number(bandId),
+          duration_sec,
+          distribution_channels: distributionChannels
+        }
+      : {
+          band_id: bandId ? Number(bandId) : undefined,
+          title: form.title.value.trim(),
+          duration_sec,
+          genre: form.genre.value.trim(),
+          themes: Array.from(document.getElementById('themes').selectedOptions).map(o => o.value),
+          lyrics: form.lyrics.value,
+          chord_progression: form.chord_progression.value,
+          distribution_channels: distributionChannels
+        };
     try {
-      const res = await apiFetch('/api/songs', {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok) {
-        showNotification('Song created successfully', 'success');
+        showNotification(
+          currentDraftId && data.already_finalized
+            ? 'Song was already created and is in your catalogue'
+            : 'Song created successfully',
+          'success'
+        );
         form.reset();
         currentDraftId = null;
         currentDraftSnapshot = null;
