@@ -33,3 +33,9 @@ Run the single optional post-completion writing session. The session always adds
 60 minutes to the writing-time breakdown. It can improve quality by 2-8 points
 when the previously displayed random chance succeeds; failure never reduces
 quality. A `songwriting_polish` inbox notification records the outcome.
+
+
+## POST /songwriting/drafts/{draft_id}/skip-polish
+Decline the optional final polish session and lock in the current songwriting
+quality without adding any extra writing time. This lets the player make an
+explicit choice between attempting polish and keeping the completed song as-is.
