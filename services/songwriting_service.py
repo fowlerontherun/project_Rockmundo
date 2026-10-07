@@ -482,6 +482,7 @@ class SongwritingService:
             plagiarism_warning=warning,
         )
         self._songs[draft.id] = song
+        self._persist_draft(draft)
         if register_copyright and self.legal:
             self.legal.register_copyright(song.id, lyrics)
 
@@ -554,6 +555,7 @@ class SongwritingService:
             draft.quality_score = self._quality_from_modifier(draft)
             draft.polish_available = True
             draft.polish_success_chance = self.rng.randint(25, 75)
+            self._persist_draft(draft)
 
         summary = self.completion_summary(draft_id)
         summary["newly_completed"] = newly_completed
@@ -587,6 +589,7 @@ class SongwritingService:
         draft.writing_minutes += 60
         draft.quality_score = min(100, (draft.quality_score or self._quality_from_modifier(draft)) + bonus)
         self.skill_service.add_songwriting_xp(user_id, revised=True)
+        self._persist_draft(draft)
 
         summary = self.completion_summary(draft_id)
         summary["roll"] = roll
@@ -603,6 +606,7 @@ class SongwritingService:
             raise ValueError("polish_already_resolved")
         draft.polish_available = False
         draft.polish_skipped = True
+        self._persist_draft(draft)
         return self.completion_summary(draft_id)
 
     def finalize_song(
@@ -736,6 +740,7 @@ class SongwritingService:
         self.skill_service.add_songwriting_xp(user_id, revised=True)
         draft.revision_sessions += 1
         draft.writing_minutes += 30
+        self._persist_draft(draft)
 
         return draft
 
@@ -760,6 +765,7 @@ class SongwritingService:
         if co_writer_id in invites:
             raise ValueError("already_invited")
         invites[co_writer_id] = user_id
+        self._persist_invite(draft_id, co_writer_id, user_id)
 
     def list_pending_invites(self, user_id: int) -> List[dict]:
         pending: List[dict] = []
@@ -790,7 +796,9 @@ class SongwritingService:
         invites.pop(user_id, None)
         if not invites:
             self._co_writer_invites.pop(draft_id, None)
+        self._remove_invite(draft_id, user_id)
         self._co_writers.setdefault(draft_id, set()).add(user_id)
+        self._persist_co_writer(draft_id, user_id)
 
     def decline_co_writer_invite(self, draft_id: int, user_id: int) -> None:
         invites = self._co_writer_invites.get(draft_id)
@@ -799,6 +807,7 @@ class SongwritingService:
         invites.pop(user_id, None)
         if not invites:
             self._co_writer_invites.pop(draft_id, None)
+        self._remove_invite(draft_id, user_id)
 
     def add_co_writer(self, draft_id: int, user_id: int, co_writer_id: int) -> None:
         draft = self._drafts.get(draft_id)
@@ -814,6 +823,7 @@ class SongwritingService:
         if co_writer_id in co_writers:
             raise ValueError("already_invited")
         co_writers.add(co_writer_id)
+        self._persist_co_writer(draft_id, co_writer_id)
 
     def save_version(
         self,
@@ -830,6 +840,7 @@ class SongwritingService:
             themes=themes or [],
         )
         self._versions.setdefault(draft_id, []).append(version)
+        self._persist_version(draft_id, version)
         return version
 
     def list_versions(self, draft_id: int) -> List[SongDraftVersion]:
@@ -842,4 +853,7 @@ class SongwritingService:
         return self._songs.get(draft_id)
 
 
-songwriting_service = SongwritingService(band_service=BandService())
+songwriting_service = SongwritingService(
+    band_service=BandService(),
+    draft_db_path=str(DB_PATH),
+)
