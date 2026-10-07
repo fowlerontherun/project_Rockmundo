@@ -461,3 +461,52 @@ def test_accept_or_decline_missing_invite_fails():
         svc.accept_co_writer_invite(999, user_id=2)
     with pytest.raises(KeyError, match="invite_not_found"):
         svc.decline_co_writer_invite(999, user_id=2)
+
+def test_completion_tracks_time_quality_and_single_polish_session():
+    class StubRandom:
+        def __init__(self):
+            self.values = iter([60, 40, 5])
+
+        def randint(self, low, high):
+            return next(self.values)
+
+    async def run():
+        svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+        svc.rng = StubRandom()
+        draft = await _generate(svc)
+
+        svc.update_draft(draft.id, user_id=1, lyrics="final lyrics")
+        completed = svc.complete_song(draft.id, user_id=1)
+
+        assert completed["newly_completed"] is True
+        assert completed["quality_score"] == 50
+        assert completed["writing_time"] == {
+            "initial_minutes": 60,
+            "revision_sessions": 1,
+            "revision_minutes": 30,
+            "polish_minutes": 0,
+            "total_minutes": 90,
+        }
+        assert completed["polish"]["available"] is True
+        assert completed["polish"]["success_chance"] == 60
+
+        # Re-fetching completion is idempotent and does not re-roll the chance.
+        again = svc.complete_song(draft.id, user_id=1)
+        assert again["newly_completed"] is False
+        assert again["polish"]["success_chance"] == 60
+
+        polished = svc.polish_song(draft.id, user_id=1)
+        assert polished["polish"]["attempted"] is True
+        assert polished["polish"]["succeeded"] is True
+        assert polished["polish"]["quality_bonus"] == 5
+        assert polished["quality_score"] == 55
+        assert polished["writing_time"]["polish_minutes"] == 60
+        assert polished["writing_time"]["total_minutes"] == 150
+
+        with pytest.raises(ValueError, match="polish_already_attempted"):
+            svc.polish_song(draft.id, user_id=1)
+
+        with pytest.raises(ValueError, match="song_already_completed"):
+            svc.update_draft(draft.id, user_id=1, lyrics="too late")
+
+    asyncio.run(run())
