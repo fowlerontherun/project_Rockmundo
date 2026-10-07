@@ -12,10 +12,22 @@ from services.skill_service import skill_service
 from services.songwriting_service import songwriting_service
 from services.notifications_service import NotificationsService
 from services.mail_service import MailService
+from utils.db import get_conn
 
 router = APIRouter(prefix="/songwriting", tags=["songwriting"])
 notifications = NotificationsService()
 mail_service = MailService(notifications=notifications)
+
+def _player_name(user_id: int) -> str:
+    try:
+        with get_conn() as conn:
+            row = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
+            if row and row["username"]:
+                return str(row["username"])
+    except Exception:
+        pass
+    return f"Player {user_id}"
+
 
 
 class PromptPayload(BaseModel):
@@ -329,7 +341,12 @@ def get_co_writers(draft_id: int, user_id: int = Depends(get_current_user_id)):
         raise HTTPException(status_code=404, detail="draft_not_found")
     if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
         raise HTTPException(status_code=403, detail="forbidden")
-    return {"co_writers": list(songwriting_service.get_co_writers(draft_id))}
+    co_writers = list(songwriting_service.get_co_writers(draft_id))
+    return {
+        "co_writers": co_writers,
+        "co_writer_names": {str(uid): _player_name(uid) for uid in co_writers},
+        "pending_invitees": list(songwriting_service.get_pending_invitees(draft_id)),
+    }
 
 
 @router.post("/drafts/{draft_id}/co_writers")
@@ -369,7 +386,47 @@ def add_co_writer(
     }
 @router.get("/invites")
 def list_songwriting_invites(user_id: int = Depends(get_current_user_id)):
-    return {"invites": songwriting_service.list_pending_invites(user_id)}
+    invites = songwriting_service.list_pending_invites(user_id)
+    return {
+        "invites": [
+            {**invite, "inviter_name": _player_name(invite["inviter_id"])}
+            for invite in invites
+        ]
+    }
+
+
+@router.get("/invites/sent")
+def list_sent_songwriting_invites(user_id: int = Depends(get_current_user_id)):
+    invites = songwriting_service.list_sent_invites(user_id)
+    return {
+        "invites": [
+            {**invite, "invitee_name": _player_name(invite["invitee_id"])}
+            for invite in invites
+        ]
+    }
+
+
+@router.delete("/drafts/{draft_id}/co_writers/{invitee_id}/invite")
+def withdraw_songwriting_invite(
+    draft_id: int,
+    invitee_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        songwriting_service.withdraw_co_writer_invite(draft_id, user_id, invitee_id)
+    except KeyError as exc:
+        detail = str(exc).strip("'")
+        raise HTTPException(status_code=404, detail=detail)
+
+    draft = songwriting_service.get_draft(draft_id)
+    if draft:
+        _send_private_inbox(
+            invitee_id,
+            title="Songwriting invitation withdrawn",
+            body=f"{_player_name(user_id)} withdrew the invitation to co-write '{draft.title}'.",
+            type_="songwriting_invite",
+        )
+    return {"ok": True, "draft_id": draft_id, "invitee_id": invitee_id}
 
 
 @router.post("/invites/{draft_id}/accept")
@@ -387,7 +444,7 @@ def accept_songwriting_invite(
         _send_private_inbox(
             draft.creator_id,
             title="Songwriting invitation accepted",
-            body=f"A player accepted the invitation to co-write '{draft.title}'.",
+            body=f"{_player_name(user_id)} accepted the invitation to co-write '{draft.title}'.",
             type_="songwriting_invite",
         )
     return {"ok": True, "draft_id": draft_id}
@@ -407,7 +464,7 @@ def decline_songwriting_invite(
         _send_private_inbox(
             draft.creator_id,
             title="Songwriting invitation declined",
-            body=f"A player declined the invitation to co-write '{draft.title}'.",
+            body=f"{_player_name(user_id)} declined the invitation to co-write '{draft.title}'.",
             type_="songwriting_invite",
         )
     return {"ok": True, "draft_id": draft_id}
