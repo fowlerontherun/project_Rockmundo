@@ -277,8 +277,10 @@ class SongwritingService:
         draft = self._require_writer(draft_id, user_id)
         if draft.completed_at is None:
             raise ValueError("song_not_completed")
-        if draft.polish_attempted or not draft.polish_available:
+        if draft.polish_attempted:
             raise ValueError("polish_already_attempted")
+        if draft.polish_skipped or not draft.polish_available:
+            raise ValueError("polish_already_resolved")
 
         chance = draft.polish_success_chance or 0
         roll = self.rng.randint(1, 100)
