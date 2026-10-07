@@ -25,14 +25,16 @@ Add a co-writer to a draft.  The user making the request must share a band with 
 ## POST /songwriting/drafts/{draft_id}/complete
 Finish the songwriting phase. The response contains a 1-100 song quality score,
 a writing-time breakdown, and a one-time random polish success chance. The first
-completion also sends a `songwriting_complete` inbox notification to the creator
-and accepted co-writers.
+completion also creates a private in-game inbox thread for the creator and each
+accepted co-writer. Mail delivery raises the normal unread-mail notification; if
+mail storage is unavailable, the system falls back to a
+`songwriting_complete` notification so the result is not silently lost.
 
 ## POST /songwriting/drafts/{draft_id}/polish
 Run the single optional post-completion writing session. The session always adds
 60 minutes to the writing-time breakdown. It can improve quality by 2-8 points
 when the previously displayed random chance succeeds; failure never reduces
-quality. A `songwriting_polish` inbox notification records the outcome.
+quality. The outcome is delivered as another private inbox item.
 
 
 ## POST /songwriting/drafts/{draft_id}/skip-polish
