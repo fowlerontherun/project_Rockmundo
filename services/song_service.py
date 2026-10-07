@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -64,6 +65,34 @@ class SongService:
 
         cur.execute(
             """
+            CREATE TABLE IF NOT EXISTS songwriting_song_metadata (
+                song_id INTEGER PRIMARY KEY,
+                draft_id INTEGER NOT NULL UNIQUE,
+                creator_id INTEGER NOT NULL,
+                lyrics TEXT NOT NULL DEFAULT '',
+                chord_progression TEXT NOT NULL DEFAULT '',
+                themes_json TEXT NOT NULL DEFAULT '[]',
+                quality_score INTEGER NOT NULL DEFAULT 1,
+                writing_minutes INTEGER NOT NULL DEFAULT 0,
+                initial_minutes INTEGER NOT NULL DEFAULT 0,
+                revision_sessions INTEGER NOT NULL DEFAULT 0,
+                revision_minutes INTEGER NOT NULL DEFAULT 0,
+                polish_minutes INTEGER NOT NULL DEFAULT 0,
+                polish_attempted INTEGER NOT NULL DEFAULT 0,
+                polish_skipped INTEGER NOT NULL DEFAULT 0,
+                polish_succeeded INTEGER,
+                polish_success_chance INTEGER,
+                polish_bonus INTEGER NOT NULL DEFAULT 0,
+                distribution_channels_json TEXT NOT NULL DEFAULT '[]',
+                songwriting_completed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        cur.execute(
+            """
             INSERT INTO songs (
                 band_id, title, duration_sec, genre, play_count,
                 original_song_id, license_fee, royalty_rate, legacy_state, original_release_date
@@ -90,9 +119,115 @@ class SongService:
                 (song_id, user_id, percent),
             )
 
+        songwriting_metadata = data.get("songwriting_metadata")
+        if songwriting_metadata:
+            cur.execute(
+                """
+                INSERT INTO songwriting_song_metadata (
+                    song_id, draft_id, creator_id, lyrics, chord_progression,
+                    themes_json, quality_score, writing_minutes, initial_minutes,
+                    revision_sessions, revision_minutes, polish_minutes,
+                    polish_attempted, polish_skipped, polish_succeeded,
+                    polish_success_chance, polish_bonus,
+                    distribution_channels_json, songwriting_completed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    song_id,
+                    songwriting_metadata["draft_id"],
+                    songwriting_metadata["creator_id"],
+                    songwriting_metadata.get("lyrics", ""),
+                    songwriting_metadata.get("chord_progression", ""),
+                    json.dumps(songwriting_metadata.get("themes", [])),
+                    songwriting_metadata.get("quality_score", 1),
+                    songwriting_metadata.get("writing_minutes", 0),
+                    songwriting_metadata.get("initial_minutes", 0),
+                    songwriting_metadata.get("revision_sessions", 0),
+                    songwriting_metadata.get("revision_minutes", 0),
+                    songwriting_metadata.get("polish_minutes", 0),
+                    int(bool(songwriting_metadata.get("polish_attempted"))),
+                    int(bool(songwriting_metadata.get("polish_skipped"))),
+                    None
+                    if songwriting_metadata.get("polish_succeeded") is None
+                    else int(bool(songwriting_metadata.get("polish_succeeded"))),
+                    songwriting_metadata.get("polish_success_chance"),
+                    songwriting_metadata.get("polish_bonus", 0),
+                    json.dumps(songwriting_metadata.get("distribution_channels", [])),
+                    songwriting_metadata.get("songwriting_completed_at"),
+                ),
+            )
+
         conn.commit()
         conn.close()
         return {"status": "ok", "song_id": song_id}
+
+    def get_songwriting_metadata(self, song_id: int) -> Optional[Dict]:
+        conn = sqlite3.connect(self.db)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT * FROM songwriting_song_metadata
+            WHERE song_id = ?
+            """,
+            (song_id,),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        data = dict(row)
+        data["themes"] = json.loads(data.pop("themes_json") or "[]")
+        data["distribution_channels"] = json.loads(
+            data.pop("distribution_channels_json") or "[]"
+        )
+        for key in ("polish_attempted", "polish_skipped"):
+            data[key] = bool(data[key])
+        if data["polish_succeeded"] is not None:
+            data["polish_succeeded"] = bool(data["polish_succeeded"])
+        return data
+
+    def get_songwriting_metadata_by_draft(self, draft_id: int) -> Optional[Dict]:
+        conn = sqlite3.connect(self.db)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS songwriting_song_metadata (
+                song_id INTEGER PRIMARY KEY,
+                draft_id INTEGER NOT NULL UNIQUE,
+                creator_id INTEGER NOT NULL,
+                lyrics TEXT NOT NULL DEFAULT '',
+                chord_progression TEXT NOT NULL DEFAULT '',
+                themes_json TEXT NOT NULL DEFAULT '[]',
+                quality_score INTEGER NOT NULL DEFAULT 1,
+                writing_minutes INTEGER NOT NULL DEFAULT 0,
+                initial_minutes INTEGER NOT NULL DEFAULT 0,
+                revision_sessions INTEGER NOT NULL DEFAULT 0,
+                revision_minutes INTEGER NOT NULL DEFAULT 0,
+                polish_minutes INTEGER NOT NULL DEFAULT 0,
+                polish_attempted INTEGER NOT NULL DEFAULT 0,
+                polish_skipped INTEGER NOT NULL DEFAULT 0,
+                polish_succeeded INTEGER,
+                polish_success_chance INTEGER,
+                polish_bonus INTEGER NOT NULL DEFAULT 0,
+                distribution_channels_json TEXT NOT NULL DEFAULT '[]',
+                songwriting_completed_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE
+            )
+            """
+        )
+        cur.execute(
+            "SELECT song_id FROM songwriting_song_metadata WHERE draft_id = ?",
+            (draft_id,),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        return self.get_songwriting_metadata(int(row["song_id"]))
 
     def list_songs_by_band(
         self,
