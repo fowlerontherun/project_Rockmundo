@@ -302,3 +302,41 @@ def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypat
     assert len(inbox.sent) == 1
     assert recorder.sent == []
 
+def test_completion_falls_back_to_notification_when_inbox_fails(client_factory, monkeypatch):
+    class FailingMail:
+        def compose(self, **kwargs):
+            raise RuntimeError("mail unavailable")
+
+    class RecordingNotifications:
+        def __init__(self):
+            self.sent = []
+
+        def create(self, **kwargs):
+            self.sent.append(kwargs)
+            return len(self.sent)
+
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Fallback Song",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+
+    recorder = RecordingNotifications()
+    monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
+    monkeypatch.setattr(songwriting_routes, "mail_service", FailingMail())
+    monkeypatch.setattr(songwriting_routes, "notifications", recorder)
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+
+    response = client.post(f"/songwriting/drafts/{draft.id}/complete")
+    assert response.status_code == 200
+    assert len(recorder.sent) == 1
+    assert recorder.sent[0]["user_id"] == 1
+    assert recorder.sent[0]["type_"] == "songwriting_complete"
+
