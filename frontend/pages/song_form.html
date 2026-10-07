@@ -253,6 +253,8 @@
       const form = document.getElementById('songForm');
       form.title.value = draft.title || '';
       form.genre.value = draft.genre || '';
+      form.title.readOnly = true;
+      form.genre.readOnly = true;
       document.getElementById('lyrics').value = draft.lyrics || '';
       document.getElementById('chord_progression').value = draft.chord_progression || '';
 
@@ -398,9 +400,15 @@
     if (!currentDraftId || !currentDraftSnapshot) return true;
     const lyrics = document.getElementById('lyrics').value;
     const chord = document.getElementById('chord_progression').value;
+    const themes = Array.from(
+      document.getElementById('themes').selectedOptions
+    ).map(option => option.value);
     const updates = {};
     if (lyrics !== currentDraftSnapshot.lyrics) updates.lyrics = lyrics;
     if (chord !== currentDraftSnapshot.chord_progression) updates.chord_progression = chord;
+    if (JSON.stringify(themes) !== JSON.stringify(currentDraftSnapshot.themes || [])) {
+      updates.themes = themes;
+    }
     if (!Object.keys(updates).length) return true;
 
     const res = await apiFetch(`/api/songwriting/drafts/${currentDraftId}`, {
@@ -500,6 +508,8 @@
       if (res.ok) {
         currentDraftId = data.id;
         currentDraftSnapshot = data;
+        form.title.readOnly = true;
+        form.genre.readOnly = true;
         document.getElementById('lyrics').value = data.lyrics || '';
         document.getElementById('chord_progression').value = data.chord_progression || '';
         document.getElementById('lyrics').readOnly = false;
@@ -590,6 +600,8 @@
           'success'
         );
         form.reset();
+        form.title.readOnly = false;
+        form.genre.readOnly = false;
         currentDraftId = null;
         currentDraftSnapshot = null;
         currentCompletionSummary = null;
