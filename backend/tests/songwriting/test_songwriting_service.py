@@ -749,3 +749,41 @@ def test_accepted_co_writer_chemistry_affects_completion_quality():
 
     asyncio.run(run())
 
+
+
+
+def test_sent_songwriting_invites_can_be_withdrawn_and_persist(tmp_path):
+    async def run():
+        db_path = tmp_path / "songwriting_invites.db"
+        svc = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            draft_db_path=str(db_path),
+        )
+        draft = await _generate(svc)
+
+        svc.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+        assert svc.list_sent_invites(1) == [
+            {
+                "draft_id": draft.id,
+                "title": draft.title,
+                "genre": draft.genre,
+                "invitee_id": 2,
+            }
+        ]
+
+        restarted = SongwritingService(
+            llm_client=FakeLLM(),
+            originality=OriginalityService(),
+            draft_db_path=str(db_path),
+        )
+        assert restarted.list_sent_invites(1)[0]["invitee_id"] == 2
+
+        restarted.withdraw_co_writer_invite(draft.id, inviter_id=1, invitee_id=2)
+        assert restarted.list_sent_invites(1) == []
+        assert restarted.list_pending_invites(2) == []
+
+        with pytest.raises(KeyError, match="invite_not_found"):
+            restarted.withdraw_co_writer_invite(draft.id, inviter_id=1, invitee_id=2)
+
+    asyncio.run(run())
