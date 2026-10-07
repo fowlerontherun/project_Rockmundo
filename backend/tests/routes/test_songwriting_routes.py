@@ -377,3 +377,30 @@ def test_songwriting_invite_is_delivered_to_real_inbox(client_factory, monkeypat
     assert inbox.sent[0]["subject"] == "Songwriting session invitation"
     assert "Invite Song" in inbox.sent[0]["body"]
 
+def test_songwriting_resume_helpers_return_identity_and_completion(client_factory):
+    svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
+    draft = asyncio.run(
+        svc.generate_draft(
+            creator_id=1,
+            title="Resume Song",
+            genre="rock",
+            themes=["x", "y", "z"],
+        )
+    )
+    svc.complete_song(draft.id, user_id=1)
+    songwriting_routes.songwriting_service = svc
+
+    app = FastAPI()
+    app.include_router(songwriting_routes.router)
+    client = client_factory(app, {songwriting_routes.get_current_user_id: lambda: 1})
+
+    me = client.get("/songwriting/me")
+    assert me.status_code == 200
+    assert me.json() == {"user_id": 1}
+
+    summary = client.get(f"/songwriting/drafts/{draft.id}/completion")
+    assert summary.status_code == 200
+    assert summary.json()["status"] == "completed"
+    assert summary.json()["quality_score"] == 50
+    assert summary.json()["polish"]["available"] is True
+
