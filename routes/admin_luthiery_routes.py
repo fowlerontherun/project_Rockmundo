@@ -4,7 +4,9 @@ from fastapi import APIRouter,Depends,HTTPException
 from pydantic import BaseModel
 from auth.dependencies import get_current_user_id,require_permission
 from services.luthiery_catalogue_service import luthiery_catalogue_service,DB_PATH
-from services.luthiery_reputation_service import luthiery_reputation\nfrom services.luthiery_balance_service import balance_service\nfrom services.luthiery_crafting_service import luthiery_crafting_service
+from services.luthiery_reputation_service import luthiery_reputation
+from services.luthiery_balance_service import balance_service
+from services.luthiery_crafting_service import luthiery_crafting_service
 
 router=APIRouter(prefix="/admin/luthiery",tags=["Admin Luthiery"])
 def _audit(admin_id:int,action:str,target:str,before=None,after=None):
@@ -15,7 +17,15 @@ def _audit(admin_id:int,action:str,target:str,before=None,after=None):
 async def _admin(user_id:int=Depends(get_current_user_id))->int:
  await require_permission(["admin"],user_id);return user_id
 class EnabledUpdate(BaseModel): enabled:bool
-class QualityWeightsUpdate(BaseModel):\n skill:float\n materials:float\n specialist:float\n workshop:float\n variance:float\nclass TraitUpdate(BaseModel): enabled:bool\nclass FeatureUpdate(BaseModel): enabled:bool\nclass DemoPart(BaseModel):
+class QualityWeightsUpdate(BaseModel):
+ skill:float
+ materials:float
+ specialist:float
+ workshop:float
+ variance:float
+class TraitUpdate(BaseModel): enabled:bool
+class FeatureUpdate(BaseModel): enabled:bool
+class DemoPart(BaseModel):
  material_key:str
  component_key:str|None=None
 class CraftDemoRequest(BaseModel):
@@ -39,12 +49,14 @@ class CatalogueBalanceUpdate(BaseModel):
 def catalogue(_admin_id:int=Depends(_admin)):return luthiery_catalogue_service.admin_catalogue()
 @router.put("/catalogue/{content_type}/{content_key}/enabled")
 def set_enabled(content_type:str,content_key:str,payload:EnabledUpdate,_admin_id:int=Depends(_admin)):
- try:\n  before=luthiery_catalogue_service.admin_get(content_type,content_key);luthiery_catalogue_service.set_enabled(content_type,content_key,payload.enabled);after=luthiery_catalogue_service.admin_get(content_type,content_key);_audit(_admin_id,"catalogue_enabled",f"{content_type}:{content_key}",before,after)
+ try:
+  before=luthiery_catalogue_service.admin_get(content_type,content_key);luthiery_catalogue_service.set_enabled(content_type,content_key,payload.enabled);after=luthiery_catalogue_service.admin_get(content_type,content_key);_audit(_admin_id,"catalogue_enabled",f"{content_type}:{content_key}",before,after)
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
  return {"status":"ok","enabled":payload.enabled}
 @router.patch("/catalogue/{content_type}/{content_key}")
 def update_catalogue(content_type:str,content_key:str,payload:CatalogueBalanceUpdate,_admin_id:int=Depends(_admin)):
- try:\n  before=luthiery_catalogue_service.admin_get(content_type,content_key);result=luthiery_catalogue_service.admin_update(content_type,content_key,payload.required_level,payload.cost_cents,payload.stock);_audit(_admin_id,"catalogue_update",f"{content_type}:{content_key}",before,result);return result
+ try:
+  before=luthiery_catalogue_service.admin_get(content_type,content_key);result=luthiery_catalogue_service.admin_update(content_type,content_key,payload.required_level,payload.cost_cents,payload.stock);_audit(_admin_id,"catalogue_update",f"{content_type}:{content_key}",before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 @router.get("/items/{serial_number}")
 def lookup_serial(serial_number:str,_admin_id:int=Depends(_admin)):
@@ -62,7 +74,8 @@ def lookup_serial(serial_number:str,_admin_id:int=Depends(_admin)):
 def get_quality(_admin_id:int=Depends(_admin)):return balance_service.quality_weights()
 @router.put("/balance/quality")
 def set_quality(payload:QualityWeightsUpdate,_admin_id:int=Depends(_admin)):
- try:\n  before=balance_service.quality_weights();result=balance_service.set_quality_weights(payload.model_dump());_audit(_admin_id,"quality_weights","quality_weights",before,result);return result
+ try:
+  before=balance_service.quality_weights();result=balance_service.set_quality_weights(payload.model_dump());_audit(_admin_id,"quality_weights","quality_weights",before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 @router.put("/traits/{trait_key}")
 def set_trait(trait_key:str,payload:TraitUpdate,_admin_id:int=Depends(_admin)):
@@ -82,7 +95,8 @@ def features(_admin_id:int=Depends(_admin)):
  return {"legendary_shapes":balance_service.feature_enabled("legendary_shapes"),"premium_materials":balance_service.feature_enabled("premium_materials"),"boutique_electronics":balance_service.feature_enabled("boutique_electronics"),"metallic_finishes":balance_service.feature_enabled("metallic_finishes")}
 @router.put("/features/{feature_key}")
 def set_feature(feature_key:str,payload:FeatureUpdate,_admin_id:int=Depends(_admin)):
- try:\n  before={"enabled":balance_service.feature_enabled(feature_key)};result=balance_service.set_feature(feature_key,payload.enabled);_audit(_admin_id,"feature",feature_key,before,result);return result
+ try:
+  before={"enabled":balance_service.feature_enabled(feature_key)};result=balance_service.set_feature(feature_key,payload.enabled);_audit(_admin_id,"feature",feature_key,before,result);return result
  except ValueError as exc:raise HTTPException(status_code=400,detail=str(exc)) from exc
 
 @router.post("/demo/craft")
