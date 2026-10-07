@@ -16,6 +16,10 @@
   <progress id="skillXP" value="0" max="100"></progress>
   <small>Higher levels unlock richer AI drafts.</small>
 </div>
+<div>
+  <h3>Your Songwriting Drafts</h3>
+  <div id="draftList">Loading drafts…</div>
+</div>
 <form id="songForm">
   <input type="text" name="title" placeholder="Song Title" required />
   <input type="text" name="duration_sec" placeholder="Duration (sec or mm:ss)" required />
@@ -72,7 +76,9 @@
   let currentDraftId = null;
   let currentDraftSnapshot = null;
   let currentCompletionSummary = null;
+  let currentUserId = null;
   let lastCollaborators = [];
+  let collaboratorPoll = null;
 
   function loadSkill() {
     apiFetch('/api/songwriting/skill')
@@ -160,7 +166,7 @@
 
   loadBandMembers();
 
-  apiFetch('/api/songwriting/themes')
+  const themesReady = apiFetch('/api/songwriting/themes')
     .then(r => r.json())
     .then(list => {
       const sel = document.getElementById('themes');
@@ -178,6 +184,107 @@
       selected[0].selected = false;
     }
   });
+
+  async function loadSongwritingIdentity() {
+    try {
+      const res = await apiFetch('/api/songwriting/me');
+      if (!res.ok) return;
+      const data = await res.json();
+      currentUserId = Number(data.user_id);
+    } catch {}
+  }
+
+  async function loadDrafts() {
+    const container = document.getElementById('draftList');
+    try {
+      if (currentUserId == null) await loadSongwritingIdentity();
+      const res = await apiFetch('/api/songwriting/drafts');
+      if (!res.ok) {
+        container.textContent = 'Unable to load songwriting drafts.';
+        return;
+      }
+      const drafts = await res.json();
+      if (!drafts.length) {
+        container.textContent = 'No saved songwriting drafts yet.';
+        return;
+      }
+
+      container.innerHTML = '';
+      drafts
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .forEach(draft => {
+          const row = document.createElement('div');
+          const label = document.createElement('span');
+          const role = Number(draft.creator_id) === currentUserId ? 'Creator' : 'Co-writer';
+          const status = draft.status === 'completed' ? 'Writing complete' : 'In progress';
+          label.textContent = `${draft.title} — ${status} — ${role} `;
+
+          const open = document.createElement('button');
+          open.type = 'button';
+          open.textContent = Number(draft.creator_id) === currentUserId ? 'Resume' : 'Open Collaboration';
+          open.addEventListener('click', () => {
+            if (Number(draft.creator_id) === currentUserId) {
+              openCreatorDraft(draft.id);
+            } else {
+              window.location.href = `song_collab.html?draft_id=${draft.id}`;
+            }
+          });
+
+          row.append(label, open);
+          container.appendChild(row);
+        });
+    } catch {
+      container.textContent = 'Unable to load songwriting drafts.';
+    }
+  }
+
+  async function openCreatorDraft(draftId) {
+    try {
+      await themesReady;
+      const res = await apiFetch(`/api/songwriting/drafts/${draftId}`);
+      const draft = await res.json();
+      if (!res.ok) {
+        showNotification(draft.detail || 'Unable to load draft', 'error');
+        return;
+      }
+
+      currentDraftId = draft.id;
+      currentDraftSnapshot = draft;
+      const form = document.getElementById('songForm');
+      form.title.value = draft.title || '';
+      form.genre.value = draft.genre || '';
+      document.getElementById('lyrics').value = draft.lyrics || '';
+      document.getElementById('chord_progression').value = draft.chord_progression || '';
+
+      const selectedThemes = new Set(draft.themes || []);
+      Array.from(document.getElementById('themes').options).forEach(option => {
+        option.selected = selectedThemes.has(option.value);
+      });
+
+      document.getElementById('lyrics').readOnly = draft.status === 'completed';
+      document.getElementById('chord_progression').readOnly = draft.status === 'completed';
+
+      const cowriters = await apiFetch(`/api/songwriting/drafts/${draft.id}/co_writers`);
+      if (cowriters.ok) {
+        const data = await cowriters.json();
+        renderCollaborators(data.co_writers || []);
+      }
+
+      if (draft.status === 'completed') {
+        const summaryRes = await apiFetch(`/api/songwriting/drafts/${draft.id}/completion`);
+        if (summaryRes.ok) renderCompletion(await summaryRes.json());
+      } else {
+        renderCompletion(null);
+      }
+
+      pollCollaborators(draft.id);
+      showNotification(`Resumed ${draft.title}`, 'success');
+    } catch {
+      showNotification('Unable to resume songwriting draft', 'error');
+    }
+  }
+
+  loadSongwritingIdentity().then(loadDrafts);
 
   async function inviteCowriters(draftId) {
     const ids = Array.from(document.getElementById('coWriters').selectedOptions).map(o => Number(o.value));
@@ -215,7 +322,8 @@
   }
 
   function pollCollaborators(draftId) {
-    setInterval(async () => {
+    if (collaboratorPoll) clearInterval(collaboratorPoll);
+    collaboratorPoll = setInterval(async () => {
       try {
         const res = await apiFetch(`/api/songwriting/drafts/${draftId}/co_writers`);
         if (!res.ok) return;
@@ -401,6 +509,7 @@
         renderCollaborators([]);
         await inviteCowriters(currentDraftId);
         pollCollaborators(currentDraftId);
+        await loadDrafts();
       } else {
         showNotification(data.message || data.error || 'Failed to generate draft', 'error');
       }
@@ -485,6 +594,7 @@
         currentDraftSnapshot = null;
         currentCompletionSummary = null;
         document.getElementById('completionPanel').hidden = true;
+        await loadDrafts();
       } else {
         showNotification(data.message || data.error || 'Failed to create song', 'error');
       }
