@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional\nimport sqlite3\nfrom pathlib import Path
+from typing import Dict, List, Optional
+import sqlite3
+from pathlib import Path
 
 from backend.models.learning_method import LearningMethod
 from backend.models.recording_session import RecordingSession
@@ -10,7 +12,9 @@ from backend.services.chemistry_service import ChemistryService
 from backend.services.economy_service import EconomyError, EconomyService
 from backend.services.skill_service import skill_service
 from services.crafted_instrument_effects_service import crafted_instrument_effects
-from services.crafted_instrument_equipment_service import crafted_instrument_equipment\nfrom services.luthiery_reputation_service import luthiery_reputation\nfrom database import DB_PATH
+from services.crafted_instrument_equipment_service import crafted_instrument_equipment
+from services.luthiery_reputation_service import luthiery_reputation
+from database import DB_PATH
 
 
 
@@ -114,7 +118,10 @@ class RecordingService:
         session = self.sessions.get(session_id)
         if not session:
             raise KeyError("session_not_found")
-        previous_status = session.track_statuses.get(track_id)\n        session.track_statuses[track_id] = status\n        if status == "recorded" and previous_status != "recorded":\n            crafted_instrument_equipment.wear_band(session.band_id, 1, list(session.personnel))
+        previous_status = session.track_statuses.get(track_id)
+        session.track_statuses[track_id] = status
+        if status == "recorded" and previous_status != "recorded":
+            crafted_instrument_equipment.wear_band(session.band_id, 1, list(session.personnel))
 
         if session.personnel:
             scores = []
