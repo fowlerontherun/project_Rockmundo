@@ -40,4 +40,5 @@ class LyricDraft:
     polish_attempted: bool = False
     polish_success_chance: Optional[int] = None
     polish_succeeded: Optional[bool] = None
+    polish_skipped: bool = False
     polish_bonus: int = 0
