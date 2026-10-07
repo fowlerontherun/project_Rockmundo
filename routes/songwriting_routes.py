@@ -91,8 +91,10 @@ def list_drafts(user_id: int = Depends(get_current_user_id)):
 @router.get("/drafts/{draft_id}")
 def get_draft(draft_id: int, user_id: int = Depends(get_current_user_id)):
     draft = songwriting_service.get_draft(draft_id)
-    if not draft or draft.creator_id != user_id:
+    if not draft:
         raise HTTPException(status_code=404, detail="draft_not_found")
+    if draft.creator_id != user_id and user_id not in songwriting_service.get_co_writers(draft_id):
+        raise HTTPException(status_code=403, detail="forbidden")
     return draft
 
 
@@ -216,6 +218,24 @@ def polish_songwriting(
         type_="songwriting_polish",
     )
     return summary
+
+
+@router.post("/drafts/{draft_id}/skip-polish")
+def skip_songwriting_polish(
+    draft_id: int,
+    user_id: int = Depends(get_current_user_id),
+):
+    try:
+        return songwriting_service.skip_polish(draft_id, user_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="draft_not_found")
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="forbidden")
+    except ValueError as exc:
+        detail = str(exc)
+        if detail in {"song_not_completed", "polish_already_resolved"}:
+            raise HTTPException(status_code=409, detail=detail)
+        raise
 
 
 @router.get("/drafts/{draft_id}/versions")
