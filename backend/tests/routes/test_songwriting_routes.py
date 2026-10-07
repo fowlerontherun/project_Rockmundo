@@ -129,6 +129,14 @@ def test_complete_route_notifies_all_songwriters_once(client_factory, monkeypatc
             self.sent.append(kwargs)
             return len(self.sent)
 
+    class RecordingMail:
+        def __init__(self):
+            self.sent = []
+
+        def compose(self, **kwargs):
+            self.sent.append(kwargs)
+            return {"thread_id": len(self.sent), "message_id": len(self.sent)}
+
     svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
     svc.rng = StubRandom()
     draft = asyncio.run(
@@ -141,8 +149,10 @@ def test_complete_route_notifies_all_songwriters_once(client_factory, monkeypatc
     )
     svc.add_co_writer(draft.id, user_id=1, co_writer_id=2)
     recorder = RecordingNotifications()
+    inbox = RecordingMail()
     monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
     monkeypatch.setattr(songwriting_routes, "notifications", recorder)
+    monkeypatch.setattr(songwriting_routes, "mail_service", inbox)
 
     app = FastAPI()
     app.include_router(songwriting_routes.router)
@@ -153,15 +163,18 @@ def test_complete_route_notifies_all_songwriters_once(client_factory, monkeypatc
     payload = first.json()
     assert payload["quality_score"] == 50
     assert payload["polish"]["success_chance"] == 55
-    assert {item["user_id"] for item in recorder.sent} == {1, 2}
-    assert all(item["type_"] == "songwriting_complete" for item in recorder.sent)
-    assert all("Song quality: 50/100" in item["body"] for item in recorder.sent)
-    assert all("Writing time: 1h" in item["body"] for item in recorder.sent)
+    assert {item["recipient_ids"][0] for item in inbox.sent} == {1, 2}
+    assert all(item["sender_id"] == 0 for item in inbox.sent)
+    assert all(item["subject"].startswith("Song complete:") for item in inbox.sent)
+    assert all("Song quality: 50/100" in item["body"] for item in inbox.sent)
+    assert all("Writing time: 1h" in item["body"] for item in inbox.sent)
+    assert recorder.sent == []
 
     second = client.post(f"/songwriting/drafts/{draft.id}/complete")
     assert second.status_code == 200
     assert second.json()["newly_completed"] is False
-    assert len(recorder.sent) == 2
+    assert len(inbox.sent) == 2
+    assert recorder.sent == []
 
 def test_accepted_co_writer_can_fetch_draft(client_factory):
     svc = SongwritingService(llm_client=FakeLLM(), originality=OriginalityService())
@@ -216,6 +229,14 @@ def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypat
             self.sent.append(kwargs)
             return len(self.sent)
 
+    class RecordingMail:
+        def __init__(self):
+            self.sent = []
+
+        def compose(self, **kwargs):
+            self.sent.append(kwargs)
+            return {"thread_id": len(self.sent), "message_id": len(self.sent)}
+
     song_store = StubSongService()
     svc = SongwritingService(
         llm_client=FakeLLM(),
@@ -235,8 +256,10 @@ def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypat
     svc.skip_polish(draft.id, user_id=1)
 
     recorder = RecordingNotifications()
+    inbox = RecordingMail()
     monkeypatch.setattr(songwriting_routes, "songwriting_service", svc)
     monkeypatch.setattr(songwriting_routes, "notifications", recorder)
+    monkeypatch.setattr(songwriting_routes, "mail_service", inbox)
 
     app = FastAPI()
     app.include_router(songwriting_routes.router)
@@ -259,8 +282,10 @@ def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypat
         "digital",
         "streaming",
     ]
-    assert len(recorder.sent) == 1
-    assert recorder.sent[0]["type_"] == "songwriting_finalized"
+    assert len(inbox.sent) == 1
+    assert inbox.sent[0]["subject"].startswith("Song ready:")
+    assert "Writing quality: 50/100" in inbox.sent[0]["body"]
+    assert recorder.sent == []
 
     retry = client.post(
         f"/songwriting/drafts/{draft.id}/finalize",
@@ -274,5 +299,6 @@ def test_finalize_route_creates_song_and_notifies_once(client_factory, monkeypat
     assert retry.json()["already_finalized"] is True
     assert retry.json()["song_id"] == first.json()["song_id"]
     assert len(song_store.created) == 1
-    assert len(recorder.sent) == 1
+    assert len(inbox.sent) == 1
+    assert recorder.sent == []
 
