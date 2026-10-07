@@ -504,10 +504,37 @@ class SongwritingService:
             raise PermissionError("forbidden")
         return draft
 
-    @staticmethod
-    def _quality_from_modifier(draft: LyricDraft) -> int:
-        """Turn the existing songwriting quality modifier into a 1-100 score."""
-        return max(1, min(100, round(50 * draft.metadata.quality_modifier)))
+    def _quality_from_modifier(self, draft: LyricDraft) -> int:
+        """Resolve final quality using the accepted writing team's chemistry.
+
+        Draft generation stores the quality modifier available at that moment.
+        Co-writers normally join later, so at completion we adjust only the
+        chemistry component from its original value to the chemistry of the
+        actual accepted writing team.
+        """
+        modifier = draft.metadata.quality_modifier
+        participants = [draft.creator_id] + sorted(self.get_co_writers(draft.id))
+
+        scores: list[float] = []
+        for index, writer_a in enumerate(participants):
+            for writer_b in participants[index + 1 :]:
+                pair = self.chemistry_service.initialize_pair(writer_a, writer_b)
+                scores.append(float(pair.score))
+
+        current_chemistry = sum(scores) / len(scores) if scores else 50.0
+        original_chemistry = (
+            float(draft.metadata.chemistry)
+            if draft.metadata.chemistry is not None
+            else 50.0
+        )
+        original_factor = 1 + (original_chemistry - 50.0) / 100.0
+        current_factor = 1 + (current_chemistry - 50.0) / 100.0
+        if original_factor > 0:
+            modifier *= current_factor / original_factor
+
+        draft.metadata.chemistry = current_chemistry
+        draft.metadata.quality_modifier = modifier
+        return max(1, min(100, round(50 * modifier)))
 
     def completion_summary(self, draft_id: int) -> dict:
         draft = self._drafts.get(draft_id)
