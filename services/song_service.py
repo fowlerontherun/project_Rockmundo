@@ -286,10 +286,14 @@ class SongService:
         if search:
             query += " AND s.title LIKE ?"
             params.append(f"%{search}%")
-        sort_map = {"title": "s.title", "duration": "s.duration_sec", "plays": "s.play_count", "quality": "m.quality_score"}
-        order = sort_map.get(sort, "id")
-        direction = "ASC" if order != "id" else "DESC"
-        query += f" ORDER BY {order} {direction}"
+        sort_map = {
+            "title": ("s.title", "ASC"),
+            "duration": ("s.duration_sec", "ASC"),
+            "plays": ("s.play_count", "DESC"),
+            "quality": ("m.quality_score", "DESC"),
+        }
+        order, direction = sort_map.get(sort, ("s.id", "DESC"))
+        query += f" ORDER BY {order} IS NULL, {order} {direction}"
         cur.execute(query, params)
         rows = cur.fetchall()
         conn.close()
