@@ -621,3 +621,51 @@ def test_co_writer_cannot_complete_or_spend_final_polish_choice():
 
     asyncio.run(run())
 
+def test_persistent_songwriting_state_survives_service_restart(tmp_path):
+    async def run():
+        db_path = tmp_path / "songwriting.db"
+        first = SongwritingService(
+            llm_client=FakeLLM(),
+            art_service=FakeArt(),
+            originality=OriginalityService(),
+            draft_db_path=str(db_path),
+        )
+        draft = await _generate(first)
+        first.invite_co_writer(draft.id, user_id=1, co_writer_id=2)
+        first.accept_co_writer_invite(draft.id, user_id=2)
+        first.update_draft(draft.id, user_id=2, lyrics="persisted collaboration")
+        completed = first.complete_song(draft.id, user_id=1)
+        assert completed["quality_score"] == 50
+        first.skip_polish(draft.id, user_id=1)
+
+        second = SongwritingService(
+            llm_client=FakeLLM(),
+            art_service=FakeArt(),
+            originality=OriginalityService(),
+            draft_db_path=str(db_path),
+        )
+        loaded = second.get_draft(draft.id)
+        assert loaded is not None
+        assert loaded.lyrics == "persisted collaboration"
+        assert loaded.status == "completed"
+        assert loaded.quality_score == 50
+        assert loaded.polish_available is False
+        assert loaded.polish_skipped is True
+        assert loaded.writing_minutes == 90
+        assert second.get_co_writers(draft.id) == {2}
+        assert second.get_pending_invitees(draft.id) == set()
+        versions = second.list_versions(draft.id)
+        assert len(versions) == 2
+        assert versions[-1].author_id == 2
+        assert versions[-1].lyrics == "persisted collaboration"
+
+        next_draft = await second.generate_draft(
+            creator_id=1,
+            title="Next",
+            genre="rock",
+            themes=["love", "hope", "loss"],
+        )
+        assert next_draft.id == draft.id + 1
+
+    asyncio.run(run())
+
