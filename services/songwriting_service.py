@@ -210,8 +210,6 @@ class SongwritingService:
         draft = self._drafts.get(draft_id)
         if not draft:
             raise KeyError("draft_not_found")
-        if draft.completed_at is not None:
-            raise ValueError("song_already_completed")
         if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
             raise PermissionError("forbidden")
         return draft
@@ -322,6 +320,8 @@ class SongwritingService:
         draft = self._drafts.get(draft_id)
         if not draft:
             raise KeyError("draft_not_found")
+        if draft.completed_at is not None:
+            raise ValueError("song_already_completed")
         if draft.creator_id != user_id and user_id not in self._co_writers.get(draft_id, set()):
             if not (self.band_service and self.band_service.share_band(draft.creator_id, user_id)):
                 raise PermissionError("forbidden")
